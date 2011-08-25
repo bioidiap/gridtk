@@ -209,7 +209,7 @@ class JobManager:
       os.unlink(self.state_file)
 
   def submit(self, *args, **kwargs):
-    """Calls the configure qsub method and registers the job"""
+    """Calls tools.qsub and registers the job to the SGE"""
 
     kwargs['context'] = self.context
     jobid = qsub(*args, **kwargs)
