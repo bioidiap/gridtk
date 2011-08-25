@@ -32,7 +32,7 @@ To interact with the Job Manager we use the `jman` utility. Make sure to have
 your shell environment setup to reach it w/o requiring to type-in the full
 path. The first task you may need to pursue is to submit jobs. Here is how:
 
-.. code-block:: shell
+.. code-block:: sh
 
   $ jman torch -- dbmanage.py --help
   Submitted (torch'd) 6151645 @all.q (0 seconds ago) -S /usr/bin/python /idiap/group/torch5spro/nightlies/last/bin/shell.py -- dbmanage.py --help
@@ -55,7 +55,7 @@ Once the job has been submitted you will noticed a database file (by default
 called `.jobmanager.db`) has been created in the current working directory. It
 contains the information for the job you just submitted:
 
-.. code-block:: shell
+.. code-block:: sh
 
   $ jman list
   job-id   queue  age                         arguments                       
@@ -74,7 +74,7 @@ it is monitoring. Finished jobs will be reported to the screen and removed from
 the job manager database and placed on a second database (actually two)
 containing jobs that failed and jobs that succeeded.
 
-.. code-block:: shell
+.. code-block:: sh
   
   $ jman refresh
   These jobs require attention:
@@ -93,7 +93,7 @@ requires attention. If jobs fail, they are copied to a database named
 `failure.db` in the current directory. Otherwise, they are copied to
 `success.db`. You can inspect the job log files like this:
 
-.. code-block:: shell
+.. code-block:: sh
 
   $ jman explain failure.db
   Job 6151645 @all.q (34 minutes ago) -S /usr/bin/python /idiap/group/torch5spro/nightlies/last/bin/shell.py -- dbmanage.py --help
@@ -117,7 +117,7 @@ If you are convinced the job did not work because of external conditions (e.g.
 temporary network outage), you may re-submit it, *exactly* like it was
 submitted the first time:
 
-.. code-block:: shell
+.. code-block:: sh
 
   $ jman resubmit --clean failure.db
   Re-submitted job 6151663 @all.q (1 second ago) -S /usr/bin/python /idiap/group/torch5spro/nightlies/last/bin/shell.py -- dbmanage.py --help
@@ -136,7 +136,7 @@ The job in question will not work no matter how many times we re-submit it. It
 is not a temporary error. In these circumstances, I may just want to clean the
 job and do something else. The job manager is here for you again:
 
-.. code-block:: shell
+.. code-block:: sh
 
   $ jman cleanup --remove-job failure.db
   Cleaning-up logs for job 6151663 @all.q (5 minutes ago) -S /usr/bin/python /idiap/group/torch5spro/nightlies/last/bin/shell.py -- dbmanage.py --help
@@ -147,34 +147,3 @@ job and do something else. The job manager is here for you again:
 Inspection on the current directory will now show you everything concerning the
 said job is gone.
 
-Programatically submit and query for jobs
------------------------------------------
-
-The Job Manager is part of the `gridtk` framework, which is a python library to
-help submitting, tracking and querying SGE. Here is quick example on how to use
-the `gridtk` framework:
-
-.. code-block:: python
-
-  # This variable points to the torch5spro root directory you want to use
-  TORCH = '/idiap/group/torch5spro/nightlies/last'
-
-  from gridtk.manager import JobManager
-
-  # This helps constructing the command line with bracket'ed by Torch
-  from gridtk.tools import make_torch_wrapper
-
-  man = JobManager()
-  command = ['dbmange.py', '--help']
-  command, kwargs = make_torch_wrapper(TORCH, False, command, kwargs)
-
-  # For more options look do help(gridtk.qsub)
-  job = man.submit(command, cwd=True, stdout='logs', name='testjob')
-
-You can do, programatically, everything you can do with the job manager just
-browse the help messages and the `jman` script for more information.
-
-.. note::
-
-  To be able to import the `gridtk` library, you must have it on your
-  PYTHONPATH.
