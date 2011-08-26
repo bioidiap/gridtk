@@ -77,7 +77,9 @@ def remove(f):
 def delete(args):
   
   jm = setup(args)
-  for k in args.jobid:
+  jobs = jm.keys()
+  if args.jobid: jobs = args.jobid
+  for k in jobs:
     if jm.has_key(k):
       J = jm[k]
       del jm[k]
@@ -291,7 +293,7 @@ def main():
   delparser = cmdparser.add_parser('delete', aliases=['del', 'rm', 'remove'],
       help='removes jobs from the database; if jobs are running or are still scheduled in SGE, the jobs are also removed from the SGE queue')
   delparser.add_argument('jobid', metavar='ID', nargs='+', type=int,
-      help='the SGE job identifiers as provided by the list command (first field)')
+      default=[], help='the SGE job identifiers as provided by the list command (first field)')
   delparser.add_argument('-r', '--remove-logs', dest='also_logs', default=False, action='store_true', help='if set I\'ll also remove the logs if they exist')
   delparser.set_defaults(func=delete)
 
