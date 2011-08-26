@@ -109,12 +109,10 @@ def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
   jobid = sexec(context, scmd)
   return int(jobid.split('.',1)[0])
 
-def make_shell(shell, command, kwargs):
+def make_shell(shell, command):
   """Returns a single command given a shell and a command to be qsub'ed
   
-  Keyword parameters: (please read the help of qsub())
-    (read the help of qsub() for details on extra arguments that may be
-    supplied)
+  Keyword parameters:
 
   shell
     The path to the shell to use when submitting the job.
@@ -122,18 +120,16 @@ def make_shell(shell, command, kwargs):
   command
     The script path to be submitted
 
-  Returns the args and kwargs parameters to be supplied to qsub()
+  Returns the command parameters to be supplied to qsub()
   """
 
-  return (['-S', shell] + command, kwargs)
+  return ['-S', shell] + command
 
 def make_python_wrapper(wrapper, command):
   """Returns a single command given a python wrapper and a command to be
   qsub'ed by that wrapper.
   
-  Keyword parameters: (please read the help of qsub())
-    (read the help of qsub() for details on extra arguments that may be
-    supplied)
+  Keyword parameters:
 
   wrapper
     This is the python wrapper to be used for prefixing the environment in
