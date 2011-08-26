@@ -83,7 +83,7 @@ def delete(args):
     if jm.has_key(k):
       J = jm[k]
       del jm[k]
-      print "Deleted job %s" % descr
+      print "Deleted job %s" % J
       if args.also_logs:
         remove(J.stdout_filename())
         remove(J.stderr_filename())
