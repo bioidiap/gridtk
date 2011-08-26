@@ -127,7 +127,7 @@ def make_shell(shell, command, kwargs):
 
   return (['-S', shell] + command, kwargs)
 
-def make_python_wrapper(wrapper, command, kwargs):
+def make_python_wrapper(wrapper, command):
   """Returns a single command given a python wrapper and a command to be
   qsub'ed by that wrapper.
   
@@ -143,12 +143,12 @@ def make_python_wrapper(wrapper, command, kwargs):
   command
     The script path to be submitted
 
-  Returns the args and kwargs parameters to be supplied to qsub()
+  Returns the wrapper command to be supplied to qsub()
   """
 
   if not isinstance(wrapper, (list, tuple)): wrapper = [wrapper]
   if not isinstance(command, (list, tuple)): command = [command]
-  return make_shell('/usr/bin/python', wrapper + ['--'] + command, kwargs)
+  return make_shell('/usr/bin/python', wrapper + ['--'] + command)
 
 def make_torch_wrapper(torch, debug, command, kwargs):
   """Submits a command using the Torch python wrapper so the **command**
@@ -169,7 +169,10 @@ def make_torch_wrapper(torch, debug, command, kwargs):
   command
     The script path to be submitted
 
-  Returns the args and kwargs parameters to be supplied to qsub()
+  kwargs
+    The set of parameters to be sent to qsub(), as a python dictionary
+
+  Returns the command and kwargs parameters to be supplied to qsub()
   """
   binroot = os.path.join(torch, 'bin')
   shell = os.path.join(binroot, 'shell.py')
@@ -184,7 +187,7 @@ def make_torch_wrapper(torch, debug, command, kwargs):
   if not kwargs.has_key('env'): kwargs['env'] = {}
   kwargs['env'].append('OVERWRITE_TORCH5SPRO_BINROOT=%s' % binroot)
 
-  return make_python_wrapper(wrapper, command, kwargs)
+  return make_python_wrapper(wrapper, command), kwargs
 
 def qstat(jobid, context='grid'):
   """Queries status of a given job.

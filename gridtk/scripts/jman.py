@@ -115,7 +115,7 @@ def wsubmit(args):
       'stderr': args.stderr,
       'env': args.env,
       }
-  command, kwargs = make_python_wrapper(args.wrapper, args.job, kwargs)
+  command = make_python_wrapper(args.wrapper, args.job)
   job = jm.submit(command, **kwargs)
   job = jm.submit(args.wrapper, args.job, **kwargs)
   print 'Submitted (wrapped)', job
