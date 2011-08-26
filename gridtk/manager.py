@@ -226,6 +226,9 @@ class JobManager:
   def keys(self):
     return self.job.keys()
 
+  def has_key(self, key):
+    return self.job.has_key(key)
+
   def __getitem__(self, key):
     return self.job[key]
 
