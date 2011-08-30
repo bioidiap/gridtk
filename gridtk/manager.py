@@ -30,8 +30,6 @@ def try_get_contents(filename):
 def try_remove_files(filename, verbose):
   """Safely removes files from the filesystem"""
 
-  import pdb; pdb.set_trace()
-
   if isinstance(filename, (tuple, list)):
     for k in filename:
       if os.path.exists(k): 
