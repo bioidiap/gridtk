@@ -14,22 +14,79 @@ from cPickle import dumps, loads
 from .tools import qsub, qstat, qdel
 from .setshell import environ
 
+import re
+JOB_ARRAY_SPLIT = re.compile(r'^(?P<m>\d+)-(?P<n>\d+):(?P<s>\d+)$')
+
+def try_get_contents(filename):
+  """Loads contents out of a certain filename"""
+
+  try:
+    return open(filename, 'rt').read()
+  except OSError, e:
+    logging.warn("Could not find file '%s'" % filename)
+
+  return ''
+
+def try_remove_files(filename, verbose):
+  """Safely removes files from the filesystem"""
+
+  import pdb; pdb.set_trace()
+
+  if isinstance(filename, (tuple, list)):
+    for k in filename:
+      if os.path.exists(k): 
+        os.unlink(k)
+        if verbose: print verbose + ("removed `%f'" % k)
+  else:
+    if os.path.exists(filename): 
+      os.unlink(filename)
+      if verbose: print verbose + ("removed `%f'" % filename)
+
 class Job:
   """The job class describes a job"""
 
   def __init__(self, data, args, kwargs):
+
     self.data = data
-    self.data['user_args'] = args
-    self.data['user_kwargs'] = kwargs
+    self.args = args
+    self.kwargs = kwargs
+    if self.data.has_key('job-array tasks'):
+      b = JOB_ARRAY_SPLIT.match(self.data['job-array tasks']).groupdict()
+      self.array =  (int(b['m']), int(b['n']), int(b['s']))
+    else:
+      self.array = None
 
   def id(self):
     """Returns my own numerical id"""
+
     return int(self.data['job_number'])
+
+  def name(self, instance=None):
+    """Returns my own numerical id"""
+
+    if self.is_array():
+      if isinstance(instance, (int, long)):
+        return self.data['job_number'] + '.%d' % instance
+      else:
+        return self.data['job_number'] + '.%d-%d:%d' % self.array
+    else:
+      return self.data['job_number']
+
+  def is_array(self):
+    """Determines if this job is an array or not."""
+    
+    return bool(self.array)
+
+  def array_bounds(self):
+    """If this job is an array (parametric) job, returns a tuple containing 3
+    elements indicating the start, end and step of the parametric job."""
+
+    return self.array
 
   def age(self, short=True):
     """Returns a string representation indicating, approximately, how much time
     has ellapsed since the job was submitted. The input argument must be a
-    string as defined in the filed 'submission_time' """
+    string as defined in the filed 'submission_time'"""
 
     translate = {
         's': 'second',
@@ -68,8 +125,14 @@ class Job:
       plural = "" if value == 1 else "s"
       return "%d %s%s" % (value, translate[unit], plural)
 
-  def stdout_filename(self):
-    """Returns the stdout filename for this job, with the full path"""
+  def queue(self):
+    """The hard resource_list comes like this: 'qname=all.q mem=128M'. To 
+    process it we have to split it twice (spaces and then on '='), create a
+    dictionary and extract just the qname"""
+
+    return dict([k.split('=') for k in self.data['hard resource_list'].split()])['qname']
+
+  def __std_filename__(self, indicator, instance):
     
     base_dir = self.data['sge_o_home']
     if self.data.has_key('cwd'): base_dir = self.data['cwd']
@@ -80,77 +143,116 @@ class Job:
       if p[0] == os.sep: base_dir = p
       else: base_dir = os.path.join(base_dir, p)
 
-    return os.path.join(base_dir, self.data['job_name'] + 
-        '.o%s' % self.data['job_number'])
+    retval = os.path.join(base_dir, self.data['job_name'] + 
+        '.%s%s' % (indicator, self.data['job_number']))
 
-  def stderr_filename(self):
+    if self.array:
+      start, stop, step = self.array
+      l = range(start, stop+1, step)
+      if isinstance(instance, (long, int)):
+        if instance not in l: 
+          raise RuntimeError, "instance is not part of parametric array"
+        return retval + '.%d' % instance
+      else:
+        return tuple([retval + '.%d' % k for k in l])
+
+    return retval
+
+  def stdout_filename(self, instance=None):
+    """Returns the stdout filename for this job, with the full path"""
+
+    return self.__std_filename__('o', instance)
+
+  def stdout(self, instance=None):
+    """Returns a string with the contents of the stdout file"""
+
+    if self.array and instance is None:
+      return '\n'.join([try_get_contents(k) for k in self.stdout_filename()])
+    else:
+      return try_get_contents(self.stdout_filename(instance))
+
+  def rm_stdout(self, instance=None, verbose=False):
+
+    try_remove_files(self.stdout_filename(instance), verbose)
+
+  def stderr_filename(self, instance=None):
     """Returns the stderr filename for this job, with the full path"""
     
-    base_dir = self.data['sge_o_home']
-    if self.data.has_key('cwd'): base_dir = self.data['cwd']
+    return self.__std_filename__('e', instance)
+    
+  def stderr(self, instance=None):
+    """Returns a string with the contents of the stderr file"""
 
-    # add-on error directory
-    if self.data.has_key('stderr_path_list'):
-      p = self.data['stderr_path_list'].split(':')[2]
-      if p[0] == os.sep: base_dir = p
-      else: base_dir = os.path.join(base_dir, p)
+    if self.array and instance is None:
+      return '\n'.join([try_get_contents(k) for k in self.stderr_filename()])
+    else:
+      return try_get_contents(self.stderr_filename(instance))
 
-    return os.path.join(base_dir, self.data['job_name'] + 
-        '.e%s' % self.data['job_number'])
+  def rm_stderr(self, instance=None, verbose=False):
+
+    try_remove_files(self.stderr_filename(instance), verbose)
 
   def check(self):
-    """Checks if the job was detected to be completed"""
+    """Checks if the job is in error state. If this job is a parametric job, it
+    will return an error state if **any** of the parametrized jobs are in error
+    state."""
 
-    err_file = self.stderr_filename()
+    def check_file(name, jobname):
+      try:
+        if os.stat(name).st_size != 0:
+          logging.debug("Job %s has a stderr file with size != 0" % jobname)
+          return False
+      except OSError, e:
+        logging.warn("Could not find error file '%s'" % name)
+      return True
 
-    try:
-      if os.stat(err_file).st_size != 0:
-        logging.debug("Job %s has a stderr file with size != 0" % \
-            self.data['job_number'])
-        return False
-    except OSError, e:
-      logging.warn("Could not find error file '%s'" % err_file)
+    if self.array:
+      start, stop, step = self.array
+      files = self.stderr_filename()
+      jobnames = [self.name(k) for k in range(start, stop+1, step)]
+      return tuple([check_file(*args) for args in zip(files, jobnames)])
+    else:
+      return check_file(self.stderr_filename(), self.name())
 
-    logging.debug("Zero size error log at '%s'" % err_file)
-    return True
+  def check_array(self):
+    """Checks if any of the jobs in a parametric job array has failed. Returns
+    a list of sub-job identifiers that failed."""
+
+    if not self.array:
+      raise RuntimeError, 'Not a parametric job'
+
+    def check_file(name, jobname):
+      try:
+        if os.stat(name).st_size != 0:
+          logging.debug("Job %s has a stderr file with size != 0" % jobname)
+          return False
+      except OSError, e:
+        logging.warn("Could not find error file '%s'" % f)
+      return True
+
+    start, stop, step = self.array
+    files = self.stderr_filename()
+    ids = range(start, stop+1, step)
+    jobnames = [self.name(k) for k in ids]
+    retval = []
+    for i, jobname, f in zip(ids, jobnames, files):
+      if not check_file(f, jobname): retval.append(i)
+    return retval
 
   def __str__(self):
     """Returns a string containing a short job description"""
 
-    return "%s @%s (%s ago) %s" % (self.data['job_number'],
-        self.data['hard'].split('=')[1], self.age(short=False),
-        ' '.join(self.data['user_args'][0]))
+    return "%s @%s (%s ago) %s" % (self.name(),
+        self.queue(), self.age(short=False), ' '.join(self.args[0]))
 
   def row(self, fmt):
-    """Returns a string containing the job description suitable for a table"""
+    """Returns a string containing the job description suitable for a table."""
 
-    return fmt % (self.data['job_number'],
-        self.data['hard'].split('=')[1], self.age(),
-        ' '.join(self.data['user_args'][0]))
+    cmdline = ' '.join(self.args[0])
+    if len(cmdline) > fmt[-1]:
+      cmdline = cmdline[:(fmt[-1]-3)] + '...'
 
-  def stderr(self):
-    """Returns a string with the contents of the stderr file"""
-
-    err_file = self.stderr_filename()
-
-    try:
-      return open(err_file, 'rt').read()
-    except OSError, e:
-      logging.warn("Could not find error file '%s'" % err_file)
-
-    return ""
-
-  def stdout(self):
-    """Returns a string with the contents of the stdout file"""
-
-    out_file = self.stdout_filename()
-
-    try:
-      return open(out_file, 'rt').read()
-    except OSError, e:
-      logging.warn("Could not find output file '%s'" % output_file)
-
-    return ""
+    return fmt % (self.name(), self.queue(), self.age(), cmdline)
 
   def has_key(self, key):
     return self.data.has_key(key)
@@ -173,7 +275,7 @@ class Job:
 class JobManager:
   """The JobManager will submit and control the status of submitted jobs"""
 
-  def __init__(self, statefile='.jobmanager.db', context='grid'):
+  def __init__(self, statefile='submitted.db', context='grid'):
     """Intializes this object with a state file and a method for qsub'bing.
 
     Keyword parameters:
@@ -217,11 +319,20 @@ class JobManager:
     self.job[jobid] = Job(qstat(jobid, context=self.context), args, kwargs)
     return self.job[jobid]
 
-  def resubmit(self, job, dependencies=[]):
+  def resubmit(self, job, dependencies=[], failed_only=False):
     """Re-submit jobs automatically"""
 
-    if dependencies: job['user_kwargs']['deps'] = dependencies
-    return self.submit(job['user_args'][0], **job['user_kwargs'])
+    if dependencies: job.kwargs['deps'] = dependencies
+
+    if failed_only and job.is_array():
+      retval = []
+      for k in job.check_array():
+        job.kwargs['array'] = (k,k,1)
+        retval.append(self.submit(job.args[0], **job.kwargs))
+      return retval
+
+    else: #either failed_only is not set or submit the job as it was, entirely
+      return self.submit(job.args[0], **job.kwargs)
 
   def keys(self):
     return self.job.keys()
@@ -242,7 +353,7 @@ class JobManager:
 
     # configuration
     fields = ("job-id", "queue", "age", "arguments")
-    lengths = (8, 5, 3, 55)
+    lengths = (16, 5, 3, 47)
     marker = '='
 
     # work
@@ -262,13 +373,13 @@ class JobManager:
     """Returns a string explaining a certain job"""
     return str(self[key])
 
-  def stdout(self, key):
+  def stdout(self, key, instance=None):
     """Gets the output of a certain job"""
-    return self[key].stdout()
+    return self[key].stdout(instance)
 
-  def stderr(self, key):
+  def stderr(self, key, instance=None):
     """Gets the error output of a certain job"""
-    return self[key].stderr()
+    return self[key].stderr(instance)
 
   def refresh(self):
     """Conducts a qstat over all jobs in the cache. If the job is not present

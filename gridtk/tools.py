@@ -12,7 +12,7 @@ import re
 import logging
 
 # Constant regular expressions
-WHITE_SPACE = re.compile('\s+')
+QSTAT_FIELD_SEPARATOR = re.compile(':\s+')
 
 def makedirs_safe(fulldir):
   """Creates a directory if it does not exists. Takes into consideration
@@ -26,7 +26,7 @@ def makedirs_safe(fulldir):
     else: raise
 
 def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
-    stderr='', env=[], context='grid'):
+    stderr='', env=[], array=None, context='grid'):
   """Submits a shell job to a given grid queue
   
   Keyword parameters:
@@ -58,6 +58,25 @@ def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
   env
     This is a list of extra variables that will be set on the environment
     running the command of your choice.
+
+  array
+    If set should be either:
+    
+    1. a string in the form m[-n[:s]] which indicates the starting range 'm',
+       the closing range 'n' and the step 's'. 
+    2. an integer value indicating the total number of jobs to be submitted.
+       This is equivalent ot set the parameter to a string "1-k:1" where "k" is
+       the passed integer value
+    3. a tuple that contains either 1, 2 or 3 elements indicating the start,
+       end and step arguments ("m", "n", "s").
+
+    The minimum value for "m" is 1. Giving "0" is an error.
+    
+    If submitted with this option, the job to be created will be an SGE
+    parametric job. In this mode SGE does not allow individual control of each
+    job. The environment variable SGE_TASK_ID will be set on the executing
+    process automatically by SGE and indicates the unique identifier in the
+    range for which the current job instance is for.
 
   context
     The setshell context in which we should try a 'qsub'. Normally you don't
@@ -100,6 +119,20 @@ def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
   scmd += ['-terse'] # simplified job identifiers returned by the command line
 
   for k in env: scmd += ['-v', k]
+
+  if array is not None:
+    scmd.append('-t')
+    if isinstance(array, (str, unicode, int, long)):
+      scmd.append('%s' % array)
+    if isinstance(array, (tuple, list)):
+      if len(array) < 1 or len(array) > 3:
+        raise RuntimeError, "Array tuple should have length between 1 and 3"
+      elif len(array) == 1:
+        scmd.append('%s' % array[0])
+      elif len(array) == 2:
+        scmd.append('%s-%s' % (array[0], array[1]))
+      elif len(array) == 3:
+        scmd.append('%s-%s:%s' % (array[0], array[1], array[2]))
 
   if not isinstance(command, (list, tuple)): command = [command]
   scmd += command
@@ -215,8 +248,7 @@ def qstat(jobid, context='grid'):
     s = line.strip()
     if s.lower().find('do not exist') != -1: return {}
     if not s or s.find(10*'=') != -1: continue
-    key, value = WHITE_SPACE.split(s, 1)
-    key = key.rstrip(':')
+    key, value = QSTAT_FIELD_SEPARATOR.split(s, 1)
     retval[key] = value
 
   return retval
