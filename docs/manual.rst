@@ -15,12 +15,13 @@ named `.jobmanager.db`) is read or written so it preserves its state during
 decoupled calls. The database contains all informations about jobs that is
 required for the Job Manager to:
 
-* submit jobs (includes wrapped jobs or Torch5spro specific jobs)
+* submit jobs (includes wrapped python jobs or Torch5spro specific jobs)
 * probe for submitted jobs
 * query SGE for submitted jobs
 * identify problems with submitted jobs
 * cleanup logs from submitted jobs
 * easily re-submit jobs if problems occur
+* support for parametric (array) jobs
 
 Many of these features are also achieveable using the stock SGE utilities, the
 Job Manager only makes it dead simple.
@@ -47,6 +48,14 @@ and consider all remaining arguments as part of the command to be submitted.
   environment that is created by Torch5spro's `shell.py`. It is not the only
   way to submit a job using the Job Manager. You can use either `submit` or
   `wrapper`. Read the full help message of `jman` for details and instructions.
+
+Submitting a parametric job
+---------------------------
+
+.. code-block:: sh
+
+  $ jman torch -t 1-5:2 -- dbmanage.py --help
+  Submitted (torch'd) 6151645 @all.q (0 seconds ago) -S /usr/bin/python /idiap/group/torch5spro/nightlies/last/bin/shell.py -- dbmanage.py --help
 
 Probing for jobs
 ----------------

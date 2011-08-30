@@ -243,12 +243,12 @@ class Job:
     return "%s @%s (%s ago) %s" % (self.name(),
         self.queue(), self.age(short=False), ' '.join(self.args[0]))
 
-  def row(self, fmt):
+  def row(self, fmt, maxcmd=0):
     """Returns a string containing the job description suitable for a table."""
 
     cmdline = ' '.join(self.args[0])
-    if len(cmdline) > fmt[-1]:
-      cmdline = cmdline[:(fmt[-1]-3)] + '...'
+    if maxcmd and len(cmdline) > maxcmd:
+      cmdline = cmdline[:(maxcmd-3)] + '...'
 
     return fmt % (self.name(), self.queue(), self.age(), cmdline)
 
@@ -349,9 +349,14 @@ class JobManager:
   def __str__(self):
     """Returns the status of each job still being tracked"""
 
+    return self.table(43)
+
+  def table(self, maxcmdline=0):
+    """Returns the status of each job still being tracked"""
+
     # configuration
     fields = ("job-id", "queue", "age", "arguments")
-    lengths = (16, 5, 3, 47)
+    lengths = (20, 5, 3, 43)
     marker = '='
 
     # work
@@ -361,7 +366,7 @@ class JobManager:
     header = '  '.join(header)
 
     return '\n'.join([header] + [delimiter] + \
-        [self[k].row(fmt) for k in self.job])
+        [self[k].row(fmt, maxcmdline) for k in self.job])
 
   def clear(self):
     """Clear the whole job queue"""

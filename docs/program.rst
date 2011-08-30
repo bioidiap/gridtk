@@ -26,7 +26,7 @@ querying SGE. Here is quick example on how to use the `gridtk` framework:
   # For more options look do help(gridtk.qsub)
   job = man.submit(command, cwd=True, stdout='logs', name='testjob')
 
-You can do, programatically, everything you can do with the job manager just
+You can do, programatically, everything you can do with the job manager - just
 browse the help messages and the `jman` script for more information.
 
 .. note::

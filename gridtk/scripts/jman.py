@@ -41,7 +41,8 @@ def ls(args):
   """List action"""
 
   jm = setup(args)
-  print jm
+  if args.verbose: print jm.table(0)
+  else: print jm
 
 def save_jobs(j, name):
   """Saves jobs in a database"""
