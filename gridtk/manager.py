@@ -32,11 +32,11 @@ def try_remove_files(filename, verbose):
 
   if isinstance(filename, (tuple, list)):
     for k in filename:
-      if os.path.exists(k): 
+      if os.path.exists(k):
         os.unlink(k)
         if verbose: print verbose + ("removed `%f'" % k)
   else:
-    if os.path.exists(filename): 
+    if os.path.exists(filename):
       os.unlink(filename)
       if verbose: print verbose + ("removed `%f'" % filename)
 
@@ -165,7 +165,7 @@ class Job:
     """Returns a string with the contents of the stdout file"""
 
     if self.array and instance is None:
-      return '\n'.join([try_get_contents(k) for k in self.stdout_filename()])
+      return '\n'.join([l for l in [try_get_contents(k) for k in self.stdout_filename()] if l])
     else:
       return try_get_contents(self.stdout_filename(instance))
 
@@ -182,7 +182,7 @@ class Job:
     """Returns a string with the contents of the stderr file"""
 
     if self.array and instance is None:
-      return '\n'.join([try_get_contents(k) for k in self.stderr_filename()])
+      return '\n'.join([l for l in [try_get_contents(k) for k in self.stderr_filename()] if l])
     else:
       return try_get_contents(self.stderr_filename(instance))
 
