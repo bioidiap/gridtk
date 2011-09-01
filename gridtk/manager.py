@@ -27,18 +27,27 @@ def try_get_contents(filename):
 
   return ''
 
-def try_remove_files(filename, verbose):
+def try_remove_files(filename, recurse, verbose):
   """Safely removes files from the filesystem"""
 
   if isinstance(filename, (tuple, list)):
     for k in filename:
       if os.path.exists(k):
         os.unlink(k)
-        if verbose: print verbose + ("removed `%f'" % k)
+        if verbose: print verbose + ("removed `%s'" % k)
+        d = os.path.dirname(k)
+        if recurse and not os.listdir(d): 
+          os.removedirs(d)
+          if verbose: print verbose + ("recursively removed `%s'" % d)
+
   else:
     if os.path.exists(filename):
       os.unlink(filename)
-      if verbose: print verbose + ("removed `%f'" % filename)
+      if verbose: print verbose + ("removed `%s'" % filename)
+      d = os.path.dirname(filename)
+      if recurse and not os.listdir(d): 
+        os.removedirs(d)
+        if verbose: print verbose + ("recursively removed `%s'" % d)
 
 class Job:
   """The job class describes a job"""
@@ -169,9 +178,9 @@ class Job:
     else:
       return try_get_contents(self.stdout_filename(instance))
 
-  def rm_stdout(self, instance=None, verbose=False):
+  def rm_stdout(self, instance=None, recurse=True, verbose=False):
 
-    try_remove_files(self.stdout_filename(instance), verbose)
+    try_remove_files(self.stdout_filename(instance), recurse, verbose)
 
   def stderr_filename(self, instance=None):
     """Returns the stderr filename for this job, with the full path"""
@@ -186,9 +195,9 @@ class Job:
     else:
       return try_get_contents(self.stderr_filename(instance))
 
-  def rm_stderr(self, instance=None, verbose=False):
+  def rm_stderr(self, instance=None, recurse=True, verbose=False):
 
-    try_remove_files(self.stderr_filename(instance), verbose)
+    try_remove_files(self.stderr_filename(instance), recurse, verbose)
 
   def check(self):
     """Checks if the job is in error state. If this job is a parametric job, it

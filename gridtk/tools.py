@@ -10,9 +10,17 @@ probing.
 import os
 import re
 import logging
+import hashlib
+import random
 
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(':\s+')
+
+def random_logdir():
+  """Generates a random log directory for placing the command output"""
+
+  x = hashlib.md5(str(random.randint(100000,999999))).hexdigest()
+  return os.path.join(x[:2], x[2:4], x[4:6])
 
 def makedirs_safe(fulldir):
   """Creates a directory if it does not exists. Takes into consideration
@@ -111,7 +119,7 @@ def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
     scmd += ['-o', stdout]
 
   if stderr:
-    if not os.path.exists(stdout): makedirs_safe(stdout)
+    if not os.path.exists(stderr): makedirs_safe(stderr)
     scmd += ['-e', stderr]
   elif stdout: #just re-use the stdout settings
     scmd += ['-e', stdout]
@@ -179,7 +187,7 @@ def make_python_wrapper(wrapper, command):
   if not isinstance(command, (list, tuple)): command = [command]
   return make_shell('/usr/bin/python', wrapper + ['--'] + command)
 
-def make_torch_wrapper(torch, debug, command, kwargs):
+def make_torch_wrapper(torch, debug, command):
   """Submits a command using the Torch python wrapper so the **command**
   executes in a valid Torch context.
   
@@ -198,11 +206,9 @@ def make_torch_wrapper(torch, debug, command, kwargs):
   command
     The script path to be submitted
 
-  kwargs
-    The set of parameters to be sent to qsub(), as a python dictionary
-
-  Returns the command and kwargs parameters to be supplied to qsub()
+  Returns the command and environment parameters to be supplied to qsub()
   """
+
   binroot = os.path.join(torch, 'bin')
   shell = os.path.join(binroot, 'shell.py')
   if not os.path.exists(shell):
@@ -212,11 +218,9 @@ def make_torch_wrapper(torch, debug, command, kwargs):
 
   if debug: wrapper += ['--debug']
 
-  # adds OVERWRITE_TORCH5SPRO_ROOT to the execution environment
-  if not kwargs.has_key('env'): kwargs['env'] = {}
-  kwargs['env'].append('OVERWRITE_TORCH5SPRO_BINROOT=%s' % binroot)
+  env = 'OVERWRITE_TORCH5SPRO_BINROOT=%s' % binroot
 
-  return make_python_wrapper(wrapper, command), kwargs
+  return make_python_wrapper(wrapper, command), env
 
 def qstat(jobid, context='grid'):
   """Queries status of a given job.

@@ -21,7 +21,7 @@ from cPickle import dumps
 import argparse
 
 from ..manager import JobManager
-from ..tools import make_python_wrapper, make_torch_wrapper
+from ..tools import make_python_wrapper, make_torch_wrapper, random_logdir
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -84,7 +84,6 @@ def delete(args):
   for k in jobs:
     if jm.has_key(k):
       J = jm[k]
-      del jm[k]
       if args.also_logs:
         if args.verbose: 
           J.rm_stdout(verbose='  ')
@@ -92,6 +91,7 @@ def delete(args):
         else: 
           J.rm_stdout()
           J.rm_stderr()
+      del jm[k]
       if args.verbose: print "Deleted job %s" % J
       else: print "Deleted job", J.name()
     
@@ -99,6 +99,10 @@ def delete(args):
       print "Ignored job %d (not found on manager)" % k
 
 def submit(args):
+  """Normal submission"""
+
+  if args.stdout is None: args.stdout = os.path.join('logs', random_logdir())
+  if args.stderr is None: args.stderr = args.stdout
   
   jm = setup(args)
   kwargs = {
@@ -116,42 +120,17 @@ def submit(args):
   else: print 'Job', job.name(), 'submitted'
 
 def wsubmit(args):
+  """Wrapped submission"""
   
-  jm = setup(args)
-  kwargs = {
-      'queue': args.qname,
-      'cwd': True,
-      'name': args.name,
-      'deps': args.deps,
-      'stdout': args.stdout,
-      'stderr': args.stderr,
-      'env': args.env,
-      'array': args.array,
-      }
-  command = make_python_wrapper(args.wrapper, args.job)
-  job = jm.submit(command, **kwargs)
-  job = jm.submit(args.wrapper, args.job, **kwargs)
-  if args.verbose: print 'Submitted (wrapped)', job
-  else: print 'Job', job.name(), 'submitted'
+  args.job = make_python_wrapper(args.wrapper, args.job)
+  submit(args)
 
 def tsubmit(args):
+  """Torch5spro-based submission"""
 
-  jm = setup(args)
-  kwargs = {
-      'queue': args.qname,
-      'cwd': True,
-      'name': args.name,
-      'deps': args.deps,
-      'stdout': args.stdout,
-      'stderr': args.stderr,
-      'env': args.env,
-      'array': args.array,
-      }
-  command, kwargs = make_torch_wrapper(args.torch, args.torch_debug, 
-      args.job, kwargs)
-  job = jm.submit(command, **kwargs)
-  if args.verbose: print 'Submitted (wrapped)', job
-  else: print 'Job', job.name(), 'submitted'
+  args.job, env = make_torch_wrapper(args.torch, args.torch_debug, args.job)
+  args.env.insert(0, env)
+  submit(args)
 
 def explain(args):
   """Explain action"""
@@ -219,8 +198,8 @@ def add_submission_options(parser):
   parser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
   parser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int,
       default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
-  parser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', default='logs', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to "%(default)s")')
-  parser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', default='logs', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to "%(default)s")')
+  parser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
+  parser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to what stdout will be set to)')
   parser.add_argument('-s', '--environment', '--env', metavar='KEY=VALUE',
       dest='env', nargs='*', default=[],
       help='Passes specific environment variables to the job')
@@ -344,6 +323,7 @@ def main():
   resubparser.set_defaults(func=resubmit)
 
   args = parser.parse_args()
+
   args.func(args)
 
   sys.exit(0)
