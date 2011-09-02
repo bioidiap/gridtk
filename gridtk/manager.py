@@ -326,10 +326,13 @@ class JobManager:
     self.job[jobid] = Job(qstat(jobid, context=self.context), args, kwargs)
     return self.job[jobid]
 
-  def resubmit(self, job, dependencies=[], failed_only=False):
+  def resubmit(self, job, stdout='', stderr='', dependencies=[], 
+      failed_only=False):
     """Re-submit jobs automatically"""
 
     if dependencies: job.kwargs['deps'] = dependencies
+    if stdout: job.kwargs['stdout'] = stdout
+    if stderr: job.kwargs['stderr'] = stderr
 
     if failed_only and job.is_array():
       retval = []

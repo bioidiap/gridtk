@@ -164,7 +164,11 @@ def resubmit(args):
   if args.jobid: jobs = args.jobid
   for k in jobs:
     O = fromjm[k]
-    J = jm.resubmit(O, args.deps, args.failed_only)
+
+    if args.stdout is None: args.stdout = os.path.join('logs', random_logdir())
+    if args.stderr is None: args.stderr = args.stdout
+  
+    J = jm.resubmit(O, args.stdout, args.stderr, args.deps, args.failed_only)
     
     if args.verbose: 
       if isinstance(J, (tuple, list)):
@@ -317,6 +321,8 @@ def main():
       default=[], help='by default I\'ll re-submit all jobs, unless you limit giving job identifiers')
   resubparser.add_argument('-r', '--cleanup', dest='cleanup', default=False, action='store_true', help='if set I\'ll also remove the old logs if they exist and the re-submitted job from the re-submission database. Note that cleanup always means to cleanup the entire job entries and files. If the job was a parametric job, all output and error files will also be removed.')
   resubparser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int, default=[], metavar='ID', nargs='*', help='when you re-submit jobs, dependencies are reset; if you need dependencies, add them using this option')
+  resubparser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
+  resubparser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to what stdout will be set to)')
   resubparser.add_argument('-F', '--failed-only', dest='failed_only',
       default=False, action='store_true', help='if set only re-submit sub-jobs in a parametric array that failed. By default I would re-submit all jobs if you don\'t specify this flag. This flag is just ignored for non-parametric jobs.')
 
