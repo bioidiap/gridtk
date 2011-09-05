@@ -151,9 +151,11 @@ def explain(args):
     J = jm[k[0]]
     print "Job", J
     print "Command line:", J.args, J.kwargs
-    print "%s stdout (%s)" % (J.name(k[1]), J.stdout_filename(k[1]))
-    print J.stdout(k[1])
-    print "%s stderr (%s)" % (J.name(k[1]), J.stderr_filename(k[1]))
+    if args.verbose:
+      print "%s stdout (%s)" % (J.name(k[1]), J.stdout_filename(k[1]))
+      print J.stdout(k[1])
+    if args.verbose: 
+      print "%s stderr (%s)" % (J.name(k[1]), J.stderr_filename(k[1]))
     print J.stderr(k[1])
 
 def resubmit(args):

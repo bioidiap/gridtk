@@ -217,7 +217,7 @@ class Job:
       start, stop, step = self.array
       files = self.stderr_filename()
       jobnames = [self.name(k) for k in range(start, stop+1, step)]
-      return tuple([check_file(*args) for args in zip(files, jobnames)])
+      return False not in [check_file(*args) for args in zip(files, jobnames)]
     else:
       return check_file(self.stderr_filename(), self.name())
 
