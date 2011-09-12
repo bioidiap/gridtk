@@ -35,19 +35,19 @@ def try_remove_files(filename, recurse, verbose):
       if os.path.exists(k):
         os.unlink(k)
         if verbose: print verbose + ("removed `%s'" % k)
-        d = os.path.dirname(k)
-        if recurse and not os.listdir(d): 
-          os.removedirs(d)
-          if verbose: print verbose + ("recursively removed `%s'" % d)
+      d = os.path.dirname(k)
+      if recurse and not os.listdir(d): 
+        os.removedirs(d)
+        if verbose: print verbose + ("recursively removed `%s'" % d)
 
   else:
     if os.path.exists(filename):
       os.unlink(filename)
       if verbose: print verbose + ("removed `%s'" % filename)
       d = os.path.dirname(filename)
-      if recurse and not os.listdir(d): 
-        os.removedirs(d)
-        if verbose: print verbose + ("recursively removed `%s'" % d)
+    if recurse and not os.listdir(d): 
+      os.removedirs(d)
+      if verbose: print verbose + ("recursively removed `%s'" % d)
 
 class Job:
   """The job class describes a job"""
