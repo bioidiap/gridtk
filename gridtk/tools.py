@@ -33,7 +33,7 @@ def makedirs_safe(fulldir):
     if exc.errno == errno.EEXIST: pass
     else: raise
 
-def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
+def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid'):
   """Submits a shell job to a given grid queue
   
@@ -95,7 +95,10 @@ def qsub(command, queue='all.q', cwd=True, name=None, deps=[], stdout='',
   Returns a list of job ids assigned to this job (integers)
   """
 
-  scmd = ['qsub', '-l', 'qname=%s' % queue]
+  scmd = ['qsub']
+
+  if queue and (queue != 'all.q') and (queue != 'default'):  
+    scmd += ['-l', queue]
 
   if cwd: scmd += ['-cwd']
 
