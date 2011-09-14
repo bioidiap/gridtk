@@ -43,7 +43,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     The command to be submitted to the grid
 
   queue
-    A valid queue name
+    A valid queue name or None, to use the default queue
 
   cwd
     If the job should change to the current working directory before starting
@@ -97,7 +97,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   scmd = ['qsub']
 
-  if queue and (queue != 'all.q') and (queue != 'default'):  
+  if isinstance(queue, str) and queue not in ('all.q', 'default'):
     scmd += ['-l', queue]
 
   if cwd: scmd += ['-cwd']
