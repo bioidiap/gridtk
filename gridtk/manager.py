@@ -44,7 +44,7 @@ def try_remove_files(filename, recurse, verbose):
     if os.path.exists(filename):
       os.unlink(filename)
       if verbose: print verbose + ("removed `%s'" % filename)
-      d = os.path.dirname(filename)
+    d = os.path.dirname(filename)
     if recurse and os.path.exists(d) and not os.listdir(d): 
       os.removedirs(d)
       if verbose: print verbose + ("recursively removed `%s'" % d)
