@@ -34,7 +34,7 @@ def makedirs_safe(fulldir):
     else: raise
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
-    stderr='', env=[], array=None, context='grid', mem_free=None):
+    stderr='', env=[], array=None, context='grid', mem_free=None, hostname=None):
   """Submits a shell job to a given grid queue
   
   Keyword parameters:
@@ -96,6 +96,11 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     If set, it asks the queue for a node with a minimum amount of free memory 
     (cf. qsub -l mem_free=<...>)
 
+  hostname
+    If set, it asks the queue to use only a subset of the available nodes
+    Symbols: | for OR, & for AND, ! for NOT, etc.
+    (cf. qsub -l hostname=<...>)
+
   Returns a list of job ids assigned to this job (integers)
   """
 
@@ -105,6 +110,8 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     scmd += ['-l', queue]
 
   if mem_free: scmd += ['-l', 'mem_free=%s' % mem_free]
+
+  if hostname: scmd += ['-l', 'hostname=%s' % hostname]
 
   if cwd: scmd += ['-cwd']
 
