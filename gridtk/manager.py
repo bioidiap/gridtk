@@ -133,12 +133,14 @@ class Job:
       return "%d %s%s" % (value, translate[unit], plural)
 
   def queue(self):
-    """The hard resource_list comes like this: '<qname>=TRUE mem=128M'. To 
+    """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To 
     process it we have to split it twice (spaces and then on '='), create a
     dictionary and extract just the qname"""
 
     if not 'hard resource_list' in self.data: return 'all.q'
-    return dict([reversed(k.split('=')) for k in self.data['hard resource_list'].split()])['TRUE']
+    d = dict([reversed(k.split('=')) for k in self.data['hard resource_list'].split(',')])
+    if not 'TRUE' in d: return 'all.q'
+    return d['TRUE']
 
   def __std_filename__(self, indicator, instance):
     
