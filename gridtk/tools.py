@@ -34,7 +34,8 @@ def makedirs_safe(fulldir):
     else: raise
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
-    stderr='', env=[], array=None, context='grid', mem_free=None, hostname=None):
+    stderr='', env=[], array=None, context='grid', mem_free=None, hostname=None,
+    pe_opt=None):
   """Submits a shell job to a given grid queue
   
   Keyword parameters:
@@ -101,6 +102,9 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     Symbols: | for OR, & for AND, ! for NOT, etc.
     (cf. qsub -l hostname=<...>)
 
+  pe_opt
+    If set, add a -pe option when launching a job (for instance pe_exclusive* 1-)
+
   Returns a list of job ids assigned to this job (integers)
   """
 
@@ -112,6 +116,8 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if mem_free: scmd += ['-l', 'mem_free=%s' % mem_free]
 
   if hostname: scmd += ['-l', 'hostname=%s' % hostname]
+
+  if pe_opt: scmd += ['-pe', pe_opt]
 
   if cwd: scmd += ['-cwd']
 
