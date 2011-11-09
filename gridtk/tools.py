@@ -117,7 +117,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   if hostname: scmd += ['-l', 'hostname=%s' % hostname]
 
-  if pe_opt: scmd += ['-pe', pe_opt]
+  if pe_opt: scmd += ['-pe'] + pe_opt.split()
 
   if cwd: scmd += ['-cwd']
 
