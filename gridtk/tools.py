@@ -34,7 +34,7 @@ def makedirs_safe(fulldir):
     else: raise
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
-    stderr='', env=[], array=None, context='grid', mem_free=None, hostname=None,
+    stderr='', env=[], array=None, context='grid', mem=None, hostname=None,
     pe_opt=None):
   """Submits a shell job to a given grid queue
   
@@ -93,9 +93,9 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     dictionary in which case we just setup using that context instead of
     probing for a new one, what can be fast.
 
-  mem_free
-    If set, it asks the queue for a node with a minimum amount of free memory 
-    (cf. qsub -l mem_free=<...>)
+  mem
+    If set, it asks the queue for a node with a minimum amount of memory 
+    (cf. qsub -l mem_free=<...> -l h_vmem=<...>)
 
   hostname
     If set, it asks the queue to use only a subset of the available nodes
@@ -113,7 +113,9 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if isinstance(queue, str) and queue not in ('all.q', 'default'):
     scmd += ['-l', queue]
 
-  if mem_free: scmd += ['-l', 'mem_free=%s' % mem_free]
+  if mem: 
+    scmd += ['-l', 'mem_free=%s' % mem]
+    scmd += ['-l', 'h_vmem=%s' % mem]
 
   if hostname: scmd += ['-l', 'hostname=%s' % hostname]
 
