@@ -276,8 +276,8 @@ def qstat(jobid, context='grid'):
     s = line.strip()
     if s.lower().find('do not exist') != -1: return {}
     if not s or s.find(10*'=') != -1: continue
-    key, value = QSTAT_FIELD_SEPARATOR.split(s, 1)
-    retval[key] = value
+    kv = QSTAT_FIELD_SEPARATOR.split(s, 1)
+    if len(kv) == 2: retval[kv[0]] = kv[1]
 
   return retval
 
