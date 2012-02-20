@@ -209,7 +209,7 @@ def make_python_wrapper(wrapper, command):
 
   if not isinstance(wrapper, (list, tuple)): wrapper = [wrapper]
   if not isinstance(command, (list, tuple)): command = [command]
-  return make_shell('/usr/bin/python', wrapper + ['--'] + command)
+  return make_shell('/usr/bin/python', wrapper + command)
 
 def make_torch_wrapper(torch, debug, command):
   """Submits a command using the Torch python wrapper so the **command**
