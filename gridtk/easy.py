@@ -32,10 +32,10 @@ def add_arguments(parser):
       help='Queue for submission - one of ' + \
           '|'.join(q_choices) + ' (defaults to "%(default)s")')
 
-  parser.add_argument('--no-cwd', default='True', action='store_false',
+  parser.add_argument('--no-cwd', default=True, action='store_false',
       dest='cwd', help='Do not change to the current directory when starting the grid job')
 
-  parser.add_argument('--dry-run', default='False', action='store_true',
+  parser.add_argument('--dry-run', default=False, action='store_true',
       dest='dryrun', help='Does not really submit anything, just print what would do instead')
 
   return parser
@@ -100,7 +100,7 @@ def submit(jman, command, arguments, deps=[], array=None):
     return DryRunJob(cmd, cwd=arguments.cwd, queue=arguments.queue,
         stdout=logdir, stderr=logdir, name=jobname, deps=deps,
         array=array)
-
+  
   # really submit
   return jman.submit(cmd, cwd=arguments.cwd, queue=arguments.queue,
       stdout=logdir, stderr=logdir, name=jobname, deps=deps,
