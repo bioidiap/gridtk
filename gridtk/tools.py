@@ -188,7 +188,7 @@ def make_shell(shell, command):
   Returns the command parameters to be supplied to qsub()
   """
 
-  return ['-S', shell] + command
+  return ('-S', shell) + tuple(command)
 
 def make_python_wrapper(wrapper, command):
   """Returns a single command given a python wrapper and a command to be
