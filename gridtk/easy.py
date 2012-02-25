@@ -52,6 +52,8 @@ def create_manager(arguments):
   if arguments.statefile is None:
     arguments.statefile = os.path.join(os.path.dirname(arguments.logdir), 'submitted.db')
 
+  arguments.statefile = os.path.realpath(arguments.statefile)
+
   return manager.JobManager(statefile=arguments.statefile)
 
 class DryRunJob(object):
