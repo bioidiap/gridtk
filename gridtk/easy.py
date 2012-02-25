@@ -14,8 +14,10 @@ def add_arguments(parser):
   """Adds stock arguments to argparse parsers from scripts that submit grid
   jobs."""
 
+  default_log_path = os.path.realpath('logs')
+
   parser.add_argument('--log-dir', metavar='LOG', type=str,
-      dest='logdir', default=os.path.realpath('logs'),
+      dest='logdir', default=default_log_path,
       help='Base directory used for logging (defaults to "%(default)s")')
 
   q_choices = (
@@ -37,6 +39,12 @@ def add_arguments(parser):
 
   parser.add_argument('--dry-run', default=False, action='store_true',
       dest='dryrun', help='Does not really submit anything, just print what would do instead')
+
+  default_state_file = os.path.join(os.path.dirname(default_log_path),
+      'submitted.db')
+
+  parser.add_argument('--job-database', default=default_state_file,
+      dest='statefile', help='The path to the state file that will be created with the submissions (defaults to "%(default)s")')
 
   return parser
 
