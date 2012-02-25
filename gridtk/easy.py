@@ -9,6 +9,7 @@
 import os
 import sys
 from . import tools
+from . import manager
 
 def add_arguments(parser):
   """Adds stock arguments to argparse parsers from scripts that submit grid
@@ -40,13 +41,18 @@ def add_arguments(parser):
   parser.add_argument('--dry-run', default=False, action='store_true',
       dest='dryrun', help='Does not really submit anything, just print what would do instead')
 
-  default_state_file = os.path.join(os.path.dirname(default_log_path),
-      'submitted.db')
-
-  parser.add_argument('--job-database', default=default_state_file,
-      dest='statefile', help='The path to the state file that will be created with the submissions (defaults to "%(default)s")')
+  parser.add_argument('--job-database', default=None,
+      dest='statefile', help='The path to the state file that will be created with the submissions (defaults to the parent directory of your logs directory)')
 
   return parser
+
+def create_manager(arguments):
+  """A simple wrapper to JobManager() that places the statefile on the correct path by default"""
+
+  if arguments.statefile is None:
+    arguments.statefile = os.path.join(os.path.dirname(arguments.logdir), 'submitted.db')
+
+  return manager.JobManager(statefile=arguments.statefile)
 
 class DryRunJob(object):
   """A simple wrapper for dry-run jobs that behaves like a normal job"""
