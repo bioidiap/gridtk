@@ -21,7 +21,7 @@ from cPickle import dumps
 import argparse
 
 from ..manager import JobManager
-from ..tools import make_python_wrapper, make_torch_wrapper, random_logdir
+from ..tools import make_shell, make_python_wrapper, make_torch_wrapper, random_logdir
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -118,6 +118,12 @@ def submit(args):
   job = jm.submit(args.job, **kwargs)
   if args.verbose: print 'Submitted', job
   else: print 'Job', job.name(), 'submitted'
+
+def pysubmit(args):
+  """Wrapped submission"""
+  
+  args.job = make_shell(sys.executable, args.job)
+  submit(args)
 
 def wsubmit(args):
   """Wrapped submission"""
@@ -295,6 +301,13 @@ def main():
   subparser.set_defaults(func=submit)
   subparser.add_argument('job', metavar='command', nargs='+')
 
+  # subcommand 'pysubmit'
+  pysubparser = cmdparser.add_parser('pysubmit', aliases=['pysub', 'python'],
+      help='submits a job that will be executed inside the context of a python interprter (the same as the current one)')
+  add_submission_options(pysubparser)
+  pysubparser.set_defaults(func=pysubmit)
+  pysubparser.add_argument('job', metavar='command', nargs='+')
+  
   # subcommand 'wsubmit'
   wsubparser = cmdparser.add_parser('wsubmit', aliases=['wsub', 'wrapper'],
       help='submits a job that will be executed inside the context of a python wrapper script - note the wrapper script will be considered the SGE job and the actual prefixed command just an option; the wrapper script must be able to run and self-configure using stock components available in the OS')
