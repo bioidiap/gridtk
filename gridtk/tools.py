@@ -35,7 +35,7 @@ def makedirs_safe(fulldir):
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None, 
-    mem=None, memfree=None, hvmem=None, hostname=None, pe_opt=None):
+    mem=None, memfree=None, hvmem=None, pe_opt=None):
   """Submits a shell job to a given grid queue
   
   Keyword parameters:
