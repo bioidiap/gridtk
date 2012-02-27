@@ -35,6 +35,19 @@ def add_arguments(parser):
       help='Queue for submission - one of ' + \
           '|'.join(q_choices) + ' (defaults to "%(default)s")')
 
+  parser.add_argument('--hostname', metavar='HOSTNAME', type=str,
+      dest='hostname', default=None,
+      help='If set, it asks the queue to use only a subset of the available nodes')
+  parser.add_argument('--memfree', metavar='MEMFREE', type=str,
+      dest='memfree', default=None,
+      help='Adds the \'-l mem_free\' argument to qsub')
+  parser.add_argument('--hvmem', metavar='HVMEM', type=str,
+      dest='hvmem', default=None,
+      help='Adds the \'-l h_vmem\' argument to qsub')
+  parser.add_argument('--pe-opt', metavar='PE_OPT', type=str,
+      dest='pe_opt', default=None,
+      help='Adds the \'--pe \' argument to qsub')
+
   parser.add_argument('--no-cwd', default=True, action='store_false',
       dest='cwd', help='Do not change to the current directory when starting the grid job')
 
@@ -62,7 +75,7 @@ class DryRunJob(object):
   # distributed as jobs are "submitted"
   current_id = 0
 
-  def __init__(self, cmd, cwd, queue, stdout, stderr, name, array, deps):
+  def __init__(self, cmd, cwd, queue, hostname, memfree, hvmem, pe_opt, stdout, stderr, name, array, deps):
     
     self.myid = DryRunJob.current_id
     DryRunJob.current_id += 1
@@ -70,6 +83,10 @@ class DryRunJob(object):
     self.cmd = cmd
     self.cwd = cwd
     self.queue = queue
+    self.hostname = hostname
+    self.memfree = memfree
+    self.hvmem = hvmem
+    self.pe_opt = pe_opt
     self.stdout = stdout
     self.stderr = stderr
     self.name = name
@@ -79,19 +96,27 @@ class DryRunJob(object):
   def __str__(self):
     
     return """
-  id     : %d
-  command: %s
-  cwd    : %s
-  queue  : %s
-  stdout : %s
-  stderr : %s
-  name   : %s
-  array  : %s
-  depends: %s""" % (
+  id       : %d
+  command  : %s
+  cwd      : %s
+  queue    : %s
+  hostname : %s
+  memfree  : %s
+  hvmem    : %s
+  pe_opt   : %s
+  stdout   : %s
+  stderr   : %s
+  name     : %s
+  array    : %s
+  depends  : %s""" % (
     self.myid,
     self.cmd,
     self.cwd,
     self.queue,
+    self.hostname,
+    self.memfree,
+    self.hvmem,
+    self.pe_opt,
     self.stdout,
     self.stderr, 
     self.name,
@@ -114,10 +139,14 @@ def submit(jman, command, arguments, deps=[], array=None):
 
   if arguments.dryrun:
     return DryRunJob(cmd, cwd=arguments.cwd, queue=arguments.queue,
+        hostname=arguments.hostname, memfree=arguments.memfree,
+        hvmem=arguments.hvmem, pe_opt=arguments.pe_opt,
         stdout=logdir, stderr=logdir, name=jobname, deps=deps,
         array=array)
   
   # really submit
   return jman.submit(cmd, cwd=arguments.cwd, queue=arguments.queue,
+      hostname=arguments.hostname, memfree=arguments.memfree,
+      hvmem=arguments.hvmem, pe_opt=arguments.pe_opt,
       stdout=logdir, stderr=logdir, name=jobname, deps=deps,
       array=array)

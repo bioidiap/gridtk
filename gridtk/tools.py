@@ -34,8 +34,8 @@ def makedirs_safe(fulldir):
     else: raise
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
-    stderr='', env=[], array=None, context='grid', mem=None, hostname=None,
-    pe_opt=None):
+    stderr='', env=[], array=None, context='grid', hostname=None, 
+    mem=None, memfree=None, hvmem=None, hostname=None, pe_opt=None):
   """Submits a shell job to a given grid queue
   
   Keyword parameters:
@@ -94,8 +94,20 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     probing for a new one, what can be fast.
 
   mem
-    If set, it asks the queue for a node with a minimum amount of memory 
+    @deprecated Please use memfree and hvmem options separately
+    If set, it asks the queue for a node with a minimum amount of memory,
+    setting both mem_free and h_vmem.
     (cf. qsub -l mem_free=<...> -l h_vmem=<...>)
+
+  memfree
+    If set, it asks the queue for a node with a minimum amount of memory 
+    Used only if mem is not set
+    (cf. qsub -l mem_free=<...>)
+
+  hvmem
+    If set, it asks the queue for a node with a minimum amount of memory 
+    Used only if mem is not set
+    (cf. qsub -l h_vmem=<...>)
 
   hostname
     If set, it asks the queue to use only a subset of the available nodes
@@ -116,6 +128,9 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if mem: 
     scmd += ['-l', 'mem_free=%s' % mem]
     scmd += ['-l', 'h_vmem=%s' % mem]
+  else:
+    if memfree: scmd += ['-l', 'mem_free=%s' % mem]
+    if hvmem: scmd += ['-l', 'h_vmem=%s' % mem]
 
   if hostname: scmd += ['-l', 'hostname=%s' % hostname]
 
