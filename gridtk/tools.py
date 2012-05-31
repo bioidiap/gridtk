@@ -129,8 +129,8 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     scmd += ['-l', 'mem_free=%s' % mem]
     scmd += ['-l', 'h_vmem=%s' % mem]
   else:
-    if memfree: scmd += ['-l', 'mem_free=%s' % mem]
-    if hvmem: scmd += ['-l', 'h_vmem=%s' % mem]
+    if memfree: scmd += ['-l', 'mem_free=%s' % memfree]
+    if hvmem: scmd += ['-l', 'h_vmem=%s' % hvmem]
 
   if hostname: scmd += ['-l', 'hostname=%s' % hostname]
 
