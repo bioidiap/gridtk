@@ -20,7 +20,7 @@ setup(
         ]
       },
 
-    long_description=open('docs/manual.rst').read(),
+    long_description=open('README.rst').read(),
 
     install_requires=[
         "argparse", #any version will do
