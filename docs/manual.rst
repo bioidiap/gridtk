@@ -1,7 +1,3 @@
-.. vim: set fileencoding=utf-8 :
-.. Andre Anjos <andre.anjos@idiap.ch>
-.. Thu 25 Aug 2011 14:23:15 CEST 
-
 =================
  SGE Job Manager
 =================
