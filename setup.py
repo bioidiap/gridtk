@@ -5,7 +5,7 @@ setup(
     version='0.1',
     description='SGE Grid Submission and Monitoring Tools for Idiap',
 
-    #url='http://pypi.python.org/pypi/TowelStuff/',
+    url='https://github.com/idiap/gridtk',
     license='LICENSE.txt',
 
     author='Andre Anjos',
