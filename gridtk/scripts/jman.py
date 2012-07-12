@@ -286,14 +286,14 @@ def main():
       help='submits self-contained jobs to the SGE queue and logs them in a private database')
   add_submission_options(subparser)
   subparser.set_defaults(func=submit)
-  subparser.add_argument('job', metavar='command', nargs='+')
+  subparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
 
   # subcommand 'pysubmit'
   pysubparser = cmdparser.add_parser('pysubmit', aliases=['pysub', 'python'],
       help='submits a job that will be executed inside the context of a python interprter (the same as the current one)')
   add_submission_options(pysubparser)
   pysubparser.set_defaults(func=pysubmit)
-  pysubparser.add_argument('job', metavar='command', nargs='+')
+  pysubparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
   
   # subcommand 'resubmit'
   resubparser = cmdparser.add_parser('resubmit', aliases=['resub', 're'],
