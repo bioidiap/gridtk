@@ -6,33 +6,22 @@
  The GridTk User Guide
 =======================
 
-The `gridtk` framework is a python library to help submitting, tracking and
-querying SGE. Here is quick example on how to use the `gridtk` framework:
+The ``gridtk`` framework is a python library to help submitting, tracking and
+querying SGE. Here is quick example on how to use the ``gridtk`` framework to
+submit a python script:
 
 .. code-block:: python
 
-  # This variable points to the torch5spro root directory you want to use
-  TORCH = '/idiap/group/torch5spro/nightlies/last'
-
+  import sys
   from gridtk.manager import JobManager
+  from gridtk.tools import make_shell
 
-  # This helps constructing the command line with bracket'ed by Torch
-  from gridtk.tools import make_torch_wrapper
-
-  man = JobManager()
-  command = ['dbmange.py', '--help']
-  command, kwargs = make_torch_wrapper(TORCH, False, command, kwargs)
-
-  # For more options look do help(gridtk.qsub)
-  job = man.submit(command, cwd=True, stdout='logs', name='testjob')
+  manager = JobManager()
+  command = make_shell(sys.executable, ['myscript.py', '--help'])
+  job = manager.submit(command)
 
 You can do, programatically, everything you can do with the job manager - just
-browse the help messages and the `jman` script for more information.
-
-.. note::
-
-  To be able to import the `gridtk` library, you must have it on your
-  PYTHONPATH.
+browse the help messages and the ``jman`` script for more information.
 
 Reference Manual
 ----------------
