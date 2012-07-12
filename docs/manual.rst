@@ -31,12 +31,12 @@ path. The first task you may need to pursue is to submit jobs. Here is how:
 
 .. code-block:: sh
 
-  $ jman pysubmit myscript.py --help
+  $ jman submit myscript.py --help
   Submitted 6151645 @all.q (0 seconds ago) -S /usr/bin/python myscript.py --help
 
 .. note::
 
-  The command `pysubmit` of the Job Manager will submit a job that will run in
+  The command `submit` of the Job Manager will submit a job that will run in
   a python environment. It is not the only way to submit a job using the Job
   Manager. You can also use `submit`, that considers the command as a self
   sufficient application. Read the full help message of ``jman`` for details and
@@ -55,7 +55,7 @@ the same parameters. Only the variable ``SGE_TASK_ID`` changes between them:
 
 .. code-block:: sh
 
-  $ jman pysubmit -t 10 myscript.py --help
+  $ jman submit -t 10 myscript.py --help
   Submitted 6151645 @all.q (0 seconds ago) -S /usr/bin/python myscript.py --help
 
 The ``-t`` option in ``jman`` accepts different kinds of job array
