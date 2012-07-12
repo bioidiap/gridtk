@@ -99,7 +99,11 @@ def delete(args):
       print "Ignored job %d (not found on manager)" % k
 
 def submit(args):
-  """Normal submission"""
+  """Submission command"""
+
+  # automatically set interpreter if required
+  if args.python or os.path.splitext(args.job)[1] in ('.py',):
+    args.job = make_shell(sys.executable, args.job)
 
   if args.stdout is None: args.stdout = os.path.join('logs', random_logdir())
   if args.stderr is None: args.stderr = args.stdout
@@ -115,15 +119,21 @@ def submit(args):
       'env': args.env,
       'array': args.array,
       }
+
+  if args.dry_run:
+    print 'Would submit:', args.job, 'to', args.qname, 'with',
+    print 'array:', args.array,
+    print 'cwd:', args.cwd,
+    print 'deps:', args.deps,
+    print 'stdout:', args.stdout,
+    print 'stderr:', args.stderr,
+    print 'env:', args.env
+    return
+
+  # if you get here, submit the job
   job = jm.submit(args.job, **kwargs)
   if args.verbose: print 'Submitted', job
   else: print 'Job', job.name(), 'submitted'
-
-def pysubmit(args):
-  """Wrapped submission"""
-  
-  args.job = make_shell(sys.executable, args.job)
-  submit(args)
 
 def explain(args):
   """Explain action"""
@@ -185,25 +195,6 @@ def resubmit(args):
         O.rm_stderr()
       del fromjm[k]
       print '  deleted job %s from database' % O.name()
-
-def add_submission_options(parser):
-  """Adds standard submission options to a given parser"""
-
-  parser.add_argument('-q', '--queue', metavar='QNAME', 
-      dest='qname', default='all.q', help='the name of the SGE queue to submit the job to (defaults to "%(default)s")')
-  #this is ON by default as it helps job management
-  #parser.add_argument('-c', '--cwd', default=False, action='store_true',
-  #    dest='cwd', help='Makes SGE switch to the current working directory before executing the job')
-  parser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
-  parser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int,
-      default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
-  parser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
-  parser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to what stdout will be set to)')
-  parser.add_argument('-s', '--environment', '--env', metavar='KEY=VALUE',
-      dest='env', nargs='*', default=[],
-      help='Passes specific environment variables to the job')
-  parser.add_argument('-t', '--array', '--parametric', metavar='n[-m[:s]]',
-      dest='array', help='Creates a parametric (array) job. You must specify the starting range "n" (>=1), the stopping (inclusive) range "m" and the step "s". Read the qsub command man page for details')
 
 class AliasedSubParsersAction(argparse._SubParsersAction):
   """Hack taken from https://gist.github.com/471779 to allow aliases in 
@@ -284,17 +275,28 @@ def main():
   # subcommand 'submit'
   subparser = cmdparser.add_parser('submit', aliases=['sub'],
       help='submits self-contained jobs to the SGE queue and logs them in a private database')
-  add_submission_options(subparser)
+  parser.add_argument('-q', '--queue', metavar='QNAME', 
+      dest='qname', default='all.q', help='the name of the SGE queue to submit the job to (defaults to "%(default)s")')
+  #this is ON by default as it helps job management
+  #parser.add_argument('-c', '--cwd', default=False, action='store_true',
+  #    dest='cwd', help='Makes SGE switch to the current working directory before executing the job')
+  parser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
+  parser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int,
+      default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
+  parser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
+  parser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to what stdout will be set to)')
+  parser.add_argument('-s', '--environment', '--env', metavar='KEY=VALUE',
+      dest='env', nargs='*', default=[],
+      help='Passes specific environment variables to the job')
+  parser.add_argument('-t', '--array', '--parametric', metavar='n[-m[:s]]',
+      dest='array', help='Creates a parametric (array) job. You must specify the starting range "n" (>=1), the stopping (inclusive) range "m" and the step "s". Read the qsub command man page for details')
+  parser.add_argument('-p', '--py', '--python', dest='python', default=False,
+      action='store_true', help='Wrap execution of your command using the current python interpreter')
+  parser.add_argument('-z', '--dry-run', dest='dry_run', default=False,
+      action='store_true', help='Do not really submit anything, just print out what would submit in this case')
   subparser.set_defaults(func=submit)
   subparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
 
-  # subcommand 'pysubmit'
-  pysubparser = cmdparser.add_parser('pysubmit', aliases=['pysub', 'python'],
-      help='submits a job that will be executed inside the context of a python interprter (the same as the current one)')
-  add_submission_options(pysubparser)
-  pysubparser.set_defaults(func=pysubmit)
-  pysubparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
-  
   # subcommand 'resubmit'
   resubparser = cmdparser.add_parser('resubmit', aliases=['resub', 're'],
       help='resubmits all jobs in a given database, exactly like they were submitted the first time')

@@ -117,7 +117,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   pe_opt
     If set, add a -pe option when launching a job (for instance pe_exclusive* 1-)
 
-  Returns a list of job ids assigned to this job (integers)
+  Returns the job id assigned to this job (integer)
   """
 
   scmd = ['qsub']
@@ -192,10 +192,11 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   scmd += command
 
   logging.debug("Qsub command '%s'", ' '.join(scmd))
+
   from .setshell import sexec
   jobid = sexec(context, scmd)
   return int(jobid.split('.',1)[0])
-
+  
 def make_shell(shell, command):
   """Returns a single command given a shell and a command to be qsub'ed
   
