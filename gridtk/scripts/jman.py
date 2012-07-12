@@ -102,7 +102,7 @@ def submit(args):
   """Submission command"""
 
   # automatically set interpreter if required
-  if args.python or os.path.splitext(args.job)[1] in ('.py',):
+  if args.python or os.path.splitext(args.job[0])[1] in ('.py',):
     args.job = make_shell(sys.executable, args.job)
 
   if args.stdout is None: args.stdout = os.path.join('logs', random_logdir())
@@ -121,9 +121,8 @@ def submit(args):
       }
 
   if args.dry_run:
-    print 'Would submit:', args.job, 'to', args.qname, 'with',
+    print '-> Job', args.job, 'to', args.qname, 'with',
     print 'array:', args.array,
-    print 'cwd:', args.cwd,
     print 'deps:', args.deps,
     print 'stdout:', args.stdout,
     print 'stderr:', args.stderr,
@@ -238,7 +237,6 @@ def main():
   parser.register('action', 'parsers', AliasedSubParsersAction)
 
   # general options
-  parser.add_argument('-d', '--database', metavar='FILE', dest='db', help='replace the default database by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
   parser.add_argument('-v', '--verbose', dest='verbose', default=False,
       action='store_true', help='increase verbosity for this script')
   parser.add_argument('-g', '--debug', dest='debug', default=False,
@@ -248,6 +246,7 @@ def main():
   # subcommand 'list'
   lsparser = cmdparser.add_parser('list', aliases=['ls'],
       help='lists jobs stored in the database')
+  lsparser.add_argument('db', metavar='DATABASE', help='replace the default database by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   lsparser.set_defaults(func=ls)
 
   # subcommand 'refresh'
@@ -255,55 +254,59 @@ def main():
       help='refreshes the current list of executing jobs by querying SGE, updates the databases of currently executing jobs. If you wish, it may optionally save jobs that executed successfuly and/or failed execution')
   refparser.add_argument('-s', '--no-success-db', default='success.db', action='store_false', dest='successdb', help='if you provide a name of a file, jobs that have succeeded will be saved on this file (defaults to "%(default)s")')
   refparser.add_argument('-f', '--no-fail-db', dest='faildb', default='failure.db', action='store_false', help='if you provide a name of a file, jobs that have failed will be saved on this file (defaults to "%(default)s")')
+  refparser.add_argument('db', metavar='DATABASE', help='replace the default database to be refreshed by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   refparser.set_defaults(func=refresh)
 
   # subcommand 'explain'
   exparser = cmdparser.add_parser('explain', aliases=['why'],
       help='explains why jobs failed in a database')
-  exparser.add_argument('jobid', metavar='ID', nargs='*', type=str,
-      default=[], help='by default I\'ll explain all jobs, unless you limit giving job identifiers. Identifiers that contain a "." (dot) limits the explanation of a certain job only to a subjob in a parametric array. Everything that comes after the dot is ignored if the job is non-parametric.')
+  exparser.add_argument('-j', '--jobid', metavar='ID', dest='jobid', nargs='*', type=str, default=[], help='by default I\'ll explain all jobs, unless you limit giving job identifiers. Identifiers that contain a "." (dot) limits the explanation of a certain job only to a subjob in a parametric array. Everything that comes after the dot is ignored if the job is non-parametric.')
+  exparser.add_argument('db', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   exparser.set_defaults(func=explain)
 
   # subcommand 'delete'
   delparser = cmdparser.add_parser('delete', aliases=['del', 'rm', 'remove'],
       help='removes jobs from the database; if jobs are running or are still scheduled in SGE, the jobs are also removed from the SGE queue')
-  delparser.add_argument('jobid', metavar='ID', nargs='*', type=int,
-      default=[], help='the SGE job identifiers as provided by the list command (first field)')
+  delparser.add_argument('-j', '--jobid', metavar='ID', dest='jobid', nargs='*', type=int, default=[], help='the SGE job identifiers as provided by the list command (first field)')
   delparser.add_argument('-r', '--remove-logs', dest='also_logs', default=False, action='store_true', help='if set I\'ll also remove the logs if they exist')
+  delparser.add_argument('db', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   delparser.set_defaults(func=delete)
 
   # subcommand 'submit'
   subparser = cmdparser.add_parser('submit', aliases=['sub'],
       help='submits self-contained jobs to the SGE queue and logs them in a private database')
-  parser.add_argument('-q', '--queue', metavar='QNAME', 
+  subparser.add_argument('-d', '--db', '--database', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
+  subparser.add_argument('-q', '--queue', metavar='QNAME', 
       dest='qname', default='all.q', help='the name of the SGE queue to submit the job to (defaults to "%(default)s")')
   #this is ON by default as it helps job management
-  #parser.add_argument('-c', '--cwd', default=False, action='store_true',
+  #subparser.add_argument('-c', '--cwd', default=False, action='store_true',
   #    dest='cwd', help='Makes SGE switch to the current working directory before executing the job')
-  parser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
-  parser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int,
+  subparser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
+  subparser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int,
       default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
-  parser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
-  parser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to what stdout will be set to)')
-  parser.add_argument('-s', '--environment', '--env', metavar='KEY=VALUE',
+  subparser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
+  subparser.add_argument('-e', '--stderr', '--err', metavar='DIR', dest='stderr', help='Set the standard error of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to what stdout will be set to)')
+  subparser.add_argument('-s', '--environment', '--env', metavar='KEY=VALUE',
       dest='env', nargs='*', default=[],
       help='Passes specific environment variables to the job')
-  parser.add_argument('-t', '--array', '--parametric', metavar='n[-m[:s]]',
+  subparser.add_argument('-t', '--array', '--parametric', metavar='n[-m[:s]]',
       dest='array', help='Creates a parametric (array) job. You must specify the starting range "n" (>=1), the stopping (inclusive) range "m" and the step "s". Read the qsub command man page for details')
-  parser.add_argument('-p', '--py', '--python', dest='python', default=False,
+  subparser.add_argument('-p', '--py', '--python', dest='python', default=False,
       action='store_true', help='Wrap execution of your command using the current python interpreter')
-  parser.add_argument('-z', '--dry-run', dest='dry_run', default=False,
+  subparser.add_argument('-z', '--dry-run', dest='dry_run', default=False,
       action='store_true', help='Do not really submit anything, just print out what would submit in this case')
-  subparser.set_defaults(func=submit)
   subparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
+  subparser.set_defaults(func=submit)
 
   # subcommand 'resubmit'
   resubparser = cmdparser.add_parser('resubmit', aliases=['resub', 're'],
       help='resubmits all jobs in a given database, exactly like they were submitted the first time')
-  resubparser.add_argument('fromdb', metavar='FILE',
+  
+  resubparser.add_argument('fromdb', metavar='DATABASE',
       help='the name of the database to re-submit the jobs from')
-  resubparser.add_argument('jobid', metavar='ID', nargs='*', type=int,
-      default=[], help='by default I\'ll re-submit all jobs, unless you limit giving job identifiers')
+  resubparser.add_argument('db', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
+  
+  resubparser.add_argument('-j', '--jobid', dest='jobid', metavar='ID', nargs='*', type=int, default=[], help='by default I\'ll re-submit all jobs, unless you limit giving job identifiers')
   resubparser.add_argument('-r', '--cleanup', dest='cleanup', default=False, action='store_true', help='if set I\'ll also remove the old logs if they exist and the re-submitted job from the re-submission database. Note that cleanup always means to cleanup the entire job entries and files. If the job was a parametric job, all output and error files will also be removed.')
   resubparser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int, default=[], metavar='ID', nargs='*', help='when you re-submit jobs, dependencies are reset; if you need dependencies, add them using this option')
   resubparser.add_argument('-o', '--stdout', '--out', metavar='DIR', dest='stdout', help='Set the standard output of the job to be placed in the given directory - relative paths are interpreted according to the currently working directory (defaults to a randomly generated hashed directory structure)')
