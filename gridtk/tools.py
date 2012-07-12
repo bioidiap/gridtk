@@ -212,62 +212,6 @@ def make_shell(shell, command):
 
   return ('-S', shell) + tuple(command)
 
-def make_python_wrapper(wrapper, command):
-  """Returns a single command given a python wrapper and a command to be
-  qsub'ed by that wrapper.
-  
-  Keyword parameters:
-
-  wrapper
-    This is the python wrapper to be used for prefixing the environment in
-    which the **command** will execute. This parameter must be either a path to
-    the wrapper or a list with the wrapper and **wrapper** command options.
-
-  command
-    The script path to be submitted
-
-  Returns the wrapper command to be supplied to qsub()
-  """
-
-  if not isinstance(wrapper, (list, tuple)): wrapper = [wrapper]
-  if not isinstance(command, (list, tuple)): command = [command]
-  return make_shell('/usr/bin/python', wrapper + command)
-
-def make_torch_wrapper(torch, debug, command):
-  """Submits a command using the Torch python wrapper so the **command**
-  executes in a valid Torch context.
-  
-  Keyword parameters: (please read the help of qsub())
-    (read the help of qsub() for details on extra arguments that may be
-    supplied)
-
-  torch
-    This is the root directory for the torch installation you would like to use
-    for wrapping the execution of **command**.
-
-  debug
-    If set, this flag will switch the torch libraries to debug versions with
-    symbols loaded.
-
-  command
-    The script path to be submitted
-
-  Returns the command and environment parameters to be supplied to qsub()
-  """
-
-  binroot = os.path.join(torch, 'bin')
-  shell = os.path.join(binroot, 'shell.py')
-  if not os.path.exists(shell):
-    raise RuntimeError, 'Cannot locate wrapper "%s"' % shell
-
-  wrapper = [shell]
-
-  if debug: wrapper += ['--debug']
-
-  env = 'OVERWRITE_TORCH5SPRO_BINROOT=%s' % binroot
-
-  return make_python_wrapper(wrapper, command), env
-
 def qstat(jobid, context='grid'):
   """Queries status of a given job.
   

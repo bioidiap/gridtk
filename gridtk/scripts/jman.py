@@ -21,7 +21,7 @@ from cPickle import dumps
 import argparse
 
 from ..manager import JobManager
-from ..tools import make_shell, make_python_wrapper, make_torch_wrapper, random_logdir
+from ..tools import make_shell, random_logdir
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -123,19 +123,6 @@ def pysubmit(args):
   """Wrapped submission"""
   
   args.job = make_shell(sys.executable, args.job)
-  submit(args)
-
-def wsubmit(args):
-  """Wrapped submission"""
-  
-  args.job = make_python_wrapper(args.wrapper, args.job)
-  submit(args)
-
-def tsubmit(args):
-  """Torch5spro-based submission"""
-
-  args.job, env = make_torch_wrapper(args.torch, args.torch_debug, args.job)
-  args.env.insert(0, env)
   submit(args)
 
 def explain(args):
@@ -308,25 +295,6 @@ def main():
   pysubparser.set_defaults(func=pysubmit)
   pysubparser.add_argument('job', metavar='command', nargs='+')
   
-  # subcommand 'wsubmit'
-  wsubparser = cmdparser.add_parser('wsubmit', aliases=['wsub', 'wrapper'],
-      help='submits a job that will be executed inside the context of a python wrapper script - note the wrapper script will be considered the SGE job and the actual prefixed command just an option; the wrapper script must be able to run and self-configure using stock components available in the OS')
-  add_submission_options(wsubparser)
-  wsubparser.set_defaults(func=wsubmit)
-  wsubparser.add_argument('-w', '--wrapper', metavar='WRAPPER', dest='wrapper',
-      help='the python wrapper that will bracket the script execution and options')
-  wsubparser.add_argument('job', metavar='command', nargs='+')
-  
-  # subcommand 'torch'
-  tsubparser = cmdparser.add_parser('tsubmit', aliases=['tsub', 'torch'],
-      help='submits a job that will be executed inside the context of a torch release')
-  add_submission_options(tsubparser)
-  tsubparser.set_defaults(func=tsubmit)
-  tsubparser.add_argument('-T', '--torch', '--torch-root', metavar='DIR',
-      default='/idiap/group/torch5spro/nightlies/last', help='the root directory of a valid torch installation (defaults to %(default)s)')
-  tsubparser.add_argument('-D', '--torch-debug', dest='torch_debug', default=False, action='store_true', help='if set I\'ll setup the torch environment in debug mode')
-  tsubparser.add_argument('job', metavar='command', nargs='+')
-
   # subcommand 'resubmit'
   resubparser = cmdparser.add_parser('resubmit', aliases=['resub', 're'],
       help='resubmits all jobs in a given database, exactly like they were submitted the first time')
