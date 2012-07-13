@@ -5,4 +5,4 @@
 
 """Returns the currently compiled version number"""
 
-__version__ = __import__('pkg_resources').require('gridtk')[0].version
+__version__ = __import__('pkg_resources').get_distribution('gridtk').version
