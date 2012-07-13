@@ -118,10 +118,14 @@ def submit(args):
       'stderr': args.stderr,
       'env': args.env,
       'array': args.array,
+      'memfree': args.memory,
+      'hvmem': args.memory,
       }
 
   if args.dry_run:
     print '-> Job', args.job, 'to', args.qname, 'with',
+    print 'queue:', args.qname,
+    print 'memory:', args.memory,
     print 'array:', args.array,
     print 'deps:', args.deps,
     print 'stdout:', args.stdout,
@@ -231,6 +235,8 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
 
 def main():
 
+  from ..config import __version__
+
   parser = argparse.ArgumentParser(description=__doc__, epilog=__epilog__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
   # part of the hack to support aliases in subparsers
@@ -241,6 +247,8 @@ def main():
       action='store_true', help='increase verbosity for this script')
   parser.add_argument('-g', '--debug', dest='debug', default=False,
       action='store_true', help='prints out lots of debugging information')
+  parser.add_argument('-V', '--version', action='version', 
+      version='GridTk version %s' % __version__)
   cmdparser = parser.add_subparsers(title='commands', help='commands accepted by %(prog)s')
   
   # subcommand 'list'
@@ -281,6 +289,7 @@ def main():
   #this is ON by default as it helps job management
   #subparser.add_argument('-c', '--cwd', default=False, action='store_true',
   #    dest='cwd', help='Makes SGE switch to the current working directory before executing the job')
+  subparser.add_argument('-m', '--memory', dest='memory', help='Sets both the h_vmem **and** the mem_free parameters when submitting the job to the specified value (e.g. 8G to set the memory requirements to 8 gigabytes)')
   subparser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
   subparser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int,
       default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
