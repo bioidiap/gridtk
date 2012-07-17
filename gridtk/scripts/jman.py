@@ -86,8 +86,8 @@ def delete(args):
       J = jm[k]
       if args.also_logs:
         if args.verbose: 
-          J.rm_stdout(verbose='  ')
-          J.rm_stderr(verbose='  ')
+          J.rm_stdout(verbose='  ', recurse = not args.keep_log_dir)
+          J.rm_stderr(verbose='  ', recurse = not args.keep_log_dir)
         else: 
           J.rm_stdout()
           J.rm_stderr()
@@ -260,8 +260,8 @@ def main():
   # subcommand 'refresh'
   refparser = cmdparser.add_parser('refresh', aliases=['ref'],
       help='refreshes the current list of executing jobs by querying SGE, updates the databases of currently executing jobs. If you wish, it may optionally save jobs that executed successfuly and/or failed execution')
-  refparser.add_argument('-s', '--no-success-db', default='success.db', action='store_false', dest='successdb', help='if you provide a name of a file, jobs that have succeeded will be saved on this file (defaults to "%(default)s")')
-  refparser.add_argument('-f', '--no-fail-db', dest='faildb', default='failure.db', action='store_false', help='if you provide a name of a file, jobs that have failed will be saved on this file (defaults to "%(default)s")')
+  refparser.add_argument('-s', '--success-db', default='success.db', dest='successdb', metavar="DB", help='if you provide a name of a file, jobs that have succeeded will be saved on this file (defaults to "%(default)s")')
+  refparser.add_argument('-f', '--fail-db', dest='faildb', default='failure.db', metavar="DB", help='if you provide a name of a file, jobs that have failed will be saved on this file (defaults to "%(default)s")')
   refparser.add_argument('db', metavar='DATABASE', help='replace the default database to be refreshed by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   refparser.set_defaults(func=refresh)
 
@@ -277,6 +277,7 @@ def main():
       help='removes jobs from the database; if jobs are running or are still scheduled in SGE, the jobs are also removed from the SGE queue')
   delparser.add_argument('-j', '--jobid', metavar='ID', dest='jobid', nargs='*', type=int, default=[], help='the SGE job identifiers as provided by the list command (first field)')
   delparser.add_argument('-r', '--remove-logs', dest='also_logs', default=False, action='store_true', help='if set I\'ll also remove the logs if they exist')
+  delparser.add_argument('-R', '--keep-log-dir', dest='keep_log_dir', default=False, action='store_true', help='keep log directories when removing logs')
   delparser.add_argument('db', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   delparser.set_defaults(func=delete)
 
