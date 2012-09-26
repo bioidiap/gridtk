@@ -15,8 +15,14 @@ setup(
 
     entry_points={
       'console_scripts': [
-        'jman = gridtk.scripts.jman:main',
-        'grid = gridtk.scripts.grid:main',
+        'jman = gridtk.script.jman:main',
+        'grid = gridtk.script.grid:main',
+
+        # program replacements
+        'qstat = gridtk.script.grid:main',
+        'qdel = gridtk.script.grid:main',
+        'qsub = gridtk.script.grid:main',
+        'man = gridtk.script.grid:main',
         ]
       },
 
