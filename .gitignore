@@ -5,3 +5,7 @@
 build
 dist
 MANIFEST
+.installed.cfg
+develop-eggs
+eggs
+bin
