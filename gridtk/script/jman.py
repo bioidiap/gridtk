@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
 # Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 16:13:31 CEST 
+# Wed 24 Aug 2011 16:13:31 CEST
 
 """A logging Idiap/SGE job manager
 """
@@ -48,15 +48,15 @@ def save_jobs(j, name):
   """Saves jobs in a database"""
 
   db = anydbm.open(name, 'c')
-  for k in j: 
+  for k in j:
     ki = int(k['job_number'])
     db[dumps(ki)] = dumps(k)
 
 def refresh(args):
   """Refresh action"""
-  
+
   jm = setup(args)
-  (good, bad) = jm.refresh()
+  (good, bad) = jm.refresh(args.ignore_warnings)
 
   if good:
     if args.verbose:
@@ -77,7 +77,7 @@ def refresh(args):
     if args.faildb: save_jobs(bad, args.faildb)
 
 def delete(args):
-  
+
   jm = setup(args)
   jobs = jm.keys()
   if args.jobid: jobs = args.jobid
@@ -85,23 +85,23 @@ def delete(args):
     if jm.has_key(k):
       J = jm[k]
       if args.also_logs:
-        if args.verbose: 
+        if args.verbose:
           J.rm_stdout(verbose='  ', recurse = not args.keep_log_dir)
           J.rm_stderr(verbose='  ', recurse = not args.keep_log_dir)
-        else: 
+        else:
           J.rm_stdout()
           J.rm_stderr()
       del jm[k]
       if args.verbose: print "Deleted job %s" % J
       else: print "Deleted job", J.name()
-    
+
     else: # did not find specific key on database
       print "Ignored job %d (not found on manager)" % k
 
 def get_logdirs(stdout, stderr, logbase):
   """Calculates the stdout and stderr log directories based on a combination
   of user options.
-  
+
   Keyword parameters
 
   stdout
@@ -112,14 +112,14 @@ def get_logdirs(stdout, stderr, logbase):
 
   logbase
     User setting for logbase
- 
+
   Returns a tuple (stdout, stderr) with the absolute path names resolved.
   """
 
   # setup the base logdir
-  if not logbase: 
+  if not logbase:
     basedir = os.path.abspath(os.curdir)
-  else: 
+  else:
     basedir = os.path.abspath(logbase)
 
   if not stdout:
@@ -142,7 +142,7 @@ def submit(args):
   """Submission command"""
 
   # set full path to command
-  if not os.path.isabs(args.job[0]): 
+  if not os.path.isabs(args.job[0]):
     args.job[0] = os.path.abspath(args.job[0])
 
   # automatically set interpreter if required
@@ -203,7 +203,7 @@ def explain(args):
     if args.verbose:
       print "%s stdout (%s)" % (J.name(k[1]), J.stdout_filename(k[1]))
       print J.stdout(k[1])
-    if args.verbose: 
+    if args.verbose:
       print "%s stderr (%s)" % (J.name(k[1]), J.stderr_filename(k[1]))
     print J.stderr(k[1])
 
@@ -219,8 +219,8 @@ def resubmit(args):
     args.stdout, args.stderr = get_logdirs(args.stdout, args.stderr, args.logbase)
 
     J = jm.resubmit(O, args.stdout, args.stderr, args.deps, args.failed_only)
-    
-    if args.verbose: 
+
+    if args.verbose:
       if isinstance(J, (tuple, list)):
         for k in J: print 'Re-submitted job', J
       else:
@@ -242,7 +242,7 @@ def resubmit(args):
       print '  deleted job %s from database' % O.name()
 
 class AliasedSubParsersAction(argparse._SubParsersAction):
-  """Hack taken from https://gist.github.com/471779 to allow aliases in 
+  """Hack taken from https://gist.github.com/471779 to allow aliases in
   argparse for python 2.x (this has been implemented on python 3.2)
   """
 
@@ -252,7 +252,7 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
       if aliases:
         dest += ' (%s)' % ','.join(aliases)
       sup = super(AliasedSubParsersAction._AliasedPseudoAction, self)
-      sup.__init__(option_strings=[], dest=dest, help=help) 
+      sup.__init__(option_strings=[], dest=dest, help=help)
 
   def add_parser(self, name, **kwargs):
     if 'aliases' in kwargs:
@@ -289,10 +289,10 @@ def main():
       action='store_true', help='increase verbosity for this script')
   parser.add_argument('-g', '--debug', dest='debug', default=False,
       action='store_true', help='prints out lots of debugging information')
-  parser.add_argument('-V', '--version', action='version', 
+  parser.add_argument('-V', '--version', action='version',
       version='GridTk version %s' % __version__)
   cmdparser = parser.add_subparsers(title='commands', help='commands accepted by %(prog)s')
-  
+
   # subcommand 'list'
   lsparser = cmdparser.add_parser('list', aliases=['ls'],
       help='lists jobs stored in the database')
@@ -302,8 +302,9 @@ def main():
   # subcommand 'refresh'
   refparser = cmdparser.add_parser('refresh', aliases=['ref'],
       help='refreshes the current list of executing jobs by querying SGE, updates the databases of currently executing jobs. If you wish, it may optionally save jobs that executed successfuly and/or failed execution')
-  refparser.add_argument('-s', '--success-db', default='success.db', dest='successdb', metavar="DB", help='if you provide a name of a file, jobs that have succeeded will be saved on this file (defaults to "%(default)s")')
-  refparser.add_argument('-f', '--fail-db', dest='faildb', default='failure.db', metavar="DB", help='if you provide a name of a file, jobs that have failed will be saved on this file (defaults to "%(default)s")')
+  refparser.add_argument('-s', '--success-db', default='success.db', dest='successdb', metavar="DB", help='jobs that have succeeded will be saved on this file (defaults to "%(default)s")')
+  refparser.add_argument('-f', '--fail-db', dest='faildb', default='failure.db', metavar="DB", help='jobs that have failed will be saved on this file (defaults to "%(default)s")')
+  refparser.add_argument('-w', '--ignore-warnings', action="store_true", help='if enabled, warnings are not counted as errors')
   refparser.add_argument('db', metavar='DATABASE', help='replace the default database to be refreshed by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   refparser.set_defaults(func=refresh)
 
@@ -327,7 +328,7 @@ def main():
   subparser = cmdparser.add_parser('submit', aliases=['sub'],
       help='submits self-contained jobs to the SGE queue and logs them in a private database')
   subparser.add_argument('-d', '--db', '--database', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
-  subparser.add_argument('-q', '--queue', metavar='QNAME', 
+  subparser.add_argument('-q', '--queue', metavar='QNAME',
       dest='qname', default='all.q', help='the name of the SGE queue to submit the job to (defaults to "%(default)s")')
   #this is ON by default as it helps job management
   #subparser.add_argument('-c', '--cwd', default=False, action='store_true',
@@ -354,11 +355,11 @@ def main():
   # subcommand 'resubmit'
   resubparser = cmdparser.add_parser('resubmit', aliases=['resub', 're'],
       help='resubmits all jobs in a given database, exactly like they were submitted the first time')
-  
+
   resubparser.add_argument('fromdb', metavar='DATABASE',
       help='the name of the database to re-submit the jobs from')
   resubparser.add_argument('db', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
-  
+
   resubparser.add_argument('-j', '--jobid', dest='jobid', metavar='ID', nargs='*', type=int, default=[], help='by default I\'ll re-submit all jobs, unless you limit giving job identifiers')
   resubparser.add_argument('-r', '--cleanup', dest='cleanup', default=False, action='store_true', help='if set I\'ll also remove the old logs if they exist and the re-submitted job from the re-submission database. Note that cleanup always means to cleanup the entire job entries and files. If the job was a parametric job, all output and error files will also be removed.')
   resubparser.add_argument('-x', '--dependencies', '--deps', dest='deps', type=int, default=[], metavar='ID', nargs='*', help='when you re-submit jobs, dependencies are reset; if you need dependencies, add them using this option')

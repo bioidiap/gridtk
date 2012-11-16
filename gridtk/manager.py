@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
 # Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 13:06:25 CEST 
+# Wed 24 Aug 2011 13:06:25 CEST
 
 """Defines the job manager which can help you managing submitted grid jobs.
 """
@@ -45,7 +45,7 @@ def try_remove_files(filename, recurse, verbose):
       os.unlink(filename)
       if verbose: print verbose + ("removed `%s'" % filename)
     d = os.path.dirname(filename)
-    if recurse and os.path.exists(d) and not os.listdir(d): 
+    if recurse and os.path.exists(d) and not os.listdir(d):
       os.removedirs(d)
       if verbose: print verbose + ("recursively removed `%s'" % d)
 
@@ -81,7 +81,7 @@ class Job:
 
   def is_array(self):
     """Determines if this job is an array or not."""
-    
+
     return bool(self.array)
 
   def array_bounds(self):
@@ -106,19 +106,19 @@ class Job:
     s = time.mktime(time.strptime(self.data['submission_time']))
     diff = time.time() - s
     unit = 's'
-    
+
     if diff > 60: # more than a minute
       unit = 'm'
       diff /= 60.
-      
+
       if diff > 60: # more than an hour
         unit = 'h'
         diff /= 60.
-        
+
         if diff > 24: # more than a day
           diff /= 24.
           unit = 'd'
-          
+
           if diff > 7: # more than a week
             diff /= 7.
             unit = 'w'
@@ -133,7 +133,7 @@ class Job:
       return "%d %s%s" % (value, translate[unit], plural)
 
   def queue(self):
-    """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To 
+    """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To
     process it we have to split it twice (spaces and then on '='), create a
     dictionary and extract just the qname"""
 
@@ -143,7 +143,7 @@ class Job:
     return d['TRUE']
 
   def __std_filename__(self, indicator, instance):
-    
+
     base_dir = self.data['sge_o_home']
     if self.data.has_key('cwd'): base_dir = self.data['cwd']
 
@@ -153,14 +153,14 @@ class Job:
       if p[0] == os.sep: base_dir = p
       else: base_dir = os.path.join(base_dir, p)
 
-    retval = os.path.join(base_dir, self.data['job_name'] + 
+    retval = os.path.join(base_dir, self.data['job_name'] +
         '.%s%s' % (indicator, self.data['job_number']))
 
     if self.array:
       start, stop, step = self.array
       l = range(start, stop+1, step)
       if isinstance(instance, (long, int)):
-        if instance not in l: 
+        if instance not in l:
           raise RuntimeError, "instance is not part of parametric array"
         return retval + '.%d' % instance
       else:
@@ -187,9 +187,9 @@ class Job:
 
   def stderr_filename(self, instance=None):
     """Returns the stderr filename for this job, with the full path"""
-    
+
     return self.__std_filename__('e', instance)
-    
+
   def stderr(self, instance=None):
     """Returns a string with the contents of the stderr file"""
 
@@ -202,7 +202,7 @@ class Job:
 
     try_remove_files(self.stderr_filename(instance), recurse, verbose)
 
-  def check(self):
+  def check(self, ignore_warnings=False):
     """Checks if the job is in error state. If this job is a parametric job, it
     will return an error state if **any** of the parametrized jobs are in error
     state."""
@@ -211,7 +211,15 @@ class Job:
       try:
         if os.stat(name).st_size != 0:
           logging.debug("Job %s has a stderr file with size != 0" % jobname)
-          return False
+          if not ignore_warnings:
+            return False
+
+          # read the contents of the log file to ignore the annoying warning messages
+          is_error = False
+          f = open(name,'r')
+          for line in f:
+            is_error = is_error or (line and 'WARNING' not in line)
+          return not is_error
       except OSError, e:
         logging.warn("Could not find error file '%s'" % name)
       return True
@@ -252,8 +260,8 @@ class Job:
   def __str__(self):
     """Returns a string containing a short job description"""
 
-    return "%s @%s (%s ago) %s" % (self.name(),
-        self.queue(), self.age(short=False), ' '.join(self.args[0]))
+    return "%s @%s (%s ago) %s  %s" % (self.name(),
+        self.queue(), self.age(short=False), self.kwargs['name'], ' '.join(self.args[0]))
 
   def row(self, fmt, maxcmd=0):
     """Returns a string containing the job description suitable for a table."""
@@ -262,7 +270,7 @@ class Job:
     if maxcmd and len(cmdline) > maxcmd:
       cmdline = cmdline[:(maxcmd-3)] + '...'
 
-    return fmt % (self.name(), self.queue(), self.age(), cmdline)
+    return fmt % (self.name(), self.queue(), self.age(), self.kwargs['name'], cmdline)
 
   def has_key(self, key):
     return self.data.has_key(key)
@@ -296,7 +304,7 @@ class JobManager:
 
     context
       The context to provide when setting up the environment to call the SGE
-      utilities such as qsub, qstat and qdel (normally 'grid', which also 
+      utilities such as qsub, qstat and qdel (normally 'grid', which also
       happens to be default)
     """
 
@@ -315,7 +323,7 @@ class JobManager:
 
     db = anydbm.open(self.state_file, 'n') # erase previously recorded jobs
     for k in sorted(self.job.keys()): db[dumps(k)] = dumps(self.job[k])
-    if not self.job: 
+    if not self.job:
       logging.debug("Removing file %s because there are no more jobs to store" \
           % self.state_file)
       os.unlink(self.state_file)
@@ -329,7 +337,7 @@ class JobManager:
     self.job[jobid] = Job(qstat(jobid, context=self.context), args, kwargs)
     return self.job[jobid]
 
-  def resubmit(self, job, stdout='', stderr='', dependencies=[], 
+  def resubmit(self, job, stdout='', stderr='', dependencies=[],
       failed_only=False):
     """Re-submit jobs automatically"""
 
@@ -370,12 +378,12 @@ class JobManager:
     """Returns the status of each job still being tracked"""
 
     # configuration
-    fields = ("job-id", "queue", "age", "arguments")
-    lengths = (20, 5, 3, 43)
+    fields = ("job-id", "queue", "age", "job-name", "arguments")
+    lengths = (20, 7, 3, 20, 43)
     marker = '='
 
     # work
-    fmt = "%%%ds  %%%ds  %%%ds  %%-%ds" % lengths
+    fmt = "%%%ds  %%%ds  %%%ds  %%%ds  %%-%ds" % lengths
     delimiter = fmt % tuple([k*marker for k in lengths])
     header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
     header = '  '.join(header)
@@ -399,11 +407,11 @@ class JobManager:
     """Gets the error output of a certain job"""
     return self[key].stderr(instance)
 
-  def refresh(self):
+  def refresh(self, ignore_warnings=False):
     """Conducts a qstat over all jobs in the cache. If the job is not present
     anymore check the logs directory for output and error files. If the size of
     the error file is different than zero, warn the user.
-    
+
     Returns two lists: jobs that work and jobs that require attention
     (error file does not have size 0).
     """
@@ -412,7 +420,7 @@ class JobManager:
     for k in sorted(self.job.keys()):
       d = qstat(k, context=self.context)
       if not d: #job has finished. check
-        status = self.job[k].check()
+        status = self.job[k].check(ignore_warnings)
         if status:
           success.append(self.job[k])
           del self.job[k]
