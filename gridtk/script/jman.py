@@ -89,8 +89,8 @@ def delete(args):
           J.rm_stdout(verbose='  ', recurse = not args.keep_log_dir)
           J.rm_stderr(verbose='  ', recurse = not args.keep_log_dir)
         else:
-          J.rm_stdout()
-          J.rm_stderr()
+          J.rm_stdout(recurse = not args.keep_log_dir)
+          J.rm_stderr(recurse = not args.keep_log_dir)
       del jm[k]
       if args.verbose: print "Deleted job %s" % J
       else: print "Deleted job", J.name()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
 # Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 09:20:40 CEST 
+# Wed 24 Aug 2011 09:20:40 CEST
 
 """Wrappers for Idiap's SETSHELL functionality
 """
@@ -14,7 +14,26 @@ import logging
 
 def environ(context):
   """Retrieves the environment for a particular SETSHELL context"""
+  if 'BASEDIRSETSHELL' not in os.environ:
+    # It seems that we are in a hostile environment
+    # try to source the Idiap-wide shell
+    idiap_source = "/idiap/resource/software/initfiles/shrc"
+    logging.debug("Sourcing: '%s'"%idiap_source)
+    try:
+      command = ['bash', '-c', 'source %s && env' % idiap_source]
+      pi = subprocess.Popen(command, stdout = subprocess.PIPE)
+    except OSError as e:
+      # occurs when the file is not executable or not found
+      raise OSError, "Error executing '%s': %s (%d)" % \
+          (' '.join(command), e.strerror, e.errno)
 
+    # overwrite the default environment
+    for line in pi.stdout:
+      (key, _, value) = line.partition("=")
+      os.environ[key.strip()] = value.strip()
+
+
+  assert 'BASEDIRSETSHELL' in os.environ
   BASEDIRSETSHELL = os.environ['BASEDIRSETSHELL']
   dosetshell = '%s/setshell/bin/dosetshell' % BASEDIRSETSHELL
 

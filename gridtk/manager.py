@@ -54,9 +54,10 @@ class Job:
 
   def __init__(self, data, args, kwargs):
 
-    self.data = data
-    self.args = args
-    self.kwargs = kwargs
+    import copy
+    self.data = copy.deepcopy(data)
+    self.args = copy.deepcopy(args)
+    self.kwargs = copy.deepcopy(kwargs)
     if self.data.has_key('job-array tasks'):
       b = JOB_ARRAY_SPLIT.match(self.data['job-array tasks']).groupdict()
       self.array =  (int(b['m']), int(b['n']), int(b['s']))
@@ -79,6 +80,15 @@ class Job:
     else:
       return self.data['job_number']
 
+  def given_name(self):
+    """Returns the given name of the job, i.e., whatever was passed as name= to the contructor.
+    If no such name was given, self.name() is returned instead."""
+    if 'name' in self.kwargs:
+      return self.kwargs['name']
+    else:
+      return self.name()
+
+
   def is_array(self):
     """Determines if this job is an array or not."""
 
@@ -89,6 +99,10 @@ class Job:
     elements indicating the start, end and step of the parametric job."""
 
     return self.array
+
+  def is_dependent_on(self, job_id):
+    """Checks if this job is dependent on the given job id."""
+    return 'deps' in self.kwargs and job_id in self.kwargs['deps']
 
   def age(self, short=True):
     """Returns a string representation indicating, approximately, how much time
@@ -261,7 +275,7 @@ class Job:
     """Returns a string containing a short job description"""
 
     return "%s @%s (%s ago) %s  %s" % (self.name(),
-        self.queue(), self.age(short=False), self.kwargs['name'], ' '.join(self.args[0]))
+        self.queue(), self.age(short=False), self.given_name(), ' '.join(self.args[0]))
 
   def row(self, fmt, maxcmd=0):
     """Returns a string containing the job description suitable for a table."""
@@ -294,7 +308,7 @@ class JobManager:
   """The JobManager will submit and control the status of submitted jobs"""
 
   def __init__(self, statefile='submitted.db', context='grid'):
-    """Intializes this object with a state file and a method for qsub'bing.
+    """Initializes this object with a state file and a method for qsub'bing.
 
     Keyword parameters:
 
