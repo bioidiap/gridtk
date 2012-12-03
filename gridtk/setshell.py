@@ -10,7 +10,7 @@ import os
 import sys
 import signal
 import subprocess
-import logging
+from .tools import logger
 
 def environ(context):
   """Retrieves the environment for a particular SETSHELL context"""
@@ -18,7 +18,7 @@ def environ(context):
     # It seems that we are in a hostile environment
     # try to source the Idiap-wide shell
     idiap_source = "/idiap/resource/software/initfiles/shrc"
-    logging.debug("Sourcing: '%s'"%idiap_source)
+    logger.debug("Sourcing: '%s'"%idiap_source)
     try:
       command = ['bash', '-c', 'source %s && env' % idiap_source]
       pi = subprocess.Popen(command, stdout = subprocess.PIPE)
@@ -41,7 +41,7 @@ def environ(context):
 
   # First things first, we get the path to the temp file created by dosetshell
   try:
-    logging.debug("Executing: '%s'", ' '.join(command))
+    logger.debug("Executing: '%s'", ' '.join(command))
     p = subprocess.Popen(command, stdout = subprocess.PIPE)
   except OSError as e:
     # occurs when the file is not executable or not found
@@ -59,7 +59,7 @@ def environ(context):
   command2 = ['bash', '-c', 'source %s && env' % source]
 
   try:
-    logging.debug("Executing: '%s'", ' '.join(command2))
+    logger.debug("Executing: '%s'", ' '.join(command2))
     p2 = subprocess.Popen(command2, stdout = subprocess.PIPE)
   except OSError as e:
     # occurs when the file is not executable or not found
@@ -79,10 +79,9 @@ def environ(context):
 
   if os.path.exists(source): os.unlink(source)
 
-  logging.debug("Discovered environment for context '%s':", context)
-  if logging.getLogger().isEnabledFor(logging.DEBUG):
-    for k in sorted(new_environ.keys()):
-      logging.debug("  %s = %s", k, new_environ[k])
+  logger.debug("Discovered environment for context '%s':", context)
+  for k in sorted(new_environ.keys()):
+    logger.debug("  %s = %s", k, new_environ[k])
 
   return new_environ
 
@@ -93,7 +92,7 @@ def sexec(context, command, error_on_nonzero=True):
   else: E = context
 
   try:
-    logging.debug("Executing: '%s'", ' '.join(command))
+    logger.debug("Executing: '%s'", ' '.join(command))
     p = subprocess.Popen(command, stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, env=E)
     (stdout, stderr) = p.communicate() #note: stderr will be 'None'
@@ -103,7 +102,7 @@ def sexec(context, command, error_on_nonzero=True):
             "Execution of '%s' exited with status != 0 (%d): %s" % \
             (' '.join(command), p.returncode, stdout)
       else:
-        logging.debug("Execution of '%s' exited with status != 0 (%d): %s" % \
+        logger.debug("Execution of '%s' exited with status != 0 (%d): %s" % \
             (' '.join(command), p.returncode, stdout))
 
     return stdout.strip()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
 # Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 09:26:46 CEST 
+# Wed 24 Aug 2011 09:26:46 CEST
 
 """Functions that replace the shell based utilities for the grid submission and
 probing.
@@ -9,9 +9,19 @@ probing.
 
 import os
 import re
-import logging
 import hashlib
 import random
+
+# initialize the logging system
+import logging
+class NullHandler (logging.Handler):
+  def __init__(self,*args,**kwargs): logging.Handler.__init__(self,**kwargs)
+  def emit(self,*args,**kwargs): pass
+  def handle(self,*args,**kwargs): pass
+  def createLock(self,*args,**kwargs): pass
+logger = logging.getLogger("gridtk")
+# .. register null handler (has to be done in python 2.6)
+logger.addHandler(NullHandler())
 
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(':\s+')
@@ -34,10 +44,10 @@ def makedirs_safe(fulldir):
     else: raise
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
-    stderr='', env=[], array=None, context='grid', hostname=None, 
+    stderr='', env=[], array=None, context='grid', hostname=None,
     mem=None, memfree=None, hvmem=None, pe_opt=None):
   """Submits a shell job to a given grid queue
-  
+
   Keyword parameters:
 
   command
@@ -70,9 +80,9 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   array
     If set should be either:
-    
+
     1. a string in the form m[-n[:s]] which indicates the starting range 'm',
-       the closing range 'n' and the step 's'. 
+       the closing range 'n' and the step 's'.
     2. an integer value indicating the total number of jobs to be submitted.
        This is equivalent ot set the parameter to a string "1-k:1" where "k" is
        the passed integer value
@@ -80,7 +90,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
        end and step arguments ("m", "n", "s").
 
     The minimum value for "m" is 1. Giving "0" is an error.
-    
+
     If submitted with this option, the job to be created will be an SGE
     parametric job. In this mode SGE does not allow individual control of each
     job. The environment variable SGE_TASK_ID will be set on the executing
@@ -100,12 +110,12 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     (cf. qsub -l mem_free=<...> -l h_vmem=<...>)
 
   memfree
-    If set, it asks the queue for a node with a minimum amount of memory 
+    If set, it asks the queue for a node with a minimum amount of memory
     Used only if mem is not set
     (cf. qsub -l mem_free=<...>)
 
   hvmem
-    If set, it asks the queue for a node with a minimum amount of memory 
+    If set, it asks the queue for a node with a minimum amount of memory
     Used only if mem is not set
     (cf. qsub -l h_vmem=<...>)
 
@@ -125,7 +135,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if isinstance(queue, str) and queue not in ('all.q', 'default'):
     scmd += ['-l', queue]
 
-  if mem: 
+  if mem:
     scmd += ['-l', 'mem_free=%s' % mem]
     scmd += ['-l', 'h_vmem=%s' % mem]
   else:
@@ -143,12 +153,12 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if deps: scmd += ['-hold_jid', ','.join(['%d' % k for k in deps])]
 
   if stdout:
-    
+
     if not cwd:
       # pivot, temporarily, to home directory
       curdir = os.path.realpath(os.curdir)
       os.chdir(os.environ['HOME'])
-    
+
     if not os.path.exists(stdout): makedirs_safe(stdout)
 
     if not cwd:
@@ -191,15 +201,15 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if not isinstance(command, (list, tuple)): command = [command]
   scmd += command
 
-  logging.debug("Qsub command '%s'", ' '.join(scmd))
+  logger.debug("Qsub command '%s'", ' '.join(scmd))
 
   from .setshell import sexec
   jobid = sexec(context, scmd)
   return int(jobid.split('.',1)[0])
-  
+
 def make_shell(shell, command):
   """Returns a single command given a shell and a command to be qsub'ed
-  
+
   Keyword parameters:
 
   shell
@@ -215,12 +225,12 @@ def make_shell(shell, command):
 
 def qstat(jobid, context='grid'):
   """Queries status of a given job.
-  
+
   Keyword parameters:
 
   jobid
     The job identifier as returned by qsub()
-  
+
   context
     The setshell context in which we should try a 'qsub'. Normally you don't
     need to change the default. This variable can also be set to a context
@@ -232,7 +242,7 @@ def qstat(jobid, context='grid'):
 
   scmd = ['qstat', '-j', '%d' % jobid, '-f']
 
-  logging.debug("Qstat command '%s'", ' '.join(scmd))
+  logger.debug("Qstat command '%s'", ' '.join(scmd))
 
   from .setshell import sexec
   data = sexec(context, scmd, error_on_nonzero=False)
@@ -250,12 +260,12 @@ def qstat(jobid, context='grid'):
 
 def qdel(jobid, context='grid'):
   """Halts a given job.
-  
+
   Keyword parameters:
 
   jobid
     The job identifier as returned by qsub()
-  
+
   context
     The setshell context in which we should try a 'qsub'. Normally you don't
     need to change the default. This variable can also be set to a context
@@ -265,7 +275,7 @@ def qdel(jobid, context='grid'):
 
   scmd = ['qdel', '%d' % jobid]
 
-  logging.debug("Qdel command '%s'", ' '.join(scmd))
+  logger.debug("Qdel command '%s'", ' '.join(scmd))
 
   from .setshell import sexec
   sexec(context, scmd, error_on_nonzero=False)

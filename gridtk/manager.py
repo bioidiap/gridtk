@@ -8,10 +8,9 @@
 
 import os
 import time
-import logging
 import anydbm
 from cPickle import dumps, loads
-from .tools import qsub, qstat, qdel
+from .tools import qsub, qstat, qdel, logger
 from .setshell import environ
 
 import re
@@ -23,7 +22,7 @@ def try_get_contents(filename):
   try:
     return open(filename, 'rt').read()
   except OSError, e:
-    logging.warn("Could not find file '%s'" % filename)
+    logger.warn("Could not find file '%s'" % filename)
 
   return ''
 
@@ -224,7 +223,7 @@ class Job:
     def check_file(name, jobname):
       try:
         if os.stat(name).st_size != 0:
-          logging.debug("Job %s has a stderr file with size != 0" % jobname)
+          logger.debug("Job %s has a stderr file with size != 0" % jobname)
           if not ignore_warnings:
             return False
 
@@ -235,7 +234,7 @@ class Job:
             is_error = is_error or (line and 'WARNING' not in line)
           return not is_error
       except OSError, e:
-        logging.warn("Could not find error file '%s'" % name)
+        logger.warn("Could not find error file '%s'" % name)
       return True
 
     if self.array:
@@ -256,10 +255,10 @@ class Job:
     def check_file(name, jobname):
       try:
         if os.stat(name).st_size != 0:
-          logging.debug("Job %s has a stderr file with size != 0" % jobname)
+          logger.debug("Job %s has a stderr file with size != 0" % jobname)
           return False
       except OSError, e:
-        logging.warn("Could not find error file '%s'" % f)
+        logger.warn("Could not find error file '%s'" % f)
       return True
 
     start, stop, step = self.array
@@ -325,11 +324,11 @@ class JobManager:
     self.state_file = statefile
     self.state_db = anydbm.open(self.state_file, 'c')
     self.job = {}
-    logging.debug("Loading previous state...")
+    logger.debug("Loading previous state...")
     for k in self.state_db.keys():
       ki = loads(k)
       self.job[ki] = loads(self.state_db[k])
-      logging.debug("Job %d loaded" % ki)
+      logger.debug("Job %d loaded" % ki)
     self.context = environ(context)
 
   def __del__(self):
@@ -338,7 +337,7 @@ class JobManager:
     db = anydbm.open(self.state_file, 'n') # erase previously recorded jobs
     for k in sorted(self.job.keys()): db[dumps(k)] = dumps(self.job[k])
     if not self.job:
-      logging.debug("Removing file %s because there are no more jobs to store" \
+      logger.debug("Removing file %s because there are no more jobs to store" \
           % self.state_file)
       os.unlink(self.state_file)
 
@@ -438,10 +437,10 @@ class JobManager:
         if status:
           success.append(self.job[k])
           del self.job[k]
-          logging.debug("Job %d completed successfuly" % k)
+          logger.debug("Job %d completed successfuly" % k)
         else:
           error.append(self.job[k])
           del self.job[k]
-          logging.debug("Job %d probably did not complete successfuly" % k)
+          logger.debug("Job %d probably did not complete successfuly" % k)
 
     return success, error

@@ -21,7 +21,7 @@ from cPickle import dumps
 import argparse
 
 from ..manager import JobManager
-from ..tools import make_shell, random_logdir
+from ..tools import make_shell, random_logdir, logger
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -33,7 +33,8 @@ def setup(args):
   # set-up logging
   if args.debug:
     import logging
-    logging.basicConfig(level=logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
 
   return jm
 
@@ -347,7 +348,7 @@ def main():
       dest='array', help='Creates a parametric (array) job. You must specify the starting range "n" (>=1), the stopping (inclusive) range "m" and the step "s". Read the qsub command man page for details')
   subparser.add_argument('-p', '--py', '--python', dest='python', default=False,
       action='store_true', help='Wrap execution of your command using the current python interpreter')
-  subparser.add_argument('-z', '--dry-run', dest='dry_run', default=False,
+  subparser.add_argument('-z', '--dry-run',
       action='store_true', help='Do not really submit anything, just print out what would submit in this case')
   subparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
   subparser.set_defaults(func=submit)
