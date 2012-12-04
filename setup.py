@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='gridtk',
-    version='0.3.2',
+    version='0.3.3',
     description='SGE Grid Submission and Monitoring Tools for Idiap',
 
     url='https://github.com/idiap/gridtk',
@@ -19,10 +19,10 @@ setup(
         'grid = gridtk.script.grid:main',
 
         # program replacements
-        'qstat = gridtk.script.grid:main',
-        'qdel = gridtk.script.grid:main',
-        'qsub = gridtk.script.grid:main',
-        'man = gridtk.script.grid:main',
+        'qstat.py = gridtk.script.grid:main',
+        'qdel.py = gridtk.script.grid:main',
+        'qsub.py = gridtk.script.grid:main',
+        'man.py = gridtk.script.grid:main',
         ]
       },
 
