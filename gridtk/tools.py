@@ -14,14 +14,19 @@ import random
 
 # initialize the logging system
 import logging
-class NullHandler (logging.Handler):
-  def __init__(self,*args,**kwargs): logging.Handler.__init__(self,**kwargs)
-  def emit(self,*args,**kwargs): pass
-  def handle(self,*args,**kwargs): pass
-  def createLock(self,*args,**kwargs): pass
 logger = logging.getLogger("gridtk")
-# .. register null handler (has to be done in python 2.6)
-logger.addHandler(NullHandler())
+# check if we need to define the NullHandler class ourselfes
+import sys
+if sys.version_info < (2,7):
+  # define simple NullHandler class, (which should btw. also work with later python versions)
+  class NullHandler (logging.Handler):
+    def __init__(self,*args,**kwargs): logging.Handler.__init__(self,**kwargs)
+    def emit(self,*args,**kwargs): pass
+    def handle(self,*args,**kwargs): pass
+    def createLock(self,*args,**kwargs): pass
+    lock=None
+  # .. register null handler (has to be done in python 2.6 and before)
+  logger.addHandler(NullHandler())
 
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(':\s+')
