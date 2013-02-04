@@ -8,7 +8,7 @@
 
 import os
 import time
-import anydbm
+import gdbm, anydbm
 from cPickle import dumps, loads
 from .tools import qsub, qstat, qdel, logger
 from .setshell import environ
@@ -322,20 +322,38 @@ class JobManager:
     """
 
     self.state_file = statefile
-    self.state_db = anydbm.open(self.state_file, 'c')
-    self.job = {}
-    logger.debug("Loading previous state...")
-    for k in self.state_db.keys():
-      ki = loads(k)
-      self.job[ki] = loads(self.state_db[k])
-      logger.debug("Job %d loaded" % ki)
     self.context = environ(context)
+    self.job = {}
+    if os.path.exists(self.state_file):
+      try:
+        db = gdbm.open(self.state_file, 'r')
+      except:
+        db = anydbm.open(self.state_file, 'r')
+      logger.debug("Loading previous state...")
+      for ks in db.keys():
+        ki = loads(ks)
+        self.job[ki] = loads(db[ks])
+        logger.debug("Job %d loaded" % ki)
+      db.close()
 
   def __del__(self):
     """Safely terminates the JobManager"""
+    try:
+      db = gdbm.open(self.state_file, 'c')
+    except:
+      db = anydbm.open(self.state_file, 'c')
+    # synchronize jobs
+    for ks in sorted(db.keys()):
+      ki = loads(ks)
+      if ki not in self.job:
+        del db[ks]
+        logger.debug("Job %d deleted from database" % ki)
+    for ki in sorted(self.job.keys()):
+      ks = dumps(ki)
+      db[ks] = dumps(self.job[ki])
+      logger.debug("Job %d added or updated in database" % ki)
+    db.close()
 
-    db = anydbm.open(self.state_file, 'n') # erase previously recorded jobs
-    for k in sorted(self.job.keys()): db[dumps(k)] = dumps(self.job[k])
     if not self.job:
       logger.debug("Removing file %s because there are no more jobs to store" \
           % self.state_file)
@@ -402,7 +420,7 @@ class JobManager:
     header = '  '.join(header)
 
     return '\n'.join([header] + [delimiter] + \
-        [self[k].row(fmt, maxcmdline) for k in self.job])
+        [self[k].row(fmt, maxcmdline) for k in sorted(self.job.keys())])
 
   def clear(self):
     """Clear the whole job queue"""
