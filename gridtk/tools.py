@@ -50,7 +50,7 @@ def makedirs_safe(fulldir):
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None,
-    mem=None, memfree=None, hvmem=None, pe_opt=None):
+    mem=None, memfree=None, hvmem=None, pe_opt=None, io_big=False):
   """Submits a shell job to a given grid queue
 
   Keyword parameters:
@@ -132,6 +132,10 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   pe_opt
     If set, add a -pe option when launching a job (for instance pe_exclusive* 1-)
 
+  io_big
+    If set to true, the io_big flag will be set.
+    Use this flag if your process will need a lot of Input/Output operations.
+
   Returns the job id assigned to this job (integer)
   """
 
@@ -146,6 +150,8 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   else:
     if memfree: scmd += ['-l', 'mem_free=%s' % memfree]
     if hvmem: scmd += ['-l', 'h_vmem=%s' % hvmem]
+
+  if io_big: scmd += ['-l', 'io_big']
 
   if hostname: scmd += ['-l', 'hostname=%s' % hostname]
 
