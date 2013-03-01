@@ -164,6 +164,7 @@ def submit(args):
       'array': args.array,
       'memfree': args.memory,
       'hvmem': args.memory,
+      'io_big': args.io_big,
       }
 
   if args.dry_run:
@@ -174,7 +175,8 @@ def submit(args):
     print 'deps:', args.deps,
     print 'stdout:', args.stdout,
     print 'stderr:', args.stderr,
-    print 'env:', args.env
+    print 'env:', args.env,
+    print 'io_big:', args.io_big
     return
 
   # if you get here, submit the job
@@ -350,6 +352,8 @@ def main():
       action='store_true', help='Wrap execution of your command using the current python interpreter')
   subparser.add_argument('-z', '--dry-run',
       action='store_true', help='Do not really submit anything, just print out what would submit in this case')
+  subparser.add_argument('-I', '--io-big', dest='io_big', default=False,
+      action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput')
   subparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
   subparser.set_defaults(func=submit)
 
