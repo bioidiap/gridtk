@@ -231,7 +231,7 @@ class Job:
           is_error = False
           f = open(name,'r')
           for line in f:
-            is_error = is_error or (line and 'WARNING' not in line)
+            is_error = is_error or (line and 'WARNING' not in line and 'INFO' not in line)
           return not is_error
       except OSError, e:
         logger.warn("Could not find error file '%s'" % name)
