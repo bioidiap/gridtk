@@ -10,43 +10,12 @@ import os
 import time
 import gdbm, anydbm
 from cPickle import dumps, loads
-from .tools import qsub, qstat, qdel, logger
+from .tools import qsub, qstat, qdel, logger, try_get_contents, try_remove_files
 from .setshell import environ
 
 import re
 JOB_ARRAY_SPLIT = re.compile(r'^(?P<m>\d+)-(?P<n>\d+):(?P<s>\d+)$')
 
-def try_get_contents(filename):
-  """Loads contents out of a certain filename"""
-
-  try:
-    return open(filename, 'rt').read()
-  except OSError, e:
-    logger.warn("Could not find file '%s'" % filename)
-
-  return ''
-
-def try_remove_files(filename, recurse, verbose):
-  """Safely removes files from the filesystem"""
-
-  if isinstance(filename, (tuple, list)):
-    for k in filename:
-      if os.path.exists(k):
-        os.unlink(k)
-        if verbose: print verbose + ("removed `%s'" % k)
-      d = os.path.dirname(k)
-      if recurse and os.path.exists(d) and not os.listdir(d):
-        os.removedirs(d)
-        if verbose: print verbose + ("recursively removed `%s'" % d)
-
-  else:
-    if os.path.exists(filename):
-      os.unlink(filename)
-      if verbose: print verbose + ("removed `%s'" % filename)
-    d = os.path.dirname(filename)
-    if recurse and os.path.exists(d) and not os.listdir(d):
-      os.removedirs(d)
-      if verbose: print verbose + ("recursively removed `%s'" % d)
 
 class Job:
   """The job class describes a job"""
@@ -68,6 +37,9 @@ class Job:
 
     return int(self.data['job_number'])
 
+  def command_line(self):
+    return self.args + self.kwargs
+
   def name(self, instance=None):
     """Returns my own numerical id"""
 
@@ -80,7 +52,7 @@ class Job:
       return self.data['job_number']
 
   def given_name(self):
-    """Returns the given name of the job, i.e., whatever was passed as name= to the contructor.
+    """Returns the given name of the job, i.e., whatever was passed as name= to the constructor.
     If no such name was given, self.name() is returned instead."""
     if 'name' in self.kwargs:
       return self.kwargs['name']
@@ -455,10 +427,10 @@ class JobManager:
         if status:
           success.append(self.job[k])
           del self.job[k]
-          logger.debug("Job %d completed successfuly" % k)
+          logger.debug("Job %d completed successfully" % k)
         else:
           error.append(self.job[k])
           del self.job[k]
-          logger.debug("Job %d probably did not complete successfuly" % k)
+          logger.debug("Job %d probably did not complete successfully" % k)
 
     return success, error

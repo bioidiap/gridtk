@@ -20,7 +20,7 @@ from cPickle import dumps
 
 import argparse
 
-from ..manager import JobManager
+from .. import manager, local
 from ..tools import make_shell, random_logdir, logger
 
 def setup(args):
@@ -28,7 +28,10 @@ def setup(args):
 
   kwargs = {}
   if args.db: kwargs['statefile'] = args.db
-  jm = JobManager(**kwargs)
+  if args.local:
+    jm = local.JobManager(**kwargs)
+  else:
+    jm = manager.JobManager(**kwargs)
 
   # set-up logging
   if args.debug:
@@ -50,7 +53,7 @@ def save_jobs(j, name):
 
   db = anydbm.open(name, 'c')
   for k in j:
-    ki = int(k['job_number'])
+    ki = int(k.id())
     db[dumps(ki)] = dumps(k)
 
 def refresh(args):
@@ -150,7 +153,7 @@ def submit(args):
   if args.python or os.path.splitext(args.job[0])[1] in ('.py',):
     args.job = make_shell(sys.executable, args.job)
 
-  args.stdout, args.stderr = get_logdirs(args.stdout, args.stderr, args.logbase)
+  args.stdout, args.stderr = get_logdirs(args.stdout, args.stderr, args.logbase) if not args.local else (None, None)
 
   jm = setup(args)
   kwargs = {
@@ -202,7 +205,7 @@ def explain(args):
     first_time = False
     J = jm[k[0]]
     print "Job", J
-    print "Command line:", J.args, J.kwargs
+    print "Command line:", J.command_line()
     if args.verbose:
       print "%s stdout (%s)" % (J.name(k[1]), J.stdout_filename(k[1]))
       print J.stdout(k[1])
@@ -243,6 +246,13 @@ def resubmit(args):
         O.rm_stderr()
       del fromjm[k]
       print '  deleted job %s from database' % O.name()
+
+def execute(args):
+  """Executes the collected jobs on the local machine."""
+  if not args.local:
+    raise ValueError("The execute command can only be used with the '--local' command line option")
+  jm = setup(args)
+  jm.run(parallel_jobs=args.jobs)
 
 class AliasedSubParsersAction(argparse._SubParsersAction):
   """Hack taken from https://gist.github.com/471779 to allow aliases in
@@ -294,6 +304,9 @@ def main():
       action='store_true', help='prints out lots of debugging information')
   parser.add_argument('-V', '--version', action='version',
       version='GridTk version %s' % __version__)
+
+  parser.add_argument('-l', '--local', action='store_true',
+        help = 'Uses the local job manager instead of the SGE one.')
   cmdparser = parser.add_subparsers(title='commands', help='commands accepted by %(prog)s')
 
   # subcommand 'list'
@@ -356,6 +369,12 @@ def main():
       action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput')
   subparser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
   subparser.set_defaults(func=submit)
+
+  execute_parser = cmdparser.add_parser('execute', aliases=['exe', 'x'],
+      help='Executes the registered jobs on the local machine; only valid in combination with the \'--local\' option.')
+  execute_parser.add_argument('db', metavar='DATABASE', help='replace the default database to be refreshed by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
+  execute_parser.add_argument('-j', '--jobs', '--parallel-jobs', type=int, default=1, metavar='jobs', help='Select the number of parallel jobs that you want to execute locally')
+  execute_parser.set_defaults(func=execute)
 
   # subcommand 'resubmit'
   resubparser = cmdparser.add_parser('resubmit', aliases=['resub', 're'],

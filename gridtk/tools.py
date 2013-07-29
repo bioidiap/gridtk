@@ -48,6 +48,38 @@ def makedirs_safe(fulldir):
     if exc.errno == errno.EEXIST: pass
     else: raise
 
+def try_get_contents(filename):
+  """Loads contents out of a certain filename"""
+
+  try:
+    return open(filename, 'rt').read()
+  except OSError, e:
+    logger.warn("Could not find file '%s'" % filename)
+
+  return ''
+
+def try_remove_files(filename, recurse, verbose):
+  """Safely removes files from the filesystem"""
+
+  if isinstance(filename, (tuple, list)):
+    for k in filename:
+      if os.path.exists(k):
+        os.unlink(k)
+        if verbose: print verbose + ("removed `%s'" % k)
+      d = os.path.dirname(k)
+      if recurse and os.path.exists(d) and not os.listdir(d):
+        os.removedirs(d)
+        if verbose: print verbose + ("recursively removed `%s'" % d)
+
+  else:
+    if os.path.exists(filename):
+      os.unlink(filename)
+      if verbose: print verbose + ("removed `%s'" % filename)
+    d = os.path.dirname(filename)
+    if recurse and os.path.exists(d) and not os.listdir(d):
+      os.removedirs(d)
+      if verbose: print verbose + ("recursively removed `%s'" % d)
+
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None,
     mem=None, memfree=None, hvmem=None, pe_opt=None, io_big=False):

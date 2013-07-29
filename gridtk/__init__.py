@@ -1,4 +1,5 @@
-from . import setshell
-from . import tools
-from . import manager
-from . import easy
+import setshell
+import tools
+import manager
+import local
+import easy
