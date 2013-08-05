@@ -1,436 +1,212 @@
-#!/usr/bin/env python
-# vim: set fileencoding=utf-8 :
-# Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 13:06:25 CEST
 
-"""Defines the job manager which can help you managing submitted grid jobs.
-"""
-
+import bob
 import os
-import time
-import gdbm, anydbm
-from cPickle import dumps, loads
-from .tools import qsub, qstat, qdel, logger, try_get_contents, try_remove_files
-from .setshell import environ
+import subprocess
+from .models import Base, Job, ArrayJob
+from .tools import logger
 
-import re
-JOB_ARRAY_SPLIT = re.compile(r'^(?P<m>\d+)-(?P<n>\d+):(?P<s>\d+)$')
+echo = False
 
-
-class Job:
-  """The job class describes a job"""
-
-  def __init__(self, data, args, kwargs):
-
-    import copy
-    self.data = copy.deepcopy(data)
-    self.args = copy.deepcopy(args)
-    self.kwargs = copy.deepcopy(kwargs)
-    if self.data.has_key('job-array tasks'):
-      b = JOB_ARRAY_SPLIT.match(self.data['job-array tasks']).groupdict()
-      self.array =  (int(b['m']), int(b['n']), int(b['s']))
-    else:
-      self.array = None
-
-  def id(self):
-    """Returns my own numerical id"""
-
-    return int(self.data['job_number'])
-
-  def command_line(self):
-    return self.args + self.kwargs
-
-  def name(self, instance=None):
-    """Returns my own numerical id"""
-
-    if self.is_array():
-      if isinstance(instance, (int, long)):
-        return self.data['job_number'] + '.%d' % instance
-      else:
-        return self.data['job_number'] + '.%d-%d:%d' % self.array
-    else:
-      return self.data['job_number']
-
-  def given_name(self):
-    """Returns the given name of the job, i.e., whatever was passed as name= to the constructor.
-    If no such name was given, self.name() is returned instead."""
-    if 'name' in self.kwargs:
-      return self.kwargs['name']
-    else:
-      return self.name()
-
-
-  def is_array(self):
-    """Determines if this job is an array or not."""
-
-    return bool(self.array)
-
-  def array_bounds(self):
-    """If this job is an array (parametric) job, returns a tuple containing 3
-    elements indicating the start, end and step of the parametric job."""
-
-    return self.array
-
-  def is_dependent_on(self, job_id):
-    """Checks if this job is dependent on the given job id."""
-    return 'deps' in self.kwargs and job_id in self.kwargs['deps']
-
-  def age(self, short=True):
-    """Returns a string representation indicating, approximately, how much time
-    has ellapsed since the job was submitted. The input argument must be a
-    string as defined in the filed 'submission_time'"""
-
-    translate = {
-        's': 'second',
-        'm': 'minute',
-        'h': 'hour',
-        'd': 'day',
-        'w': 'week',
-        }
-
-    s = time.mktime(time.strptime(self.data['submission_time']))
-    diff = time.time() - s
-    unit = 's'
-
-    if diff > 60: # more than a minute
-      unit = 'm'
-      diff /= 60.
-
-      if diff > 60: # more than an hour
-        unit = 'h'
-        diff /= 60.
-
-        if diff > 24: # more than a day
-          diff /= 24.
-          unit = 'd'
-
-          if diff > 7: # more than a week
-            diff /= 7.
-            unit = 'w'
-
-    value = int(round(diff))
-
-    if short:
-      return "%d%s" % (value, unit)
-
-    else:
-      plural = "" if value == 1 else "s"
-      return "%d %s%s" % (value, translate[unit], plural)
-
-  def queue(self):
-    """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To
-    process it we have to split it twice (spaces and then on '='), create a
-    dictionary and extract just the qname"""
-
-    if not 'hard resource_list' in self.data: return 'all.q'
-    d = dict([reversed(k.split('=')) for k in self.data['hard resource_list'].split(',')])
-    if not 'TRUE' in d: return 'all.q'
-    return d['TRUE']
-
-  def __std_filename__(self, indicator, instance):
-
-    base_dir = self.data['sge_o_home']
-    if self.data.has_key('cwd'): base_dir = self.data['cwd']
-
-    # add-on outor directory
-    if self.data.has_key('stdout_path_list'):
-      p = self.data['stdout_path_list'].split(':')[2]
-      if p[0] == os.sep: base_dir = p
-      else: base_dir = os.path.join(base_dir, p)
-
-    retval = os.path.join(base_dir, self.data['job_name'] +
-        '.%s%s' % (indicator, self.data['job_number']))
-
-    if self.array:
-      start, stop, step = self.array
-      l = range(start, stop+1, step)
-      if isinstance(instance, (long, int)):
-        if instance not in l:
-          raise RuntimeError, "instance is not part of parametric array"
-        return retval + '.%d' % instance
-      else:
-        return tuple([retval + '.%d' % k for k in l])
-
-    return retval
-
-  def stdout_filename(self, instance=None):
-    """Returns the stdout filename for this job, with the full path"""
-
-    return self.__std_filename__('o', instance)
-
-  def stdout(self, instance=None):
-    """Returns a string with the contents of the stdout file"""
-
-    if self.array and instance is None:
-      return '\n'.join([l for l in [try_get_contents(k) for k in self.stdout_filename()] if l])
-    else:
-      return try_get_contents(self.stdout_filename(instance))
-
-  def rm_stdout(self, instance=None, recurse=True, verbose=False):
-
-    try_remove_files(self.stdout_filename(instance), recurse, verbose)
-
-  def stderr_filename(self, instance=None):
-    """Returns the stderr filename for this job, with the full path"""
-
-    return self.__std_filename__('e', instance)
-
-  def stderr(self, instance=None):
-    """Returns a string with the contents of the stderr file"""
-
-    if self.array and instance is None:
-      return '\n'.join([l for l in [try_get_contents(k) for k in self.stderr_filename()] if l])
-    else:
-      return try_get_contents(self.stderr_filename(instance))
-
-  def rm_stderr(self, instance=None, recurse=True, verbose=False):
-
-    try_remove_files(self.stderr_filename(instance), recurse, verbose)
-
-  def check(self, ignore_warnings=False):
-    """Checks if the job is in error state. If this job is a parametric job, it
-    will return an error state if **any** of the parametrized jobs are in error
-    state."""
-
-    def check_file(name, jobname):
-      try:
-        if os.stat(name).st_size != 0:
-          logger.debug("Job %s has a stderr file with size != 0" % jobname)
-          if not ignore_warnings:
-            return False
-
-          # read the contents of the log file to ignore the annoying warning messages
-          is_error = False
-          f = open(name,'r')
-          for line in f:
-            is_error = is_error or (line and 'WARNING' not in line and 'INFO' not in line)
-          return not is_error
-      except OSError, e:
-        logger.warn("Could not find error file '%s'" % name)
-      return True
-
-    if self.array:
-      start, stop, step = self.array
-      files = self.stderr_filename()
-      jobnames = [self.name(k) for k in range(start, stop+1, step)]
-      return False not in [check_file(*args) for args in zip(files, jobnames)]
-    else:
-      return check_file(self.stderr_filename(), self.name())
-
-  def check_array(self):
-    """Checks if any of the jobs in a parametric job array has failed. Returns
-    a list of sub-job identifiers that failed."""
-
-    if not self.array:
-      raise RuntimeError, 'Not a parametric job'
-
-    def check_file(name, jobname):
-      try:
-        if os.stat(name).st_size != 0:
-          logger.debug("Job %s has a stderr file with size != 0" % jobname)
-          return False
-      except OSError, e:
-        logger.warn("Could not find error file '%s'" % f)
-      return True
-
-    start, stop, step = self.array
-    files = self.stderr_filename()
-    ids = range(start, stop+1, step)
-    jobnames = [self.name(k) for k in ids]
-    retval = []
-    for i, jobname, f in zip(ids, jobnames, files):
-      if not check_file(f, jobname): retval.append(i)
-    return retval
-
-  def __str__(self):
-    """Returns a string containing a short job description"""
-
-    return "%s @%s (%s ago) %s  %s" % (self.name(),
-        self.queue(), self.age(short=False), self.given_name(), ' '.join(self.args[0]))
-
-  def row(self, fmt, maxcmd=0):
-    """Returns a string containing the job description suitable for a table."""
-
-    cmdline = ' '.join(self.args[0])
-    if maxcmd and len(cmdline) > maxcmd:
-      cmdline = cmdline[:(maxcmd-3)] + '...'
-
-    return fmt % (self.name(), self.queue(), self.age(), self.kwargs['name'], cmdline)
-
-  def has_key(self, key):
-    return self.data.has_key(key)
-
-  def keys(self):
-    return self.data.keys()
-
-  def values(self):
-    return self.data.values()
-
-  def __getitem__(self, key):
-    return self.data[key]
-
-  def __setitem__(self, key, value):
-    self.data[key] = value
-
-  def __delitem__(self, key):
-    del self.data[key]
+"""This file defines a minimum Job Manager interface."""
 
 class JobManager:
-  """The JobManager will submit and control the status of submitted jobs"""
 
-  def __init__(self, statefile='submitted.db', context='grid'):
-    """Initializes this object with a state file and a method for qsub'bing.
+  def __init__(self, sql_database):
+    self.database = os.path.realpath(sql_database)
+    if not os.path.exists(self.database):
+      self.create()
 
-    Keyword parameters:
-
-    statefile
-      The file containing a valid status database for the manager. If the file
-      does not exist it is initialized. If it exists, it is loaded.
-
-    context
-      The context to provide when setting up the environment to call the SGE
-      utilities such as qsub, qstat and qdel (normally 'grid', which also
-      happens to be default)
-    """
-
-    self.state_file = statefile
-    self.context = environ(context)
-    self.job = {}
-    if os.path.exists(self.state_file):
-      try:
-        db = gdbm.open(self.state_file, 'r')
-      except:
-        db = anydbm.open(self.state_file, 'r')
-      logger.debug("Loading previous state...")
-      for ks in db.keys():
-        ki = loads(ks)
-        self.job[ki] = loads(db[ks])
-        logger.debug("Job %d loaded" % ki)
-      db.close()
+    # get the next free job id (simply as the largest ID in the database + 1)
+#    self.lock()
+#    self.next_job_id = max([job.id for job in self.session.query(Job)] + [0]) + 1
+#    self.unlock()
 
   def __del__(self):
-    """Safely terminates the JobManager"""
+    # remove the database if it is empty
+    self.lock()
+    job_count = len(self.get_jobs())
+    self.unlock()
+    if not job_count:
+      os.remove(self.database)
+
+
+  def lock(self):
+    self.session = bob.db.utils.SQLiteConnector(self.database).session(echo=echo)
+
+  def unlock(self):
+    self.session.close()
+    del self.session
+
+
+  def create(self):
+    """Creates a new and empty database."""
+    from .tools import makedirs_safe
+
+    # create directory for sql database
+    makedirs_safe(os.path.dirname(self.database))
+
+    # create an engine
+    engine = bob.db.utils.create_engine_try_nolock('sqlite', self.database, echo=echo)
+    # create all the tables
+    Base.metadata.create_all(engine)
+
+
+  def list(self):
+    """Lists the jobs currently added to the database."""
+    self.lock()
+    for job in self.get_jobs():
+      print job
+    self.unlock()
+
+
+  def get_jobs(self, grid_ids = None):
+    q = self.session.query(Job)
+    if grid_ids:
+      q = q.filter(Job.grid_id.in_(grid_ids))
+    return list(q)
+
+
+  def _job_and_array(self, grid_id, array_id=None):
+    # get the job (and the array job) with the given id(s)
+    job = self.get_jobs((grid_id,))
+    assert (len(job) == 1)
+    job = job[0]
+    job_id = job.id
+
+    if array_id is not None:
+      array_job = list(self.session.query(ArrayJob).filter(ArrayJob.job_id == job_id).filter(ArrayJob.id == array_id))
+      assert (len(array_job) == 1)
+      return (job, array_job[0])
+    else:
+      return (job, None)
+
+
+  def run_job(self, job_id, array_id = None):
+    """This function is called to run a job (e.g. in the grid) with the given id and the given array index if applicable."""
+    # get the job from the database
+    self.lock()
+    job, array_job = self._job_and_array(job_id, array_id)
+
+    job.status = 'executing'
+    if array_job is not None:
+      array_job.status = 'executing'
+
+    # get the command line of the job
+    command_line = job.get_command_line()
+    self.session.commit()
+    self.unlock()
+
+    # execute the command line of the job, and wait untils it has finished
     try:
-      db = gdbm.open(self.state_file, 'c')
-    except:
-      db = anydbm.open(self.state_file, 'c')
-    # synchronize jobs
-    for ks in sorted(db.keys()):
-      ki = loads(ks)
-      if ki not in self.job:
-        del db[ks]
-        logger.debug("Job %d deleted from database" % ki)
-    for ki in sorted(self.job.keys()):
-      ks = dumps(ki)
-      db[ks] = dumps(self.job[ki])
-      logger.debug("Job %d added or updated in database" % ki)
-    db.close()
+      result = subprocess.call(command_line)
+    except Error:
+      result = 69 # ASCII: 'E'
 
-    if not self.job:
-      logger.debug("Removing file %s because there are no more jobs to store" \
-          % self.state_file)
-      os.unlink(self.state_file)
+    # set a new status and the results of the job
+    self.lock()
+    job, array_job = self._job_and_array(job_id, array_id)
+    if array_job is not None:
+      array_job.status = 'finished'
+      array_job.result = result
+      self.session.commit()
+      # check if there are still unfinished array jobs
+      if False not in [aj.status == 'finished' for aj in job.array]:
+        job.status = 'finished'
+        # check if there was any array job not finished with result 0
+        results = [aj.result for aj in job.array if aj.result != 0]
+        job.result = results[0] if len(results) else 0
+    else:
+      job.status = 'finished'
+      job.result = result
 
-  def submit(self, *args, **kwargs):
-    """Calls tools.qsub and registers the job to the SGE"""
+    self.session.commit()
+    self.unlock()
 
-    kwargs['context'] = self.context
-    jobid = qsub(*args, **kwargs)
-    del kwargs['context']
-    self.job[jobid] = Job(qstat(jobid, context=self.context), args, kwargs)
-    return self.job[jobid]
 
-  def resubmit(self, job, stdout='', stderr='', dependencies=[],
-      failed_only=False):
-    """Re-submit jobs automatically"""
+  def report(self, grid_ids=None, array_ids=None, unfinished=False, output=True, error=True):
+    """Iterates through the output and error files and write the results to command line."""
+    def _write_contents(job):
+      # Writes the contents of the output and error files to command line
+      out_file, err_file = job.std_out_file(), job.std_err_file()
+      if output and out_file is not None and os.path.exists(out_file) and os.stat(out_file).st_size:
+        print open(out_file).read().rstrip()
+        print "-"*20
+      if error and err_file is not None and os.path.exists(err_file) and os.stat(err_file).st_size:
+        print open(err_file).read().rstrip()
+        print "-"*40
 
-    if dependencies: job.kwargs['deps'] = dependencies
-    if stdout: job.kwargs['stdout'] = stdout
-    if stderr: job.kwargs['stderr'] = stderr
+    def _write_array_jobs(array_jobs):
+      for array_job in array_jobs:
+        if unfinished or array_job.status == 'finished':
+          print "Array Job", str(array_job.id), ":"
+          _write_contents(array_job)
 
-    if failed_only and job.is_array():
-      retval = []
-      for k in job.check_array():
-        job.kwargs['array'] = (k,k,1)
-        retval.append(self.submit(job.args[0], **job.kwargs))
-      return retval
+    # check if an array job should be reported
+    self.lock()
+    if array_ids:
+      if len(grid_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
+      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.grid_id.in_(grid_ids)).filter(Job.id == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
+      if array_jobs: print array_jobs[0].job
+      _write_array_jobs(array_jobs)
 
-    else: #either failed_only is not set or submit the job as it was, entirely
-      return self.submit(job.args[0], **job.kwargs)
-
-  def keys(self):
-    return self.job.keys()
-
-  def has_key(self, key):
-    return self.job.has_key(key)
-
-  def __getitem__(self, key):
-    return self.job[key]
-
-  def __delitem__(self, key):
-    if not self.job.has_key(key): raise KeyError, key
-    qdel(key, context=self.context)
-    del self.job[key]
-
-  def __str__(self):
-    """Returns the status of each job still being tracked"""
-
-    return self.table(43)
-
-  def table(self, maxcmdline=0):
-    """Returns the status of each job still being tracked"""
-
-    # configuration
-    fields = ("job-id", "queue", "age", "job-name", "arguments")
-    lengths = (20, 7, 3, 20, 43)
-    marker = '='
-
-    # work
-    fmt = "%%%ds  %%%ds  %%%ds  %%%ds  %%-%ds" % lengths
-    delimiter = fmt % tuple([k*marker for k in lengths])
-    header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
-    header = '  '.join(header)
-
-    return '\n'.join([header] + [delimiter] + \
-        [self[k].row(fmt, maxcmdline) for k in sorted(self.job.keys())])
-
-  def clear(self):
-    """Clear the whole job queue"""
-    for k in self.keys(): del self[k]
-
-  def describe(self, key):
-    """Returns a string explaining a certain job"""
-    return str(self[key])
-
-  def stdout(self, key, instance=None):
-    """Gets the output of a certain job"""
-    return self[key].stdout(instance)
-
-  def stderr(self, key, instance=None):
-    """Gets the error output of a certain job"""
-    return self[key].stderr(instance)
-
-  def refresh(self, ignore_warnings=False):
-    """Conducts a qstat over all jobs in the cache. If the job is not present
-    anymore check the logs directory for output and error files. If the size of
-    the error file is different than zero, warn the user.
-
-    Returns two lists: jobs that work and jobs that require attention
-    (error file does not have size 0).
-    """
-    success = []
-    error = []
-    for k in sorted(self.job.keys()):
-      d = qstat(k, context=self.context)
-      if not d: #job has finished. check
-        status = self.job[k].check(ignore_warnings)
-        if status:
-          success.append(self.job[k])
-          del self.job[k]
-          logger.debug("Job %d completed successfully" % k)
+    else:
+      # iterate over all jobs
+      jobs = self.get_jobs(grid_ids)
+      for job in jobs:
+        if job.array:
+          if (unfinished or job.status in ('finished', 'executing')):
+            print job
+            _write_array_jobs(job.array)
         else:
-          error.append(self.job[k])
-          del self.job[k]
-          logger.debug("Job %d probably did not complete successfully" % k)
+          if unfinished or array_job.status == 'finished':
+            print job
+            _write_contents(job)
+        print "-"*60
 
-    return success, error
+    self.unlock()
+
+
+  def delete(self, grid_ids, array_ids = None, delete_logs = True, delete_log_dir = False):
+    """Deletes the jobs with the given ids from the database."""
+    def _delete_dir_if_empty(log_dir):
+      if log_dir and delete_log_dir and os.path.isdir(log_dir) and not os.listdir(log_dir):
+        os.rmdir(log_dir)
+
+    def _delete(job, try_to_delete_dir=False):
+      # delete the job from the database
+      if delete_logs:
+        out_file, err_file = job.std_out_file(), job.std_err_file()
+        if out_file and os.path.exists(out_file): os.remove(out_file)
+        if err_file and os.path.exists(err_file): os.remove(err_file)
+        if try_to_delete_dir:
+          _delete_dir_if_empty(job.log_dir)
+      self.session.delete(job)
+
+
+    self.lock()
+    if array_ids:
+      if len(grid_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
+      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.grid_id.in_(grid_ids)).filter(Job.id == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
+      if array_jobs:
+        job = array_jobs[0].job
+        for array_job in array_jobs:
+          _delete(array_job)
+        if not job.array:
+          _delete(job, True)
+
+    else:
+      # iterate over all jobs
+      jobs = self.get_jobs(grid_ids)
+      for job in jobs:
+        # delete all array jobs
+        if job.array:
+          for array_job in job.array:
+            _delete(array_job)
+        # delete this job
+        _delete(job, True)
+
+    self.session.commit()
+
+    self.unlock()
+
+
