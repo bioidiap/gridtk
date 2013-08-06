@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='gridtk',
-    version='0.3.7',
+    version='1.0.0.a0',
     description='SGE Grid Submission and Monitoring Tools for Idiap',
 
     url='https://github.com/idiap/gridtk',

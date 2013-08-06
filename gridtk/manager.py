@@ -1,77 +1,70 @@
 
-import bob
 import os
 import subprocess
 from .models import Base, Job, ArrayJob
 from .tools import logger
 
+import sqlalchemy
 echo = False
 
 """This file defines a minimum Job Manager interface."""
 
 class JobManager:
 
-  def __init__(self, sql_database):
-    self.database = os.path.realpath(sql_database)
-    if not os.path.exists(self.database):
-      self.create()
+  def __init__(self, sql_database, wrapper_script = './bin/jman'):
+    self._database = os.path.realpath(sql_database)
+    self._engine = sqlalchemy.create_engine("sqlite:///"+self._database, echo=echo)
+    if not os.path.exists(self._database):
+      self._create()
 
-    # get the next free job id (simply as the largest ID in the database + 1)
-#    self.lock()
-#    self.next_job_id = max([job.id for job in self.session.query(Job)] + [0]) + 1
-#    self.unlock()
+    # store the command that this job manager was called with
+    self.wrapper_script = wrapper_script
+
 
   def __del__(self):
-    # remove the database if it is empty
-    self.lock()
-    job_count = len(self.get_jobs())
-    self.unlock()
-    if not job_count:
-      os.remove(self.database)
+    # remove the database if it is empty$
+    if os.path.isfile(self._database):
+      self.lock()
+      job_count = len(self.get_jobs())
+      self.unlock()
+      if not job_count:
+        os.remove(self._database)
 
 
   def lock(self):
-    self.session = bob.db.utils.SQLiteConnector(self.database).session(echo=echo)
+    Session = sqlalchemy.orm.sessionmaker()
+    self.session = Session(bind=self._engine)
+    return self.session
 
   def unlock(self):
     self.session.close()
     del self.session
 
 
-  def create(self):
+  def _create(self):
     """Creates a new and empty database."""
     from .tools import makedirs_safe
 
     # create directory for sql database
-    makedirs_safe(os.path.dirname(self.database))
+    makedirs_safe(os.path.dirname(self._database))
 
-    # create an engine
-    engine = bob.db.utils.create_engine_try_nolock('sqlite', self.database, echo=echo)
     # create all the tables
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(self._engine)
 
 
-  def list(self):
-    """Lists the jobs currently added to the database."""
-    self.lock()
-    for job in self.get_jobs():
-      print job
-    self.unlock()
-
-
-  def get_jobs(self, grid_ids = None):
+  def get_jobs(self, job_ids = None):
     q = self.session.query(Job)
-    if grid_ids:
-      q = q.filter(Job.grid_id.in_(grid_ids))
+    if job_ids:
+      q = q.filter(Job.id.in_(job_ids))
     return list(q)
 
 
-  def _job_and_array(self, grid_id, array_id=None):
+  def _job_and_array(self, id, array_id=None):
     # get the job (and the array job) with the given id(s)
-    job = self.get_jobs((grid_id,))
+    job = self.get_jobs((id,))
     assert (len(job) == 1)
     job = job[0]
-    job_id = job.id
+    job_id = job.unique
 
     if array_id is not None:
       array_job = list(self.session.query(ArrayJob).filter(ArrayJob.job_id == job_id).filter(ArrayJob.id == array_id))
@@ -99,7 +92,7 @@ class JobManager:
     # execute the command line of the job, and wait untils it has finished
     try:
       result = subprocess.call(command_line)
-    except Error:
+    except Exception:
       result = 69 # ASCII: 'E'
 
     # set a new status and the results of the job
@@ -123,15 +116,36 @@ class JobManager:
     self.unlock()
 
 
-  def report(self, grid_ids=None, array_ids=None, unfinished=False, output=True, error=True):
+  def list(self, job_ids, print_array_jobs = False, print_dependencies = False):
+    """Lists the jobs currently added to the database."""
+    self.lock()
+    for job in self.get_jobs(job_ids):
+      print job
+      if print_dependencies:
+        waiting_jobs = [j.id for j in job.get_jobs_waiting_for_us()]
+        waited_for_jobs = [j.id for j in job.get_jobs_we_wait_for()]
+        if len(waiting_jobs):
+          print "These jobs wait for <Job %d>:" % job.id, waiting_jobs
+        if len(waited_for_jobs):
+          print "These jobs need to run before <Job %d>:" % job.id, waited_for_jobs
+      if print_array_jobs and job.array:
+        for array_job in job.array:
+          print array_job
+
+    self.unlock()
+
+
+  def report(self, job_ids=None, array_ids=None, unfinished=False, output=True, error=True):
     """Iterates through the output and error files and write the results to command line."""
     def _write_contents(job):
       # Writes the contents of the output and error files to command line
       out_file, err_file = job.std_out_file(), job.std_err_file()
-      if output and out_file is not None and os.path.exists(out_file) and os.stat(out_file).st_size:
+      if output and out_file is not None and os.path.exists(out_file) and os.stat(out_file).st_size > 0:
+        print "Output file:", out_file
         print open(out_file).read().rstrip()
         print "-"*20
-      if error and err_file is not None and os.path.exists(err_file) and os.stat(err_file).st_size:
+      if error and err_file is not None and os.path.exists(err_file) and os.stat(err_file).st_size > 0:
+        print "Error file:", err_file
         print open(err_file).read().rstrip()
         print "-"*40
 
@@ -144,14 +158,14 @@ class JobManager:
     # check if an array job should be reported
     self.lock()
     if array_ids:
-      if len(grid_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
-      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.grid_id.in_(grid_ids)).filter(Job.id == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
+      if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
+      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.id.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
       if array_jobs: print array_jobs[0].job
       _write_array_jobs(array_jobs)
 
     else:
       # iterate over all jobs
-      jobs = self.get_jobs(grid_ids)
+      jobs = self.get_jobs(job_ids)
       for job in jobs:
         if job.array:
           if (unfinished or job.status in ('finished', 'executing')):
@@ -166,7 +180,7 @@ class JobManager:
     self.unlock()
 
 
-  def delete(self, grid_ids, array_ids = None, delete_logs = True, delete_log_dir = False):
+  def delete(self, job_ids, array_ids = None, delete_logs = True, delete_log_dir = False):
     """Deletes the jobs with the given ids from the database."""
     def _delete_dir_if_empty(log_dir):
       if log_dir and delete_log_dir and os.path.isdir(log_dir) and not os.listdir(log_dir):
@@ -185,8 +199,8 @@ class JobManager:
 
     self.lock()
     if array_ids:
-      if len(grid_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
-      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.grid_id.in_(grid_ids)).filter(Job.id == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
+      if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
+      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.id.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
       if array_jobs:
         job = array_jobs[0].job
         for array_job in array_jobs:
@@ -196,7 +210,7 @@ class JobManager:
 
     else:
       # iterate over all jobs
-      jobs = self.get_jobs(grid_ids)
+      jobs = self.get_jobs(job_ids)
       for job in jobs:
         # delete all array jobs
         if job.array:
@@ -208,5 +222,3 @@ class JobManager:
     self.session.commit()
 
     self.unlock()
-
-

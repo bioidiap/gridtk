@@ -9,3 +9,8 @@ MANIFEST
 develop-eggs
 eggs
 bin
+sphinx
+.project
+.pydevproject
+.settings
+

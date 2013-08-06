@@ -21,7 +21,7 @@ from .models import add_job, Job
 
 class JobManagerLocal(JobManager):
   """Manages jobs run in parallel on the local machine."""
-  def __init__(self, database='submitted.sql3', sleep_time = 0.1):
+  def __init__(self, database='submitted.sql3', sleep_time = 0.1, wrapper_script = './bin/jman'):
     """Initializes this object with a state file and a method for qsub'bing.
 
     Keyword parameters:
@@ -31,7 +31,7 @@ class JobManagerLocal(JobManager):
       does not exist it is initialized. If it exists, it is loaded.
 
     """
-    JobManager.__init__(self, database)
+    JobManager.__init__(self, database, wrapper_script)
     self._sleep_time = sleep_time
 
 
@@ -47,6 +47,31 @@ class JobManagerLocal(JobManager):
     return job_id
 
 
+  def resubmit(self, job_ids = None, failed_only = False, running_jobs = False):
+    """Re-submit jobs automatically"""
+    self.lock()
+    # iterate over all jobs
+    jobs = self.get_jobs(job_ids)
+    for job in jobs:
+      # check if this job needs re-submission
+      if running_jobs or job.status == 'finished':
+        if not failed_only or job.result != 0:
+          job.status = 'waiting'
+          job.result = None
+          if job.array:
+            for array_job in job.array:
+              if running_jobs or array_job.status == 'finished':
+                if not failed_only or array_job.result != 0:
+                  array_job.status = 'waiting'
+                  array_job.result = None
+
+    self.session.commit()
+    self.unlock()
+
+
+#####################################################################
+###### Methods to run the jobs in parallel on the local machine #####
+
   def _run_parallel_job(self, job_id, array_id = None):
     """Executes the code for this job on the local machine."""
     environ = copy.deepcopy(os.environ)
@@ -56,10 +81,8 @@ class JobManagerLocal(JobManager):
     else:
       environ['SGE_TASK_ID'] = 'undefined'
 
-    # get the name of the file that was called originally
-    jman = os.path.realpath(sys.argv[0])
     # generate call to the wrapper script
-    command = [jman, '-l', 'run-job', self.database]
+    command = [self.wrapper_script, '-l', 'run-job', self._database]
     # return the subprocess pipe to the process
     try:
       return subprocess.Popen(command, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -97,8 +120,8 @@ class JobManagerLocal(JobManager):
     """Runs the jobs stored in this job manager on the local machine."""
     self.lock()
     query = self.session.query(Job).filter(Job.status != 'finished')
-    if job_ids:
-      query.filter(Job.id.in_(job_ids))
+    if job_ids is not None:
+      query = query.filter(Job.id.in_(job_ids))
 
     jobs = list(query)
 
@@ -114,7 +137,7 @@ class JobManagerLocal(JobManager):
     # collect the dependencies for the jobs
     dependencies = {}
     for job in jobs:
-      dependencies[job.id] = [dependent.id for dependent in job.dependent_jobs]
+      dependencies[job.id] = [waited.id for waited in job.get_jobs_we_wait_for()]
 
     self.unlock()
 
@@ -155,7 +178,7 @@ class JobManagerLocal(JobManager):
         # start new jobs
         for job_id in unfinished_jobs:
           # check if there are unsatisfied dependencies for this job
-          unsatisfied_dependencies = [dep for dep in dependencies[job_id] if dep in unfinished_jobs]
+          unsatisfied_dependencies = [dep for dep in dependencies[job_id]]
 
           if len(unsatisfied_dependencies) == 0:
             # all dependencies are met
@@ -190,6 +213,12 @@ class JobManagerLocal(JobManager):
                 else:
                   # remove the job that could not be started
                   unfinished_jobs.remove(job_id)
+
+      if not len(running_jobs) and len(unfinished_jobs) != 0:
+        # This is a weird case, which leads to a dead lock.
+        # It seems that the is a dependence that cannot be fulfilled
+        # This might happen, when a single job should be executed, but it depends on another job...
+        raise RuntimeError("Dead lock detected. There are dependencies in the database that cannot be fulfilled. Did you try to run a job that has unfulfilled dependencies?")
 
       # sleep for some time (default: 0.1 seconds)
       time.sleep(self._sleep_time)
