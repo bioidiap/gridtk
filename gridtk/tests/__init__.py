@@ -83,7 +83,10 @@ class DatabaseTest(unittest.TestCase):
     job_manager.unlock()
 
     # reset the job 1
-    jman.main(['./bin/jman', '--local', 'resubmit', '--db', self.db, '--job-id', '1'])
+    jman.main(['./bin/jman', '--local', 'resubmit', '--db', self.db, '--job-id', '1', '--clean'])
+    # check that the log files are gone, but the log dir is not
+    assert os.path.exists(self.log_dir)
+    assert len(os.listdir(self.log_dir)) == 0
     # assert that job 2 still can't run
     nose.tools.assert_raises(RuntimeError, jman.main, ['./bin/jman', '--local', 'execute', '--db', self.db, '--job-id', '2'])
 

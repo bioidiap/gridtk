@@ -109,6 +109,8 @@ def submit(args):
 def resubmit(args):
   """Re-submits the jobs with the given ids."""
   jm = setup(args)
+  if args.clean:
+    jm.delete(job_ids=args.job_ids, delete_jobs = False)
   jm.resubmit(args.job_ids, args.failed_only, args.running_jobs)
 
 
@@ -244,6 +246,7 @@ def main(command_line_options = None):
       help='Re-submits a list of jobs')
   resubmit_parser.add_argument('-d', '--db', '--database', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
   resubmit_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='List only the jobs with the given ids (by default, all jobs are listed)')
+  resubmit_parser.add_argument('-c', '--clean', action='store_true', help='Clean the log files of the old job before re-submitting')
   resubmit_parser.add_argument('-f', '--failed-only', action='store_true', help='Re-submit only jobs that have failed')
   resubmit_parser.add_argument('-a', '--running-jobs', action='store_true', help='Re-submit even jobs that are running or waiting')
   resubmit_parser.set_defaults(func=resubmit)
@@ -263,6 +266,7 @@ def main(command_line_options = None):
   list_parser.add_argument('-x', '--print-dependencies', action='store_true', help='Print the dependencies of the jobs as well.')
   list_parser.set_defaults(func=list)
 
+  # report parser
   report_parser = cmdparser.add_parser('report', aliases=['ref', 'r'],
       help='Iterates through the result and error log files and prints out the logs')
   report_parser.add_argument('-d', '--db', metavar='DATABASE', help='replace the default database to be reported by one provided by you', nargs='?')
@@ -292,7 +296,7 @@ def main(command_line_options = None):
   execute_parser.set_defaults(func=execute)
 
 
-  # subcommand 'run.job'; this is not seen on the command line since it is the actual wrapper script
+  # subcommand 'run-job'; this is not seen on the command line since it is actually a wrapper script
   run_parser = cmdparser.add_parser('run-job', help=argparse.SUPPRESS)
   run_parser.add_argument('db', metavar='DATABASE', nargs='?', help=argparse.SUPPRESS)
   run_parser.set_defaults(func=run_job)

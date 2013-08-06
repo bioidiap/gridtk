@@ -180,7 +180,7 @@ class JobManager:
     self.unlock()
 
 
-  def delete(self, job_ids, array_ids = None, delete_logs = True, delete_log_dir = False):
+  def delete(self, job_ids, array_ids = None, delete_logs = True, delete_log_dir = False, delete_jobs = True):
     """Deletes the jobs with the given ids from the database."""
     def _delete_dir_if_empty(log_dir):
       if log_dir and delete_log_dir and os.path.isdir(log_dir) and not os.listdir(log_dir):
@@ -194,7 +194,8 @@ class JobManager:
         if err_file and os.path.exists(err_file): os.remove(err_file)
         if try_to_delete_dir:
           _delete_dir_if_empty(job.log_dir)
-      self.session.delete(job)
+      if delete_jobs:
+        self.session.delete(job)
 
 
     self.lock()
