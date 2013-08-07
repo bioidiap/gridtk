@@ -15,32 +15,38 @@ __epilog__ = """ For a list of available commands:
 
 import os
 import sys
-import anydbm
-from cPickle import dumps
 
 import argparse
+import logging
 
+from ..tools import make_shell, logger
 from .. import local, sge
-from ..tools import make_shell, random_logdir, logger
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
 
-  kwargs = {'wrapper_script' : args.wrapper_script}
-  if args.db: kwargs['database'] = args.db
+  kwargs = {'wrapper_script' : args.wrapper_script, 'debug' : args.verbose==3, 'database' : args.database}
   if args.local:
     jm = local.JobManagerLocal(**kwargs)
   else:
     jm = sge.JobManagerSGE(**kwargs)
 
   # set-up logging
-  import logging
-  if args.debug:
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
-  else:
-    logger.setLevel(logging.WARNING)
+  if args.verbose not in range(0,4):
+    raise ValueError("The verbosity level %d does not exist. Please reduce the number of '--verbose' parameters in your call to maximum 3" % level)
 
+  # set up the verbosity level of the logging system
+  log_level = {
+      0: logging.ERROR,
+      1: logging.WARNING,
+      2: logging.INFO,
+      3: logging.DEBUG
+    }[args.verbose]
+
+  handler = logging.StreamHandler()
+  handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+  logger.addHandler(handler)
+  logger.setLevel(log_level)
 
   return jm
 
@@ -69,13 +75,10 @@ def submit(args):
   """Submission command"""
 
   # set full path to command
+  if args.job[0] == '--':
+    del args.job[0]
   if not os.path.isabs(args.job[0]):
     args.job[0] = os.path.abspath(args.job[0])
-
-  # automatically set interpreter if required
-  if args.python or os.path.splitext(args.job[0])[1] in ('.py',):
-    args.job = make_shell(sys.executable, args.job)
-
 
   jm = setup(args)
   kwargs = {
@@ -109,23 +112,23 @@ def submit(args):
 def resubmit(args):
   """Re-submits the jobs with the given ids."""
   jm = setup(args)
-  if args.clean:
+  if not args.keep_logs:
     jm.delete(job_ids=args.job_ids, delete_jobs = False)
   jm.resubmit(args.job_ids, args.failed_only, args.running_jobs)
 
 
-def execute(args):
-  """Executes the collected jobs on the local machine."""
+def run_scheduler(args):
+  """Runs the scheduler on the local machine. To stop it, please use Ctrl-C."""
   if not args.local:
     raise ValueError("The execute command can only be used with the '--local' command line option")
   jm = setup(args)
-  jm.run(parallel_jobs=args.parallel, job_ids=args.job_ids)
+  jm.run_scheduler(parallel_jobs=args.parallel, sleep_time=args.sleep_time)
 
 
 def list(args):
   """Lists the jobs in the given database."""
   jm = setup(args)
-  jm.list(args.job_ids, args.print_array_jobs, args.print_dependencies)
+  jm.list(job_ids=args.job_ids, print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, long=args.long)
 
 
 def report(args):
@@ -200,76 +203,62 @@ def main(command_line_options = None):
   from ..config import __version__
 
   parser = argparse.ArgumentParser(description=__doc__, epilog=__epilog__,
-      formatter_class=argparse.RawDescriptionHelpFormatter)
+      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   # part of the hack to support aliases in subparsers
   parser.register('action', 'parsers', AliasedSubParsersAction)
 
   # general options
-  parser.add_argument('-v', '--verbose', dest='verbose', default=False,
-      action='store_true', help='increase verbosity for this script')
-  parser.add_argument('-g', '--debug', dest='debug', default=False,
-      action='store_true', help='prints out lots of debugging information')
+  parser.add_argument('-v', '--verbose', action = 'count', default = 0,
+      help = "Increase the verbosity level from 0 (only error messages) to 1 (warnings), 2 (log messages), 3 (debug information) by adding the --verbose option as often as desired (e.g. '-vvv' for debug).")
   parser.add_argument('-V', '--version', action='version',
       version='GridTk version %s' % __version__)
+  parser.add_argument('-d', '--database', '--db', metavar='DATABASE', default = 'submitted.sql3',
+      help='replace the default database "submitted.sql3" by one provided by you.')
 
   parser.add_argument('-l', '--local', action='store_true',
         help = 'Uses the local job manager instead of the SGE one.')
   cmdparser = parser.add_subparsers(title='commands', help='commands accepted by %(prog)s')
 
   # subcommand 'submit'
-  submit_parser = cmdparser.add_parser('submit', aliases=['sub'],
-      help='submits self-contained jobs to the SGE queue and logs them in a private database')
-  submit_parser.add_argument('-d', '--db', '--database', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
-  submit_parser.add_argument('-q', '--queue', metavar='QNAME',
-      dest='qname', default='all.q', help='the name of the SGE queue to submit the job to (defaults to "%(default)s")')
-  submit_parser.add_argument('-m', '--memory', dest='memory', help='Sets both the h_vmem **and** the mem_free parameters when submitting the job to the specified value (e.g. 8G to set the memory requirements to 8 gigabytes)')
+  submit_parser = cmdparser.add_parser('submit', aliases=['sub'], help='submits self-contained jobs to the SGE queue and logs them in a private database')
+  submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', help='the name of the SGE queue to submit the job to')
+  submit_parser.add_argument('-m', '--memory', help='Sets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
   submit_parser.add_argument('-n', '--name', dest='name', help='Sets the jobname')
-  submit_parser.add_argument('-x', '--dependencies', type=int,
-      default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
+  submit_parser.add_argument('-x', '--dependencies', type=int, default=[], metavar='ID', nargs='*', help='set job dependencies by giving this option an a list of job identifiers separated by spaces')
   submit_parser.add_argument('-l', '--log-dir', metavar='DIR', help='Sets the log directory. By default, "logs" is selected. If the jobs are executed locally, by default the result is written to console.')
-  submit_parser.add_argument('-s', '--environment', '--env', metavar='KEY=VALUE',
-      dest='env', nargs='*', default=[],
-      help='Passes specific environment variables to the job')
-  submit_parser.add_argument('-t', '--array', '--parametric', metavar='[start:]stop[-step]',
-      dest='array', help='Creates a parametric (array) job. You must specify the stop value, but start (default=1) and step (default=1) can be specified as well.')
-  submit_parser.add_argument('-p', '--py', '--python', dest='python', default=False,
-      action='store_true', help='Wrap execution of your command using the current python interpreter')
-  submit_parser.add_argument('-z', '--dry-run',
-      action='store_true', help='Do not really submit anything, just print out what would submit in this case')
-  submit_parser.add_argument('-I', '--io-big', dest='io_big', default=False,
-      action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput')
-  submit_parser.add_argument('job', metavar='command', nargs=argparse.REMAINDER)
+  submit_parser.add_argument('-s', '--environment', metavar='KEY=VALUE', dest='env', nargs='*', default=[], help='Passes specific environment variables to the job')
+  submit_parser.add_argument('-t', '--array', '--parametric', metavar='(start:)stop(-step)', help='Creates a parametric (array) job. You must specify the stop value, but start (default=1) and step (default=1) can be specified as well.')
+  submit_parser.add_argument('-z', '--dry-run', action='store_true', help='Do not really submit anything, just print out what would submit in this case')
+  submit_parser.add_argument('-I', '--io-big', action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput')
+  submit_parser.add_argument('job', metavar='command', nargs=argparse.REMAINDER, help = "The job that should be executed")
   submit_parser.set_defaults(func=submit)
 
-  # re-submit parser
-  resubmit_parser = cmdparser.add_parser('resubmit', aliases=['re'],
+  # subcommand 're-submit'
+  resubmit_parser = cmdparser.add_parser('resubmit', aliases=['reset', 're'],
       help='Re-submits a list of jobs')
-  resubmit_parser.add_argument('-d', '--db', '--database', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
   resubmit_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='List only the jobs with the given ids (by default, all jobs are listed)')
-  resubmit_parser.add_argument('-c', '--clean', action='store_true', help='Clean the log files of the old job before re-submitting')
+  resubmit_parser.add_argument('-k', '--keep-logs', action='store_true', help='Do not clean the log files of the old job before re-submitting')
   resubmit_parser.add_argument('-f', '--failed-only', action='store_true', help='Re-submit only jobs that have failed')
   resubmit_parser.add_argument('-a', '--running-jobs', action='store_true', help='Re-submit even jobs that are running or waiting')
   resubmit_parser.set_defaults(func=resubmit)
 
-  # stop parser
+  # subcommand 'stop'
   stop_parser = cmdparser.add_parser('stop', help='Stops the execution of jobs in the grid')
-  stop_parser.add_argument('-d', '--db', '--database', metavar='DATABASE', help='replace the default database to be used by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database')
   stop_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Stop only the jobs with the given ids (by default, all jobs are stopped)')
   stop_parser.set_defaults(func=stop)
 
   # subcommand 'list'
   list_parser = cmdparser.add_parser('list', aliases=['ls'],
       help='lists jobs stored in the database')
-  list_parser.add_argument('-d', '--db', metavar='DATABASE', help='replace the default database by one provided by you; this option is only required if you are running outside the directory where you originally submitted the jobs from or if you have altered manually the location of the JobManager database', nargs='?')
   list_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='List only the jobs with the given ids (by default, all jobs are listed)')
+  list_parser.add_argument('-l', '--long', action='store_true', help='Lists the complete command line (will be shortened otherwise).')
   list_parser.add_argument('-a', '--print-array-jobs', action='store_true', help='Report only the jobs with the given array ids. If specified, a single job-id must be given as well.')
   list_parser.add_argument('-x', '--print-dependencies', action='store_true', help='Print the dependencies of the jobs as well.')
   list_parser.set_defaults(func=list)
 
-  # report parser
-  report_parser = cmdparser.add_parser('report', aliases=['ref', 'r'],
+  # subcommand 'report'
+  report_parser = cmdparser.add_parser('report', aliases=['rep', 'r'],
       help='Iterates through the result and error log files and prints out the logs')
-  report_parser.add_argument('-d', '--db', metavar='DATABASE', help='replace the default database to be reported by one provided by you', nargs='?')
   report_parser.add_argument('-e', '--errors-only', action='store_true', help='Only report the error logs (by default, both logs are reported).')
   report_parser.add_argument('-o', '--output-only', action='store_true', help='Only report the output logs  (by default, both logs are reported).')
   report_parser.add_argument('-u', '--unfinished-also', action='store_true', help='Report also the unfinished jobs.')
@@ -280,7 +269,6 @@ def main(command_line_options = None):
   # subcommand 'delete'
   delete_parser = cmdparser.add_parser('delete', aliases=['del', 'rm', 'remove'],
       help='removes jobs from the database; if jobs are running or are still scheduled in SGE, the jobs are also removed from the SGE queue')
-  delete_parser.add_argument('-d', '--db', metavar='DATABASE', help='replace the default database to be reported by one provided by you', nargs='?')
   delete_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Delete only the jobs with the given ids (by default, all jobs are deleted)')
   delete_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='*', type=int, help='Delete only the jobs with the given array ids. If specified, a single job-id must be given as well.')
   delete_parser.add_argument('-r', '--keep-logs', action='store_true', help='If set, the log files will NOT be removed.')
@@ -288,17 +276,15 @@ def main(command_line_options = None):
   delete_parser.set_defaults(func=delete)
 
   # subcommand 'execute'
-  execute_parser = cmdparser.add_parser('execute', aliases=['exe', 'x'],
-      help='Executes the registered jobs on the local machine; only valid in combination with the \'--local\' option.')
-  execute_parser.add_argument('-d', '--db', metavar='DATABASE', help='replace the default database to be executed by one provided by you', nargs='?')
+  execute_parser = cmdparser.add_parser('run-scheduler', aliases=['sched', 'x'],
+      help='Runs the scheduler on the local machine. To stop the scheduler safely, please use Ctrl-C; only valid in combination with the \'--local\' option.')
   execute_parser.add_argument('-p', '--parallel', type=int, default=1, help='Select the number of parallel jobs that you want to execute locally')
-  execute_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Execute only the jobs with the given ids (by default, all unfinished jobs are executed)')
-  execute_parser.set_defaults(func=execute)
+  execute_parser.add_argument('-s', '--sleep-time', type=float, default=0.1, help='Set the sleep time between for the scheduler in seconds.')
+  execute_parser.set_defaults(func=run_scheduler)
 
 
   # subcommand 'run-job'; this is not seen on the command line since it is actually a wrapper script
   run_parser = cmdparser.add_parser('run-job', help=argparse.SUPPRESS)
-  run_parser.add_argument('db', metavar='DATABASE', nargs='?', help=argparse.SUPPRESS)
   run_parser.set_defaults(func=run_job)
 
 

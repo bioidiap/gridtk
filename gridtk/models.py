@@ -11,7 +11,7 @@ from .tools import logger
 
 Base = declarative_base()
 
-Status = ('waiting', 'executing', 'finished')
+Status = ('submitted', 'queued', 'waiting', 'executing', 'success', 'failure')
 
 class ArrayJob(Base):
   """This class defines one element of an array job."""
@@ -43,6 +43,14 @@ class ArrayJob(Base):
     else: r = "%s" % self.status
     return "%s : %s" % (n, r)
 
+  def format(self, format):
+    """Formats the current job into a nicer string to fit into a table."""
+
+    job_id = "%d - %d" % (self.job.id, self.id)
+    status = "%s" % self.status + (" (%d)" % self.result if self.result is not None else "" )
+
+    return format.format(job_id, self.job.queue_name, status)
+
 
 class Job(Base):
   """This class defines one Job that was submitted to the Job Manager."""
@@ -51,7 +59,8 @@ class Job(Base):
   unique = Column(Integer, primary_key = True) # The unique ID of the job (not corresponding to the grid ID)
   command_line = Column(String(255))           # The command line to execute, converted to one string
   name = Column(String(20))                    # A hand-chosen name for the task
-  arguments = Column(String(255))              # The kwargs arguments for the job submission (e.g. in the grid)
+  queue_name = Column(String(20))              # The name of the queue
+  grid_arguments = Column(String(255))         # The kwargs arguments for the job submission (e.g. in the grid)
   id = Column(Integer, unique = True)          # The ID of the job as given from the grid
   log_dir = Column(String(255))                # The directory where the log files will be put to
   array_string = Column(String(255))           # The array string (only needed for re-submission)
@@ -59,15 +68,89 @@ class Job(Base):
   status = Column(Enum(*Status))
   result = Column(Integer)
 
-  def __init__(self, command_line, name = None, log_dir = None, array_string = None, **kwargs):
+  def __init__(self, command_line, name = None, log_dir = None, array_string = None, queue_name = 'local', **kwargs):
     """Constructs a Job object without an ID (needs to be set later)."""
     self.command_line = dumps(command_line)
     self.name = name
-    self.status = Status[0]
-    self.result = None
+    self.queue_name = queue_name   # will be set during the queue command later
+    self.grid_arguments = dumps(kwargs)
     self.log_dir = log_dir
     self.array_string = dumps(array_string)
-    self.arguments = dumps(kwargs)
+    self.submit()
+
+
+  def submit(self):
+    """Sets the status of this job to 'submitted'."""
+    self.status = 'submitted'
+    self.result = None
+    for array_job in self.array:
+      array_job.status = 'submitted'
+      array_job.result = None
+
+  def queue(self, new_job_id = None, new_job_name = None, queue_name = None):
+    """Sets the status of this job to 'queued' or 'waiting'."""
+    # update the job id (i.e., when the job is executed in the grid)
+    if new_job_id is not None:
+      self.id = new_job_id
+
+    if new_job_name is not None:
+      self.name = new_job_name
+
+    if queue_name is not None:
+      self.queue_name = queue_name
+
+    new_status = 'queued'
+    self.result = None
+    # check if we have to wait for another job to finish
+    for job in self.get_jobs_we_wait_for():
+      if job is not None and job.status not in Status[-2:]:
+        new_status = 'waiting'
+
+    # reset the queued jobs that depend on us to waiting status
+    for job in self.get_jobs_waiting_for_us():
+      if job is not None and job.status == 'queued':
+        job.status = 'waiting'
+
+    self.status = new_status
+    for array_job in self.array:
+      array_job.status = new_status
+
+
+  def execute(self, array_id = None):
+    """Sets the status of this job to 'executing'."""
+    self.status = 'executing'
+    if array_id is not None:
+      for array_job in self.array:
+        if array_job.id == array_id:
+          array_job.status = 'executing'
+
+
+  def finish(self, result, array_id = None):
+    """Sets the status of this job to 'success' or 'failure'."""
+    # check if there is any array job still running
+    new_status = 'success' if result == 0 else 'failure'
+    new_result = result
+    finished = True
+    if array_id is not None:
+      for array_job in self.array:
+        if array_job.id == array_id:
+          array_job.status = new_status
+          array_job.result = result
+        if array_job.status not in Status[-2:]:
+          finished = False
+        elif new_result == 0:
+          new_result = array_job.result
+
+    if finished:
+      # There was no array job, or all array jobs finished
+      self.status = 'success' if new_result == 0 else 'failure'
+      self.result = new_result
+
+      # update all waiting jobs
+      for job in self.get_jobs_waiting_for_us():
+        if job.status == 'waiting':
+          job.queue()
+
 
   def get_command_line(self):
     return loads(str(self.command_line))
@@ -75,13 +158,8 @@ class Job(Base):
   def get_array(self):
     return loads(str(self.array_string))
 
-  def set_arguments(self, **kwargs):
-    previous = self.get_arguments()
-    previous.update(kwargs)
-    self.arguments = dumps(previous)
-
   def get_arguments(self):
-    return loads(str(self.arguments))
+    return loads(str(self.grid_arguments))
 
   def get_jobs_we_wait_for(self):
     return [j.waited_for_job for j in self.jobs_we_have_to_wait_for if j.waited_for_job is not None]
@@ -99,13 +177,26 @@ class Job(Base):
 
   def __str__(self):
     id = "%d" % self.id
-    if self.array: j = "%s (%d-%d)" % (id, self.array[0].id, self.array[-1].id)
-    else: j = "%s" % id
-    if self.name is not None: n = "<Job: %s - '%s'>" % (j, self.name)
-    else: n = "<Job: %s>" % j
+    if self.array: a = "[%d-%d:%d]" % self.get_array()
+    else: a = ""
+    if self.name is not None: n = "<Job: %s %s - '%s'>" % (id, a, self.name)
+    else: n = "<Job: %s>" % id
     if self.result is not None: r = "%s (%d)" % (self.status, self.result)
     else: r = "%s" % self.status
     return "%s : %s -- %s" % (n, r, " ".join(self.get_command_line()))
+
+  def format(self, format, add_dependencies = False, limit_command_line = None):
+    """Formats the current job into a nicer string to fit into a table."""
+    command_line = " ".join(self.get_command_line())
+    if add_dependencies:
+      command_line = str([dep.id for dep in self.get_jobs_we_wait_for()]) + " -- " + command_line
+    if limit_command_line is not None:
+      command_line = command_line[:limit_command_line-3] + '...'
+
+    job_id = "%d" % self.id + (" [%d-%d:%d]" % self.get_array() if self.array else "")
+    status = "%s" % self.status + (" (%d)" % self.result if self.result is not None else "" )
+
+    return format.format(job_id, self.queue_name, status, self.name, command_line)
 
 
 
@@ -144,7 +235,6 @@ def add_job(session, command_line, name = 'job', dependencies = [], array = None
       session.add(JobDependence(job.unique, depending[0].unique))
     else:
       logger.warn("Could not find dependent job with id %d in database" % d)
-
 
   if array:
     (start, stop, step) = array

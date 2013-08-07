@@ -13,7 +13,7 @@ import copy, os, sys
 import gdbm, anydbm
 from cPickle import dumps, loads
 
-from tools import makedirs_safe, logger, try_get_contents, try_remove_files
+from .tools import makedirs_safe, logger, try_get_contents, try_remove_files
 
 
 from .manager import JobManager
@@ -21,7 +21,7 @@ from .models import add_job, Job
 
 class JobManagerLocal(JobManager):
   """Manages jobs run in parallel on the local machine."""
-  def __init__(self, database='submitted.sql3', sleep_time = 0.1, wrapper_script = './bin/jman'):
+  def __init__(self, **kwargs):
     """Initializes this object with a state file and a method for qsub'bing.
 
     Keyword parameters:
@@ -31,8 +31,7 @@ class JobManagerLocal(JobManager):
       does not exist it is initialized. If it exists, it is loaded.
 
     """
-    JobManager.__init__(self, database, wrapper_script)
-    self._sleep_time = sleep_time
+    JobManager.__init__(self, **kwargs)
 
 
   def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = None, **kwargs):
@@ -41,6 +40,7 @@ class JobManagerLocal(JobManager):
     # add job to database
     self.lock()
     job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, log_dir=log_dir)
+    logger.debug("Added job '%s' to the database" % job)
     # return the new job id
     job_id = job.id
     self.unlock()
@@ -52,18 +52,43 @@ class JobManagerLocal(JobManager):
     self.lock()
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
+    accepted_old_status = ('failure',) if failed_only else ('success', 'failure')
     for job in jobs:
       # check if this job needs re-submission
-      if running_jobs or job.status == 'finished':
-        if not failed_only or job.result != 0:
-          job.status = 'waiting'
-          job.result = None
-          if job.array:
-            for array_job in job.array:
-              if running_jobs or array_job.status == 'finished':
-                if not failed_only or array_job.result != 0:
-                  array_job.status = 'waiting'
-                  array_job.result = None
+      if running_jobs or job.status in accepted_old_status:
+        # re-submit job to the grid
+        logger.debug("Re-submitted job '%s' to the database" % job)
+        job.submit()
+
+    self.session.commit()
+    self.unlock()
+
+
+  def stop_jobs(self, job_ids):
+    """Stops the jobs in the grid."""
+    self.lock()
+
+    jobs = self.get_jobs(job_ids)
+    for job in jobs:
+      if job.status == 'executing':
+        logger.debug("Reset job '%s' in the database" % job)
+        job.status = 'submitted'
+
+    self.session.commit()
+    self.unlock()
+
+  def stop_job(self, job_id, array_id = None):
+    """Stops the jobs in the grid."""
+    self.lock()
+
+    job, array_job = self._job_and_array(job_id, array_id)
+    if job.status == 'executing':
+      logger.debug("Reset job '%s' in the database" % job)
+      job.status = 'submitted'
+
+    if array_job is not None and array_job.status == 'executing':
+      logger.debug("Reset array job '%s' in the database" % array_job)
+      array_job.status = 'submitted'
 
     self.session.commit()
     self.unlock()
@@ -82,16 +107,19 @@ class JobManagerLocal(JobManager):
       environ['SGE_TASK_ID'] = 'undefined'
 
     # generate call to the wrapper script
-    command = [self.wrapper_script, '-l', 'run-job', self._database]
+    command = [self.wrapper_script, '-ld', self._database, 'run-job']
+
+    logger.info("Started execution of Job '%s'" % self._format_log(job_id, array_id))
+
     # return the subprocess pipe to the process
     try:
       return subprocess.Popen(command, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError as e:
-      logger.error("Could not execute job '%s' locally, reason:\n\t%s" % ("(%d:%d)"%(job_id, array_id) if array_id else str(job_id)), e)
+      logger.error("Could not execute job '%s' locally, reason:\n\t%s" % self._format_log(job_id, array_id), e)
       return None
 
 
-  def _report(self, process, job_id, array_id = None):
+  def _result_files(self, process, job_id, array_id = None):
     """Finalizes the execution of the job by writing the stdout and stderr results into the according log files."""
     def write(file, process, std):
       f = std if file is None else open(str(file), 'w')
@@ -106,120 +134,94 @@ class JobManagerLocal(JobManager):
       out, err = job.std_out_file(), job.std_err_file()
 
     log_dir = job.log_dir
+    job_id = job.id
+    array_id = array_job.id if array_job else None
     self.unlock()
 
-    if log_dir: makedirs_safe(log_dir)
+    if log_dir:
+      makedirs_safe(log_dir)
 
     # write stdout
     write(out, process.stdout, sys.stdout)
     # write stderr
     write(err, process.stderr, sys.stderr)
 
+    if log_dir:
+      j = self._format_log(job_id, array_id)
+      logger.debug("Wrote output of job '%s' to file '%s'" % (j,out))
+      logger.debug("Wrote errors of job '%s' to file '%s'" % (j,err))
 
-  def run(self, parallel_jobs = 1, job_ids = None):
-    """Runs the jobs stored in this job manager on the local machine."""
-    self.lock()
-    query = self.session.query(Job).filter(Job.status != 'finished')
-    if job_ids is not None:
-      query = query.filter(Job.id.in_(job_ids))
 
-    jobs = list(query)
+  def _format_log(self, job_id, array_id = None):
+    return ("%d (%d)" % (job_id, array_id)) if array_id is not None else ("%d" % job_id)
 
-    # collect the jobs to execute
-    unfinished_jobs = [job.id for job in jobs]
+  def run_scheduler(self, parallel_jobs = 1, sleep_time = 0.1):
+    """Starts the scheduler, which is constantly checking for jobs that should be ran."""
+    running_tasks = []
+    try:
 
-    # collect the array jobs
-    unfinished_array_jobs = {}
-    for job in jobs:
-      if job.array:
-        unfinished_array_jobs[job.id] = [array.id for array in job.array if array.status != 'finished']
-
-    # collect the dependencies for the jobs
-    dependencies = {}
-    for job in jobs:
-      dependencies[job.id] = [waited.id for waited in job.get_jobs_we_wait_for()]
-
-    self.unlock()
-
-    # start the jobs
-    finished_array_jobs = {}
-    running_jobs = []
-    running_array_jobs = {}
-
-    while len(unfinished_jobs) > 0 or len(running_jobs) > 0:
-
-      # FIRST: check if some of the jobs finished
-      for task in running_jobs:
-        # check if the job is still running
-        process = task[0]
-        if process.poll() is not None:
-          # process ended
-          job_id = task[1]
-          if len(task) > 2:
-            # we have an array job
-            array_id = task[2]
+      while True:
+        # FIRST, try if there are finished processes; this does not need a lock
+        for task_index in range(len(running_tasks)-1, -1, -1):
+          task = running_tasks[task_index]
+          process = task[0]
+          if process.poll() is not None:
+            # process ended
+            job_id = task[1]
+            array_id = task[2] if len(task) > 2 else None
             # report the result
-            self._report(process, job_id, array_id)
-            # remove from running and unfinished jobs
-            running_array_jobs[job_id].remove(array_id)
-            unfinished_array_jobs[job_id].remove(array_id)
-            if len(unfinished_array_jobs[job_id]) == 0:
-              del unfinished_array_jobs[job_id]
-              unfinished_jobs.remove(job_id)
-          else:
-            # non-array job
-            self._report(process, job_id)
-            unfinished_jobs.remove(job_id)
-          # in any case, remove the job from the list
-          running_jobs.remove(task)
+            self._result_files(process, job_id, array_id)
+            logger.info("Job '%s' finished execution" % self._format_log(job_id, array_id))
 
-      # SECOND: run as many parallel jobs as desired
-      if len(running_jobs) < parallel_jobs:
-        # start new jobs
-        for job_id in unfinished_jobs:
-          # check if there are unsatisfied dependencies for this job
-          unsatisfied_dependencies = [dep for dep in dependencies[job_id]]
+            # in any case, remove the job from the list
+            del running_tasks[task_index]
 
-          if len(unsatisfied_dependencies) == 0:
-            # all dependencies are met
-            if job_id in unfinished_array_jobs:
-              # execute one of the array jobs
-              for array_id in unfinished_array_jobs[job_id]:
-                # check if the current array_id still need to run
-                if job_id not in running_array_jobs or array_id not in running_array_jobs[job_id]:
-                  # execute parallel job
-                  process = self._run_parallel_job(job_id, array_id)
-                  if process is not None:
-                    # remember that we currently run this job
-                    running_jobs.append((process, job_id, array_id))
-                    if job_id in running_array_jobs:
-                      running_array_jobs[job_id].add(array_id)
-                    else:
-                      running_array_jobs[job_id] = set([array_id])
-                  else:
-                    # remove the job from the list since it could not run
-                    unfinished_array_jobs[job_id].remove(array_id)
-                # check if more jobs can be executed
-                if len(running_jobs) == parallel_jobs:
-                  break
-
+        # SECOND, check if new jobs can be submitted; THIS NEEDS TO LOCK THE DATABASE
+        if len(running_tasks) < parallel_jobs:
+          # get all unfinished jobs:
+          self.lock()
+          jobs = self.get_jobs()
+          # put all new jobs into the queue
+          for job in jobs:
+            if job.status == 'submitted':
+              job.queue()
+          # get all unfinished jobs
+          unfinished_jobs = [job for job in jobs if job.status in ('queued', 'executing')]
+          for job in unfinished_jobs:
+            if job.array:
+              # find array jobs that can run
+              for array_job in job.array:
+                if array_job.status == 'queued':
+                  # start a new job from the array
+                  process = self._run_parallel_job(job.id, array_job.id)
+                  running_tasks.append((process, job.id, array_job.id))
+                  # we here set the status to executing manually to avoid jobs to be run twice
+                  # e.g., if the loop is executed while the asynchronous job did not start yet
+                  array_job.status = 'executing'
+                  job.status = 'executing'
+                  if len(running_tasks) == parallel_jobs:
+                    break
             else:
-              # execute job
-              if job_id not in running_jobs:
-                process = self._run_parallel_job(job_id)
-                if process is not None:
-                  # remember that we currently run this job
-                  running_jobs.append((process, job_id))
-                else:
-                  # remove the job that could not be started
-                  unfinished_jobs.remove(job_id)
+              if job.status == 'queued':
+                # start a new job
+                process = self._run_parallel_job(job.id)
+                running_tasks.append((process, job.id))
+                # we here set the status to executing manually to avoid jobs to be run twice
+                # e.g., if the loop is executed while the asynchronous job did not start yet
+                job.status = 'executing'
+            if len(running_tasks) == parallel_jobs:
+              break
 
-      if not len(running_jobs) and len(unfinished_jobs) != 0:
-        # This is a weird case, which leads to a dead lock.
-        # It seems that the is a dependence that cannot be fulfilled
-        # This might happen, when a single job should be executed, but it depends on another job...
-        raise RuntimeError("Dead lock detected. There are dependencies in the database that cannot be fulfilled. Did you try to run a job that has unfulfilled dependencies?")
+          self.session.commit()
+          self.unlock()
 
-      # sleep for some time (default: 0.1 seconds)
-      time.sleep(self._sleep_time)
+        # THIRD: sleep the desired amount of time before re-checking
+        time.sleep(sleep_time)
 
+    # This is the only way to stop: you have to interrupt the scheduler
+    except KeyboardInterrupt:
+      logger.info("Stopping task scheduler due to user interrupt.")
+      for task in running_tasks:
+        logger.warn("Killing job '%s' that was still running." % self._format_log(task[1], task[2] if len(task) > 2 else None))
+        task[0].kill()
+        self.stop_job(task[1], task[2] if len(task) > 2 else None)
