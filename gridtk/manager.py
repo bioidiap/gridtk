@@ -13,6 +13,7 @@ class JobManager:
   def __init__(self, database, wrapper_script = './bin/jman', debug = False):
     self._database = os.path.realpath(database)
     self._engine = sqlalchemy.create_engine("sqlite:///"+self._database, echo=debug)
+    self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
 
     # store the command that this job manager was called with
     self.wrapper_script = wrapper_script
@@ -35,10 +36,10 @@ class JobManager:
     """Generates (and returns) a blocking session object to the database."""
     if hasattr(self, 'session'):
       raise RuntimeError('Dead lock detected. Please do not try to lock the session when it is already locked!')
-    Session = sqlalchemy.orm.sessionmaker()
     if not os.path.exists(self._database):
       self._create()
-    self.session = Session(bind=self._engine)
+    # now, create a session
+    self.session = self._session_maker()
     logger.debug("Created new database session to '%s'" % self._database)
     return self.session
 
@@ -46,8 +47,8 @@ class JobManager:
     """Closes the session to the database."""
     if not hasattr(self, 'session'):
       raise RuntimeError('Error detected! The session that you want to close does not exist any more!')
-    self.session.close()
     logger.debug("Closed database session of '%s'" % self._database)
+    self.session.close()
     del self.session
 
 
@@ -61,6 +62,7 @@ class JobManager:
     # create all the tables
     Base.metadata.create_all(self._engine)
     logger.debug("Created new empty database '%s'" % self._database)
+
 
 
   def get_jobs(self, job_ids = None):
@@ -100,6 +102,25 @@ class JobManager:
     # set the 'executing' status to the job
     job.execute(array_id)
 
+    if job.status == 'failure':
+      # there has been a dependent job that has failed before
+      # stop this and all dependent jobs from execution
+      dependent_jobs = job.get_jobs_waiting_for_us()
+      dependent_job_ids = set([dep.id for dep in dependent_jobs] + [job.id])
+      while len(dependent_jobs):
+        dep = dependent_jobs[0]
+        new = dep.get_jobs_waiting_for_us()
+        dependent_jobs += new
+        dependent_job_ids.update([dep.id for dep in new])
+
+      self.unlock()
+      try:
+        self.stop_jobs(list(dependent_job_ids))
+        logger.warn("Deleted dependent jobs '%s' since this job failed.")
+      except:
+        pass
+      return
+
     # get the command line of the job
     command_line = job.get_command_line()
     self.session.commit()
@@ -116,6 +137,7 @@ class JobManager:
     jobs = self.get_jobs((job_id,))
     if not len(jobs):
       # it seems that the job has been deleted in the meanwhile
+      logger.error("The job with id '%d' could not be found in the database!" % job_id)
       return
 
     job = jobs[0]
@@ -128,9 +150,17 @@ class JobManager:
   def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False):
     """Lists the jobs currently added to the database."""
     # configuration for jobs
-    fields = ("job-id", "queue", "status", "job-name", "arguments")
-    lengths = (20, 9, 14, 20, 43)
-    format = "{:^%d}  {:^%d}  {:^%d}  {:^%d}  {:^%d}" % lengths
+    if print_dependencies:
+      fields = ("job-id", "queue", "status", "job-name", "dependencies", "submitted command line")
+      lengths = (20, 9, 14, 20, 30, 43)
+      format = "{:^%d}  {:^%d}  {:^%d}  {:^%d}  {:^%d}  {:<%d}" % lengths
+      dependency_length = lengths[4]
+    else:
+      fields = ("job-id", "queue", "status", "job-name", "submitted command line")
+      lengths = (20, 9, 14, 20, 43)
+      format = "{:^%d}  {:^%d}  {:^%d}  {:^%d}  {:<%d}" % lengths
+      dependency_length = 0
+
     array_format = "{:>%d}  {:^%d}  {:^%d}" % lengths[:3]
     delimiter = format.format(*['='*k for k in lengths])
     array_delimiter = array_format.format(*["-"*k for k in lengths[:3]])
@@ -143,7 +173,7 @@ class JobManager:
 
     self.lock()
     for job in self.get_jobs(job_ids):
-      print job.format(format, print_dependencies, None if long else 43)
+      print job.format(format, dependency_length, None if long else 43)
       if print_array_jobs and job.array:
         print array_delimiter
         for array_job in job.array:
@@ -232,10 +262,10 @@ class JobManager:
       if array_jobs:
         job = array_jobs[0].job
         for array_job in array_jobs:
-          logger.debug("Deleting array job '%d' of job '%d'" % array_job.id, job.id)
+          logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.id)
           _delete(array_job)
         if not job.array:
-          logger.info("Deleting job '%d'" % job.id)
+          logger.info("Deleting job '%d' from the database." % job.id)
           _delete(job, True)
 
     else:
@@ -245,10 +275,10 @@ class JobManager:
         # delete all array jobs
         if job.array:
           for array_job in job.array:
-            logger.debug("Deleting array job '%d' of job '%d'" % (array_job.id, job.id))
+            logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.id))
             _delete(array_job)
         # delete this job
-        logger.info("Deleting job '%d'" % job.id)
+        logger.info("Deleting job '%d' from the database." % job.id)
         _delete(job, True)
 
     self.session.commit()

@@ -1,5 +1,5 @@
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, String, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey
 from bob.db.sqlalchemy_migration import Enum, relationship
 from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
@@ -64,25 +64,29 @@ class Job(Base):
   id = Column(Integer, unique = True)          # The ID of the job as given from the grid
   log_dir = Column(String(255))                # The directory where the log files will be put to
   array_string = Column(String(255))           # The array string (only needed for re-submission)
+  stop_on_failure = Column(Boolean)            # An indicator whether to stop depending jobs when this job finishes with an error
 
   status = Column(Enum(*Status))
   result = Column(Integer)
 
-  def __init__(self, command_line, name = None, log_dir = None, array_string = None, queue_name = 'local', **kwargs):
+  def __init__(self, command_line, name = None, log_dir = None, array_string = None, queue_name = 'local', stop_on_failure = False, **kwargs):
     """Constructs a Job object without an ID (needs to be set later)."""
     self.command_line = dumps(command_line)
     self.name = name
     self.queue_name = queue_name   # will be set during the queue command later
     self.grid_arguments = dumps(kwargs)
     self.log_dir = log_dir
+    self.stop_on_failure = stop_on_failure
     self.array_string = dumps(array_string)
     self.submit()
 
 
-  def submit(self):
+  def submit(self, new_queue = None):
     """Sets the status of this job to 'submitted'."""
     self.status = 'submitted'
     self.result = None
+    if new_queue is not None:
+      self.queue_name = new_queue
     for array_job in self.array:
       array_job.status = 'submitted'
       array_job.result = None
@@ -103,13 +107,15 @@ class Job(Base):
     self.result = None
     # check if we have to wait for another job to finish
     for job in self.get_jobs_we_wait_for():
-      if job is not None and job.status not in Status[-2:]:
+      if job.status not in ('success', 'failure'):
         new_status = 'waiting'
+      elif self.stop_on_failure and job.status == 'failure':
+        new_status = 'failure'
 
     # reset the queued jobs that depend on us to waiting status
     for job in self.get_jobs_waiting_for_us():
-      if job is not None and job.status == 'queued':
-        job.status = 'waiting'
+      if job.status == 'queued':
+        job.status = 'failure' if new_status == 'failure' else 'waiting'
 
     self.status = new_status
     for array_job in self.array:
@@ -124,6 +130,13 @@ class Job(Base):
         if array_job.id == array_id:
           array_job.status = 'executing'
 
+    # sometimes, the 'finish' command did not work for array jobs,
+    # so check if any old job still has the 'executing' flag set
+    for job in self.get_jobs_we_wait_for():
+      if job.array and job.status == 'executing':
+        job.finish(0, -1)
+
+
 
   def finish(self, result, array_id = None):
     """Sets the status of this job to 'success' or 'failure'."""
@@ -136,7 +149,7 @@ class Job(Base):
         if array_job.id == array_id:
           array_job.status = new_status
           array_job.result = result
-        if array_job.status not in Status[-2:]:
+        if array_job.status not in ('success', 'failure'):
           finished = False
         elif new_result == 0:
           new_result = array_job.result
@@ -185,18 +198,22 @@ class Job(Base):
     else: r = "%s" % self.status
     return "%s : %s -- %s" % (n, r, " ".join(self.get_command_line()))
 
-  def format(self, format, add_dependencies = False, limit_command_line = None):
+  def format(self, format, dependencies = 0, limit_command_line = None):
     """Formats the current job into a nicer string to fit into a table."""
     command_line = " ".join(self.get_command_line())
-    if add_dependencies:
-      command_line = str([dep.id for dep in self.get_jobs_we_wait_for()]) + " -- " + command_line
-    if limit_command_line is not None:
+    if limit_command_line is not None and len(command_line) > limit_command_line:
       command_line = command_line[:limit_command_line-3] + '...'
 
     job_id = "%d" % self.id + (" [%d-%d:%d]" % self.get_array() if self.array else "")
     status = "%s" % self.status + (" (%d)" % self.result if self.result is not None else "" )
 
-    return format.format(job_id, self.queue_name, status, self.name, command_line)
+    if dependencies:
+      deps = str([dep.id for dep in self.get_jobs_we_wait_for()])
+      if dependencies < len(deps):
+        deps = deps[:dependencies-3] + '...'
+      return format.format(job_id, self.queue_name, status, self.name, deps, command_line)
+    else:
+      return format.format(job_id, self.queue_name, status, self.name, command_line)
 
 
 
@@ -218,9 +235,9 @@ class JobDependence(Base):
 
 
 
-def add_job(session, command_line, name = 'job', dependencies = [], array = None, log_dir = None, **kwargs):
+def add_job(session, command_line, name = 'job', dependencies = [], array = None, log_dir = None, stop_on_failure = False, **kwargs):
   """Helper function to create a job, add the dependencies and the array jobs."""
-  job = Job(command_line=command_line, name=name, log_dir=log_dir, array_string=array, kwargs=kwargs)
+  job = Job(command_line=command_line, name=name, log_dir=log_dir, array_string=array, stop_on_failure=stop_on_failure, kwargs=kwargs)
 
   session.add(job)
   session.flush()

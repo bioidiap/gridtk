@@ -69,20 +69,44 @@ class JobManagerSGE(JobManager):
     return grid_id
 
 
-  def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = "logs", **kwargs):
+  def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = "logs", dry_run = False, stop_on_failure = False, **kwargs):
     """Submits a job that will be executed in the grid."""
     # add job to database
     self.lock()
-    job = add_job(self.session, command_line, name, dependencies, array, log_dir=log_dir, context=self.context, **kwargs)
-    logger.debug("Added job '%s' to the database." % job)
+    job = add_job(self.session, command_line, name, dependencies, array, log_dir=log_dir, stop_on_failure=stop_on_failure, context=self.context, **kwargs)
+    logger.info("Added job '%s' to the database." % job)
+    if dry_run:
+      print "Would have added the Job"
+      print job
+      print "to the database to be executed in the grid with options:", str(kwargs)
+      self.session.delete(job)
+      logger.info("Deleted job '%s' from the database due to dry-run option" % job)
+      job_id = None
 
-    job_id = self._submit_to_grid(job, name, array, dependencies, log_dir, **kwargs)
+    else:
+      job_id = self._submit_to_grid(job, name, array, dependencies, log_dir, **kwargs)
 
     self.session.commit()
     self.unlock()
 
     return job_id
 
+
+  def communicate(self, job_ids = None):
+    """Communicates with the SGE grid (using qstat) to see if jobs are still running."""
+    self.lock()
+    # iterate over all jobs
+    jobs = self.get_jobs(job_ids)
+    for job in jobs:
+      if job.status == 'executing':
+        status = qstat(job.id, context=self.context)
+        if len(status) == 0:
+          job.status = 'failure'
+          job.result = 70 # ASCII: 'F'
+          logger.warn("The job '%s' was not executed successfully (maybe a time-out happened). Please check the log files." % job)
+
+    self.session.commit()
+    self.unlock()
 
   def resubmit(self, job_ids = None, failed_only = False, running_jobs = False):
     """Re-submit jobs automatically"""
@@ -111,7 +135,7 @@ class JobManagerSGE(JobManager):
 
     jobs = self.get_jobs(job_ids)
     for job in jobs:
-      if job.status == 'executing':
+      if job.status in ('executing', 'queued', 'waiting'):
         qdel(job.id, context=self.context)
         logger.info("Stopped job '%s' in the SGE grid." % job)
         job.status = 'submitted'

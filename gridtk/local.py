@@ -13,7 +13,7 @@ import copy, os, sys
 import gdbm, anydbm
 from cPickle import dumps, loads
 
-from .tools import makedirs_safe, logger, try_get_contents, try_remove_files
+from .tools import makedirs_safe, logger
 
 
 from .manager import JobManager
@@ -34,15 +34,23 @@ class JobManagerLocal(JobManager):
     JobManager.__init__(self, **kwargs)
 
 
-  def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = None, **kwargs):
+  def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = None, dry_run = False, stop_on_failure = False, **kwargs):
     """Submits a job that will be executed on the local machine during a call to "run".
     All kwargs will simply be ignored."""
     # add job to database
     self.lock()
-    job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, log_dir=log_dir)
-    logger.debug("Added job '%s' to the database" % job)
+    job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, log_dir=log_dir, stop_on_failure=stop_on_failure)
+    logger.info("Added job '%s' to the database" % job)
+
+    if dry_run:
+      print "Would have added the Job", job, "to the database to be executed locally."
+      self.session.delete(job)
+      logger.info("Deleted job '%s' from the database due to dry-run option" % job)
+      job_id = None
+    else:
+      job_id = job.id
+
     # return the new job id
-    job_id = job.id
     self.unlock()
     return job_id
 
@@ -57,8 +65,8 @@ class JobManagerLocal(JobManager):
       # check if this job needs re-submission
       if running_jobs or job.status in accepted_old_status:
         # re-submit job to the grid
-        logger.debug("Re-submitted job '%s' to the database" % job)
-        job.submit()
+        logger.info("Re-submitted job '%s' to the database" % job)
+        job.submit('local')
 
     self.session.commit()
     self.unlock()
@@ -71,7 +79,7 @@ class JobManagerLocal(JobManager):
     jobs = self.get_jobs(job_ids)
     for job in jobs:
       if job.status == 'executing':
-        logger.debug("Reset job '%s' in the database" % job)
+        logger.info("Reset job '%s' in the database" % job)
         job.status = 'submitted'
 
     self.session.commit()
@@ -83,7 +91,7 @@ class JobManagerLocal(JobManager):
 
     job, array_job = self._job_and_array(job_id, array_id)
     if job.status == 'executing':
-      logger.debug("Reset job '%s' in the database" % job)
+      logger.info("Reset job '%s' in the database" % job)
       job.status = 'submitted'
 
     if array_job is not None and array_job.status == 'executing':
@@ -119,21 +127,23 @@ class JobManagerLocal(JobManager):
       return None
 
 
-  def _result_files(self, process, job_id, array_id = None):
+  def _result_files(self, process, job_id, array_id = None, no_log = False):
     """Finalizes the execution of the job by writing the stdout and stderr results into the according log files."""
-    def write(file, process, std):
+    def write(file, std, process):
       f = std if file is None else open(str(file), 'w')
       f.write(process.read())
 
     self.lock()
     # get the files to write to
     job, array_job = self._job_and_array(job_id, array_id)
-    if array_job:
+    if no_log:
+      out, err = None, None
+    elif array_job:
       out, err = array_job.std_out_file(), array_job.std_err_file()
     else:
       out, err = job.std_out_file(), job.std_err_file()
 
-    log_dir = job.log_dir
+    log_dir = job.log_dir if not no_log else None
     job_id = job.id
     array_id = array_job.id if array_job else None
     self.unlock()
@@ -142,9 +152,9 @@ class JobManagerLocal(JobManager):
       makedirs_safe(log_dir)
 
     # write stdout
-    write(out, process.stdout, sys.stdout)
+    write(out, sys.stdout, process.stdout)
     # write stderr
-    write(err, process.stderr, sys.stderr)
+    write(err, sys.stderr, process.stderr)
 
     if log_dir:
       j = self._format_log(job_id, array_id)
@@ -155,12 +165,14 @@ class JobManagerLocal(JobManager):
   def _format_log(self, job_id, array_id = None):
     return ("%d (%d)" % (job_id, array_id)) if array_id is not None else ("%d" % job_id)
 
-  def run_scheduler(self, parallel_jobs = 1, sleep_time = 0.1):
+  def run_scheduler(self, parallel_jobs = 1, job_ids = None, sleep_time = 0.1, die_when_finished = False, no_log = False):
     """Starts the scheduler, which is constantly checking for jobs that should be ran."""
     running_tasks = []
     try:
 
       while True:
+        # Flag that might be set in some rare cases, and that prevents the scheduler to die
+        repeat_execution = False
         # FIRST, try if there are finished processes; this does not need a lock
         for task_index in range(len(running_tasks)-1, -1, -1):
           task = running_tasks[task_index]
@@ -170,7 +182,7 @@ class JobManagerLocal(JobManager):
             job_id = task[1]
             array_id = task[2] if len(task) > 2 else None
             # report the result
-            self._result_files(process, job_id, array_id)
+            self._result_files(process, job_id, array_id, no_log)
             logger.info("Job '%s' finished execution" % self._format_log(job_id, array_id))
 
             # in any case, remove the job from the list
@@ -180,18 +192,25 @@ class JobManagerLocal(JobManager):
         if len(running_tasks) < parallel_jobs:
           # get all unfinished jobs:
           self.lock()
-          jobs = self.get_jobs()
+          jobs = self.get_jobs(job_ids)
           # put all new jobs into the queue
           for job in jobs:
             if job.status == 'submitted':
               job.queue()
-          # get all unfinished jobs
-          unfinished_jobs = [job for job in jobs if job.status in ('queued', 'executing')]
+
+          # get all unfinished jobs that are submitted to the local queue
+          unfinished_jobs = [job for job in jobs if job.status in ('queued', 'executing') and job.queue_name == 'local']
           for job in unfinished_jobs:
             if job.array:
               # find array jobs that can run
-              for array_job in job.array:
-                if array_job.status == 'queued':
+              queued_array_jobs = [array_job for array_job in job.array if array_job.status == 'queued']
+              if not len(queued_array_jobs):
+                job.finish(0, -1)
+                repeat_execution = True
+              else:
+                # there are new array jobs to run
+                for i in range(min(parallel_jobs - len(running_tasks), len(queued_array_jobs))):
+                  array_job = queued_array_jobs[i]
                   # start a new job from the array
                   process = self._run_parallel_job(job.id, array_job.id)
                   running_tasks.append((process, job.id, array_job.id))
@@ -214,6 +233,11 @@ class JobManagerLocal(JobManager):
 
           self.session.commit()
           self.unlock()
+
+        # if after the submission of jobs there are no jobs running, we should have finished all the queue.
+        if die_when_finished and not repeat_execution and len(running_tasks) == 0:
+          logger.info("Stopping task scheduler since there are no more jobs running.")
+          break
 
         # THIRD: sleep the desired amount of time before re-checking
         time.sleep(sleep_time)

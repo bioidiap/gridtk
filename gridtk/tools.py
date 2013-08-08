@@ -31,12 +31,6 @@ if sys.version_info < (2,7):
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(':\s+')
 
-def random_logdir():
-  """Generates a random log directory for placing the command output"""
-
-  x = hashlib.md5(str(random.randint(100000,999999))).hexdigest()
-  return os.path.join(x[:2], x[2:4], x[4:6])
-
 def makedirs_safe(fulldir):
   """Creates a directory if it does not exists. Takes into consideration
   concurrent access support. Works like the shell's 'mkdir -p'.
@@ -49,37 +43,6 @@ def makedirs_safe(fulldir):
     if exc.errno == errno.EEXIST: pass
     else: raise
 
-def try_get_contents(filename):
-  """Loads contents out of a certain filename"""
-
-  try:
-    return open(filename, 'rt').read()
-  except OSError, e:
-    logger.warn("Could not find file '%s'" % filename)
-
-  return ''
-
-def try_remove_files(filename, recurse, verbose):
-  """Safely removes files from the filesystem"""
-
-  if isinstance(filename, (tuple, list)):
-    for k in filename:
-      if os.path.exists(k):
-        os.unlink(k)
-        if verbose: print verbose + ("removed `%s'" % k)
-      d = os.path.dirname(k)
-      if recurse and os.path.exists(d) and not os.listdir(d):
-        os.removedirs(d)
-        if verbose: print verbose + ("recursively removed `%s'" % d)
-
-  else:
-    if os.path.exists(filename):
-      os.unlink(filename)
-      if verbose: print verbose + ("removed `%s'" % filename)
-    d = os.path.dirname(filename)
-    if recurse and os.path.exists(d) and not os.listdir(d):
-      os.removedirs(d)
-      if verbose: print verbose + ("recursively removed `%s'" % d)
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None,

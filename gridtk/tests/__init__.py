@@ -90,6 +90,7 @@ class DatabaseTest(unittest.TestCase):
     assert not os.path.exists(jobs[0].std_err_file())
     job_manager.unlock()
 
+
     # reset the job 1
     jman.main(['./bin/jman', '--local', '--database', self.database, 'resubmit', '--job-id', '1', '--running-jobs'])
 
@@ -132,10 +133,10 @@ class DatabaseTest(unittest.TestCase):
     assert os.path.exists(self.log_dir)
 
     # now, let the scheduler run all jobs
-    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2'])
+    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished'])
     # ... and kill the scheduler
     time.sleep(3)
-    self.scheduler_job.send_signal(signal.SIGINT)
+    assert self.scheduler_job.poll() is not None
     self.scheduler_job = None
 
     # check that all output files are generated again
@@ -176,6 +177,35 @@ class DatabaseTest(unittest.TestCase):
 
     # check that the database and the log files are gone
     assert len(os.listdir(self.temp_dir)) == 0
+
+    # add the scripts again, but this time with the --stop-on-failure option
+    jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--stop-on-failure', script_1])
+    jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', '--stop-on-failure', script_2])
+
+    # and execute them, but without writing the log files
+    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished', '--no-log-files'])
+    # ... and kill the scheduler
+    time.sleep(3)
+    assert self.scheduler_job.poll() is not None
+    self.scheduler_job = None
+
+    # assert that the log files are not there
+    assert not os.path.isfile(out_file)
+    assert not os.path.isfile(err_file)
+
+
+    # check that all array jobs are finished now
+    session = job_manager.lock()
+    jobs = list(session.query(Job))
+    assert len(jobs) == 2
+    assert jobs[0].status == 'failure'
+    assert jobs[0].result == 255
+    assert jobs[1].status == 'failure'
+    assert jobs[1].result is None
+    job_manager.unlock()
+
+    # and clean up again
+    jman.main(['./bin/jman', '--local', '--database', self.database, 'delete'])
 
 
   def test02_grid(self):
