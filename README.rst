@@ -45,6 +45,7 @@ Here is how::
   ... Submitted job '<Job: 6151645> : queued -- /usr/bin/python myscript.py --help' to the SGE grid.
 
 .. note::
+
   The command ``submit`` of the Job Manager will submit a job that will run in a python environment.
   It is not the only way to submit a job using the Job Manager.
   You can also use ``submit`` a job that considers the command as a self sufficient application.
@@ -87,6 +88,7 @@ The ``list`` command from ``jman`` will show the current status of the job, whic
 Several calls to ``list`` might end up in
 
 .. note::
+
   This feature is new since version 1.0.0. There is no need to refresh the
   database any more.
 
@@ -104,6 +106,7 @@ The JobManager can take care of this, simply by adding the id of the job that we
 Now, the new job will only be run after the first one finished.
 
 .. note::
+
   Please note the ``--`` between the list of dependencies and the command.
 
 
@@ -127,8 +130,8 @@ Re-submitting the job
 If you are convinced the job did not work because of external conditions (e.g. temporary network outage), you may re-submit it, *exactly* like it was submitted the first time::
 
   $ jman -vv resubmit --job-id 6151645
-  ...Deleting job '6151645'
-  ...Submitted job '<Job: 6151673> : queued -- /usr/bin/python myscript.py --help' to the SGE grid.
+  ... Deleting job '6151645'
+  ... Submitted job '<Job: 6151673> : queued -- /usr/bin/python myscript.py --help' to the SGE grid.
 
 By default, the log files of the old job are deleted during re-submission.
 If for any reason you want to keep the old log files, use the ``--keep-logs`` option.
@@ -188,6 +191,7 @@ The main advantages of the new version are:
   Please note that this is not propagated to the jobs that are run in the grid.
 
   .. note::
+
     The ``-v`` options must directly follow the ``jman`` command, and it has to be before the action (like ``submit`` or ``list``) is chosen.
     The ``--database`` is now also a default option, which has to be at the same position.
 
@@ -211,6 +215,7 @@ To run the collected jobs using 4 parallel processes, simply use::
 and all jobs that have not run yet are executed, keeping an eye on the dependencies.
 
 .. note::
+
   The scheduler will run until it is stopped using Ctrl-C.
   Hence, as soon as you submit new (local) jobs to the database, it will continue running these jobs.
   If you want the scheduler to stop after all scheduled jobs ran, please use the ``--die-when-finished`` option.
