@@ -12,7 +12,6 @@ import subprocess
 import time
 import copy, os, sys
 
-import gdbm, anydbm
 from cPickle import dumps, loads
 
 from .tools import makedirs_safe, logger
