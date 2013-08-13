@@ -4,3 +4,4 @@ import manager
 import local
 import sge
 import easy
+import tests

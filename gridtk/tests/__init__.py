@@ -10,7 +10,7 @@ import time
 
 from gridtk.models import Job
 
-class DatabaseTest(unittest.TestCase):
+class GridTKTest(unittest.TestCase):
   # This class defines tests for the gridtk
 
   def setUp(self):
