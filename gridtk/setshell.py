@@ -32,8 +32,12 @@ def environ(context):
       (key, _, value) = line.partition("=")
       os.environ[key.strip()] = value.strip()
 
+  # in case the BASEDIRSETSHELL environment variable is not set,
+  # we are not at Idiap,
+  # and so we don't have to set any additional variables.
+  if 'BASEDIRSETSHELL' not in os.environ:
+    return dict(os.environ)
 
-  assert 'BASEDIRSETSHELL' in os.environ
   BASEDIRSETSHELL = os.environ['BASEDIRSETSHELL']
   dosetshell = '%s/setshell/bin/dosetshell' % BASEDIRSETSHELL
 
