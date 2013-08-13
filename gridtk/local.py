@@ -6,6 +6,8 @@
 """Defines the job manager which can help you managing submitted grid jobs.
 """
 
+from __future__ import print_function
+
 import subprocess
 import time
 import copy, os, sys
@@ -43,7 +45,7 @@ class JobManagerLocal(JobManager):
     logger.info("Added job '%s' to the database" % job)
 
     if dry_run:
-      print "Would have added the Job", job, "to the database to be executed locally."
+      print("Would have added the Job", job, "to the database to be executed locally.")
       self.session.delete(job)
       logger.info("Deleted job '%s' from the database due to dry-run option" % job)
       job_id = None

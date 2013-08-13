@@ -6,6 +6,8 @@
 """Executes a given command within the context of a shell script that has its
 enviroment set like Idiap's 'SETSHELL grid' does."""
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -22,10 +24,9 @@ def main():
   if prog == 'grid':
     # act as before
     if len(sys.argv) < 2:
-      print __doc__
-      print "usage: %s <command> [arg [arg ...]]" % \
-          os.path.basename(sys.argv[0])
-      sys.exit(1)
+      print(__doc__)
+      print("usage: %s <command> [arg [arg ...]]" % os.path.basename(sys.argv[0]))
+      return 1
 
     replace('grid', sys.argv[1:])
   else:

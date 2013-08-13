@@ -6,6 +6,8 @@
 """Defines the job manager which can help you managing submitted grid jobs.
 """
 
+from __future__ import print_function
+
 from .manager import JobManager
 from .setshell import environ
 from .models import add_job
@@ -76,9 +78,9 @@ class JobManagerSGE(JobManager):
     job = add_job(self.session, command_line, name, dependencies, array, log_dir=log_dir, stop_on_failure=stop_on_failure, context=self.context, **kwargs)
     logger.info("Added job '%s' to the database." % job)
     if dry_run:
-      print "Would have added the Job"
-      print job
-      print "to the database to be executed in the grid with options:", str(kwargs)
+      print("Would have added the Job")
+      print(job)
+      print("to the database to be executed in the grid with options:", str(kwargs))
       self.session.delete(job)
       logger.info("Deleted job '%s' from the database due to dry-run option" % job)
       job_id = None

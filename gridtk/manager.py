@@ -1,4 +1,6 @@
 
+from __future__ import print_function
+
 import os
 import subprocess
 from .models import Base, Job, ArrayJob
@@ -167,18 +169,18 @@ class JobManager:
     header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
 
     # print header
-    print '  '.join(header)
-    print delimiter
+    print('  '.join(header))
+    print(delimiter)
 
 
     self.lock()
     for job in self.get_jobs(job_ids):
-      print job.format(format, dependency_length, None if long else 43)
+      print(job.format(format, dependency_length, None if long else 43))
       if print_array_jobs and job.array:
-        print array_delimiter
+        print(array_delimiter)
         for array_job in job.array:
-          print array_job.format(array_format)
-        print array_delimiter
+          print(array_job.format(array_format))
+        print(array_delimiter)
 
     self.unlock()
 
@@ -190,17 +192,17 @@ class JobManager:
       out_file, err_file = job.std_out_file(), job.std_err_file()
       if output and out_file is not None and os.path.exists(out_file) and os.stat(out_file).st_size > 0:
         logger.info("Contents of output file: '%s'" % out_file)
-        print open(out_file).read().rstrip()
-        print "-"*20
+        print(open(out_file).read().rstrip())
+        print("-"*20)
       if error and err_file is not None and os.path.exists(err_file) and os.stat(err_file).st_size > 0:
         logger.info("Contents of error file: '%s'" % err_file)
-        print open(err_file).read().rstrip()
-        print "-"*40
+        print(open(err_file).read().rstrip())
+        print("-"*40)
 
     def _write_array_jobs(array_jobs):
       for array_job in array_jobs:
         if unfinished or array_job.status in ('success', 'failure'):
-          print "Array Job", str(array_job.id), ":"
+          print("Array Job", str(array_job.id), ":")
           _write_contents(array_job)
 
     self.lock()
@@ -209,7 +211,7 @@ class JobManager:
     if array_ids:
       if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
       array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.id.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
-      if array_jobs: print array_jobs[0].job
+      if array_jobs: print(array_jobs[0].job)
       _write_array_jobs(array_jobs)
 
     else:
@@ -218,14 +220,14 @@ class JobManager:
       for job in jobs:
         if job.array:
           if (unfinished or job.status in ('success', 'failure', 'executing')):
-            print job
+            print(job)
             _write_array_jobs(job.array)
         else:
           if unfinished or job.status in ('success', 'failure'):
-            print job
+            print(job)
             _write_contents(job)
         if job.log_dir is not None:
-          print "-"*60
+          print("-"*60)
 
     self.unlock()
 

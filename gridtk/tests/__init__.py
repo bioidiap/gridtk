@@ -1,3 +1,6 @@
+
+from __future__ import print_function
+
 import unittest
 import nose
 
@@ -44,7 +47,7 @@ class GridTKTest(unittest.TestCase):
     # check that the database was created successfully
     assert os.path.exists(self.database)
 
-    print
+    print()
     # test that the list command works (should also work with the "default" grid manager
     jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '1'])
     jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '2', '--print-array-jobs', '--print-dependencies'])
@@ -164,11 +167,11 @@ class GridTKTest(unittest.TestCase):
       assert jobs[1].array[i].result == 0
     job_manager.unlock()
 
-    print
+    print()
     # test that the list command still works
     jman.main(['./bin/jman', '--database', self.database, 'list', '--print-array-jobs'])
 
-    print
+    print()
     # test that the list command still works
     jman.main(['./bin/jman', '--database', self.database, 'report'])
 
