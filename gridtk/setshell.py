@@ -22,15 +22,13 @@ def environ(context):
     try:
       command = ['bash', '-c', 'source %s && env' % idiap_source]
       pi = subprocess.Popen(command, stdout = subprocess.PIPE)
+      # overwrite the default environment
+      for line in pi.stdout:
+        (key, _, value) = line.partition("=")
+        os.environ[key.strip()] = value.strip()
     except OSError as e:
       # occurs when the file is not executable or not found
-      raise OSError, "Error executing '%s': %s (%d)" % \
-          (' '.join(command), e.strerror, e.errno)
-
-    # overwrite the default environment
-    for line in pi.stdout:
-      (key, _, value) = line.partition("=")
-      os.environ[key.strip()] = value.strip()
+      pass
 
   # in case the BASEDIRSETSHELL environment variable is not set,
   # we are not at Idiap,
@@ -49,8 +47,7 @@ def environ(context):
     p = subprocess.Popen(command, stdout = subprocess.PIPE)
   except OSError as e:
     # occurs when the file is not executable or not found
-    raise OSError, "Error executing '%s': %s (%d)" % \
-        (' '.join(command), e.strerror, e.errno)
+    raise OSError("Error executing '%s': %s (%d)" % (' '.join(command), e.strerror, e.errno))
 
   try:
     source = p.communicate()[0]
@@ -67,8 +64,7 @@ def environ(context):
     p2 = subprocess.Popen(command2, stdout = subprocess.PIPE)
   except OSError as e:
     # occurs when the file is not executable or not found
-    raise OSError, "Error executing '%s': %s (%d)" % \
-        (' '.join(command2), e.strerror, e.errno)
+    raise OSError("Error executing '%s': %s (%d)" % (' '.join(command2), e.strerror, e.errno))
 
   new_environ = dict(os.environ)
   for line in p2.stdout:
@@ -102,9 +98,7 @@ def sexec(context, command, error_on_nonzero=True):
     (stdout, stderr) = p.communicate() #note: stderr will be 'None'
     if p.returncode != 0:
       if error_on_nonzero:
-        raise RuntimeError, \
-            "Execution of '%s' exited with status != 0 (%d): %s" % \
-            (' '.join(command), p.returncode, stdout)
+        raise RuntimeError("Execution of '%s' exited with status != 0 (%d): %s" % (' '.join(command), p.returncode, stdout))
       else:
         logger.debug("Execution of '%s' exited with status != 0 (%d): %s" % \
             (' '.join(command), p.returncode, stdout))

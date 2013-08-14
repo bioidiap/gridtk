@@ -197,7 +197,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
       scmd.append('1-%d:1' % array)
     if isinstance(array, (tuple, list)):
       if len(array) < 1 or len(array) > 3:
-        raise RuntimeError, "Array tuple should have length between 1 and 3"
+        raise RuntimeError("Array tuple should have length between 1 and 3")
       elif len(array) == 1:
         scmd.append('%s' % array[0])
       elif len(array) == 2:
