@@ -1,5 +1,12 @@
 from setuptools import setup, find_packages
 
+import sys
+
+# If Python < 2.7 or 3.0 <= Python < 3.2, require some more stuff
+ARGPARSE = []
+if sys.version_info[:2] < (2, 7) or ((3,0) <= sys.version_info[:2] < (3,2)):
+  ARGPARSE.append('argparse')
+
 setup(
     name='gridtk',
     version='1.0.0.a0',
@@ -33,9 +40,7 @@ setup(
 
     long_description=open('README.rst').read(),
 
-    install_requires=[
-        "argparse", #any version will do
-    ],
+    install_requires=ARGPARSE,
 
     classifiers = [
       'Development Status :: 4 - Beta',
