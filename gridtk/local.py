@@ -12,7 +12,10 @@ import subprocess
 import time
 import copy, os, sys
 
-from cPickle import dumps, loads
+if sys.version_info[0] >= 3:
+  from pickle import dumps, loads
+else:
+  from cPickle import dumps, loads
 
 from .tools import makedirs_safe, logger
 
