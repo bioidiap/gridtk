@@ -5,8 +5,13 @@ from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
 
 import os
+import sys
 
-from cPickle import dumps, loads
+if sys.version_info[0] >= 3:
+  from pickle import dumps, loads
+else:
+  from cPickle import dumps, loads
+
 from .tools import logger
 
 Base = declarative_base()
