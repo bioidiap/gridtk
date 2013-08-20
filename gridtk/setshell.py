@@ -8,6 +8,7 @@
 
 import os
 import sys
+import six
 import signal
 import subprocess
 from .tools import logger
@@ -88,7 +89,7 @@ def environ(context):
 def sexec(context, command, error_on_nonzero=True):
   """Executes a command within a particular Idiap SETSHELL context"""
 
-  if isinstance(context, (str, unicode)): E = environ(context)
+  if isinstance(context, six.string_types): E = environ(context)
   else: E = context
 
   try:

@@ -139,7 +139,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   scmd = ['qsub']
 
-  if isinstance(queue, str) and queue not in ('all.q', 'default'):
+  if isinstance(queue, six.string_types) and queue not in ('all.q', 'default'):
     scmd += ['-l', queue]
 
   if mem:
@@ -195,7 +195,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
       except ValueError:
         #must be complete...
         scmd.append('%s' % array)
-    if isinstance(array, (int, long)):
+    if isinstance(array, six.integer_types):
       scmd.append('1-%d:1' % array)
     if isinstance(array, (tuple, list)):
       if len(array) < 1 or len(array) > 3:
