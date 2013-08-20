@@ -9,6 +9,8 @@ probing.
 
 import os
 import re
+import sys
+import six
 import hashlib
 import random
 
@@ -186,7 +188,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   if array is not None:
     scmd.append('-t')
-    if isinstance(array, (str, unicode)):
+    if isinstance(array, six.string_types):
       try:
         i = int(array)
         scmd.append('1-%d:1' % i)
