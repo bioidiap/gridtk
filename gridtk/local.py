@@ -127,7 +127,9 @@ class JobManagerLocal(JobManager):
     try:
       return subprocess.Popen(command, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError as e:
-      logger.error("Could not execute job '%s' locally, reason:\n\t%s" % self._format_log(job_id, array_id), e)
+      job = self.get_jobs((job_id,))[0]
+      logger.error("Could not execute job '%s' locally,\nreason:\t%s,\ncommand_line\t%s:" % (self._format_log(job_id, array_id), e, job.get_command_line()))
+      job.finish(117, array_id) # ASCII 'O'
       return None
 
 
@@ -181,6 +183,7 @@ class JobManagerLocal(JobManager):
         for task_index in range(len(running_tasks)-1, -1, -1):
           task = running_tasks[task_index]
           process = task[0]
+
           if process.poll() is not None:
             # process ended
             job_id = task[1]
@@ -217,6 +220,8 @@ class JobManagerLocal(JobManager):
                   array_job = queued_array_jobs[i]
                   # start a new job from the array
                   process = self._run_parallel_job(job.id, array_job.id)
+                  if process is None:
+                    continue
                   running_tasks.append((process, job.id, array_job.id))
                   # we here set the status to executing manually to avoid jobs to be run twice
                   # e.g., if the loop is executed while the asynchronous job did not start yet
@@ -228,6 +233,8 @@ class JobManagerLocal(JobManager):
               if job.status == 'queued':
                 # start a new job
                 process = self._run_parallel_job(job.id)
+                if process is None:
+                  continue
                 running_tasks.append((process, job.id))
                 # we here set the status to executing manually to avoid jobs to be run twice
                 # e.g., if the loop is executed while the asynchronous job did not start yet
