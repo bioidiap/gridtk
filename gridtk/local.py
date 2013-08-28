@@ -121,13 +121,13 @@ class JobManagerLocal(JobManager):
     # generate call to the wrapper script
     command = [self.wrapper_script, '-ld', self._database, 'run-job']
 
-    logger.info("Started execution of Job '%s'" % self._format_log(job_id, array_id))
+    job = self.get_jobs((job_id,))[0]
+    logger.info("Starting execution of Job '%s': '%s'" % (self._format_log(job_id, array_id), job.name))
 
     # return the subprocess pipe to the process
     try:
       return subprocess.Popen(command, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError as e:
-      job = self.get_jobs((job_id,))[0]
       logger.error("Could not execute job '%s' locally,\nreason:\t%s,\ncommand_line\t%s:" % (self._format_log(job_id, array_id), e, job.get_command_line()))
       job.finish(117, array_id) # ASCII 'O'
       return None

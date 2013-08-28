@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import os
 import subprocess
-from .models import Base, Job, ArrayJob
+from .models import Base, Job, ArrayJob, Status
 from .tools import logger
 
 import sqlalchemy
@@ -201,12 +201,13 @@ class JobManager:
 
     def _write_array_jobs(array_jobs):
       for array_job in array_jobs:
-        if unfinished or array_job.status in ('success', 'failure'):
+        if unfinished or array_job.status in accepted_status:
           print("Array Job", str(array_job.id), ":")
           _write_contents(array_job)
 
     self.lock()
 
+    accepted_status = ('failure',) if error and not output else ('success', 'failure')
     # check if an array job should be reported
     if array_ids:
       if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
@@ -219,20 +220,20 @@ class JobManager:
       jobs = self.get_jobs(job_ids)
       for job in jobs:
         if job.array:
-          if (unfinished or job.status in ('success', 'failure', 'executing')):
+          if unfinished or job.status in accepted_status or job.status == 'executing':
             print(job)
             _write_array_jobs(job.array)
         else:
-          if unfinished or job.status in ('success', 'failure'):
+          if unfinished or job.status in accepted_status:
             print(job)
             _write_contents(job)
-        if job.log_dir is not None:
+        if job.log_dir is not None and job.status in accepted_status:
           print("-"*60)
 
     self.unlock()
 
 
-  def delete(self, job_ids, array_ids = None, delete_logs = True, delete_log_dir = False, delete_jobs = True):
+  def delete(self, job_ids, array_ids = None, delete_logs = True, delete_log_dir = False, status = Status, delete_jobs = True):
     """Deletes the jobs with the given ids from the database."""
     def _delete_dir_if_empty(log_dir):
       if log_dir and delete_log_dir and os.path.isdir(log_dir) and not os.listdir(log_dir):
@@ -264,11 +265,13 @@ class JobManager:
       if array_jobs:
         job = array_jobs[0].job
         for array_job in array_jobs:
-          logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.id)
-          _delete(array_job)
+          if array_job.status in status:
+            logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.id)
+            _delete(array_job)
         if not job.array:
-          logger.info("Deleting job '%d' from the database." % job.id)
-          _delete(job, True)
+          if job.status in status:
+            logger.info("Deleting job '%d' from the database." % job.id)
+            _delete(job, True)
 
     else:
       # iterate over all jobs
@@ -277,11 +280,13 @@ class JobManager:
         # delete all array jobs
         if job.array:
           for array_job in job.array:
-            logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.id))
-            _delete(array_job)
+            if array_job.status in status:
+              logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.id))
+              _delete(array_job)
         # delete this job
-        logger.info("Deleting job '%d' from the database." % job.id)
-        _delete(job, True)
+        if job.status in status:
+          logger.info("Deleting job '%d' from the database." % job.id)
+          _delete(job, True)
 
     self.session.commit()
     self.unlock()

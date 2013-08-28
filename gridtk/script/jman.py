@@ -21,6 +21,7 @@ import logging
 
 from ..tools import make_shell, logger
 from .. import local, sge
+from ..models import Status
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -149,10 +150,10 @@ def delete(args):
   """Deletes the jobs from the job manager. If the jobs are still running in the grid, they are stopped."""
   jm = setup(args)
   # first, stop the jobs if they are running in the grid
-  if not args.local:
+  if not args.local and 'executing' in args.status:
     stop(args)
   # then, delete them from the database
-  jm.delete(job_ids=args.job_ids, array_ids=args.array_ids, delete_logs=not args.keep_logs, delete_log_dir=not args.keep_log_dir)
+  jm.delete(job_ids=args.job_ids, array_ids=args.array_ids, delete_logs=not args.keep_logs, delete_log_dir=not args.keep_log_dir, status=args.status)
 
 
 def run_job(args):
@@ -275,6 +276,7 @@ def main(command_line_options = None):
   delete_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='*', type=int, help='Delete only the jobs with the given array ids. If specified, a single job-id must be given as well. Note that the whole job including all array jobs will be removed from the SGE queue.')
   delete_parser.add_argument('-r', '--keep-logs', action='store_true', help='If set, the log files will NOT be removed.')
   delete_parser.add_argument('-R', '--keep-log-dir', action='store_true', help='When removing the logs, keep the log directory.')
+  delete_parser.add_argument('-s', '--status', nargs='+', choices = Status, default = Status, help='Delete only jobs that have the given stati; by default all jobs are deleted.')
   delete_parser.set_defaults(func=delete)
 
   # subcommand 'run_scheduler'

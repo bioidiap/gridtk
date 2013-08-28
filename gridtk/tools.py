@@ -9,7 +9,6 @@ probing.
 
 import os
 import re
-import sys
 import six
 import hashlib
 import random
