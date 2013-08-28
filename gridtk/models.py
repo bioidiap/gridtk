@@ -124,7 +124,8 @@ class Job(Base):
 
     self.status = new_status
     for array_job in self.array:
-      array_job.status = new_status
+      if array_job.status not in ('success', 'failure'):
+        array_job.status = new_status
 
 
   def execute(self, array_id = None):

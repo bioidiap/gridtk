@@ -76,32 +76,37 @@ class JobManagerLocal(JobManager):
     self.unlock()
 
 
-  def stop_jobs(self, job_ids):
-    """Stops the jobs in the grid."""
+  def stop_jobs(self, job_ids=None):
+    """Resets the status of the job to 'submitted' when they are labeled as 'executing'."""
     self.lock()
 
     jobs = self.get_jobs(job_ids)
     for job in jobs:
-      if job.status == 'executing':
-        logger.info("Reset job '%s' in the database" % job)
-        job.status = 'submitted'
+      if job.status in ('executing', 'queued', 'waiting'):
+        logger.info("Reset job '%s' in the database" % job.name)
+        job.submit()
 
     self.session.commit()
     self.unlock()
 
   def stop_job(self, job_id, array_id = None):
-    """Stops the jobs in the grid."""
+    """Resets the status of the given to 'submitted' when they are labeled as 'executing'."""
     self.lock()
 
     job, array_job = self._job_and_array(job_id, array_id)
     if job is not None:
-      if job.status == 'executing':
-        logger.info("Reset job '%s' in the database" % job)
+      if job.status in ('executing', 'queued', 'waiting'):
+        logger.info("Reset job '%s' in the database" % job.name)
         job.status = 'submitted'
 
-      if array_job is not None and array_job.status == 'executing':
+      if array_job is not None and array_job.status in ('executing', 'queued', 'waiting'):
         logger.debug("Reset array job '%s' in the database" % array_job)
         array_job.status = 'submitted'
+      if array_job is None:
+        for array_job in job.array:
+          if array_job.status in ('executing', 'queued', 'waiting'):
+            logger.debug("Reset array job '%s' in the database" % array_job)
+            array_job.status = 'submitted'
 
     self.session.commit()
     self.unlock()
@@ -257,10 +262,12 @@ class JobManagerLocal(JobManager):
 
     # This is the only way to stop: you have to interrupt the scheduler
     except KeyboardInterrupt:
+      if hasattr(self, 'session'):
+        self.unlock()
       logger.info("Stopping task scheduler due to user interrupt.")
       for task in running_tasks:
         logger.warn("Killing job '%s' that was still running." % self._format_log(task[1], task[2] if len(task) > 2 else None))
         task[0].kill()
-        if hasattr(self, 'session'):
-          self.unlock()
-        self.stop_job(task[1], task[2] if len(task) > 2 else None)
+        self.stop_job(task[1])
+      # stopp all jobs that are currently running or queued
+      self.stop_jobs()

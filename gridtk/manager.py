@@ -123,7 +123,7 @@ class JobManager:
       self.unlock()
       try:
         self.stop_jobs(list(dependent_job_ids))
-        logger.warn("Deleted dependent jobs '%s' since this job failed.")
+        logger.warn("Deleted dependent jobs '%s' since this job failed." % str(list(dependent_job_ids)))
       except:
         pass
       return
@@ -243,7 +243,7 @@ class JobManager:
     def _delete_dir_if_empty(log_dir):
       if log_dir and delete_log_dir and os.path.isdir(log_dir) and not os.listdir(log_dir):
         os.rmdir(log_dir)
-        logger.info("Removed log directory '%s' since it was empty" % log_dir)
+        logger.info("Removed empty log directory '%s'" % log_dir)
 
     def _delete(job, try_to_delete_dir=False):
       # delete the job from the database
@@ -271,11 +271,13 @@ class JobManager:
         job = array_jobs[0].job
         for array_job in array_jobs:
           if array_job.status in status:
-            logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.id)
+            if delete_jobs:
+              logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.id)
             _delete(array_job)
         if not job.array:
           if job.status in status:
-            logger.info("Deleting job '%d' from the database." % job.id)
+            if delete_jobs:
+              logger.info("Deleting job '%d' from the database." % job.id)
             _delete(job, True)
 
     else:
@@ -286,11 +288,13 @@ class JobManager:
         if job.array:
           for array_job in job.array:
             if array_job.status in status:
-              logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.id))
+              if delete_jobs:
+                logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.id))
               _delete(array_job)
         # delete this job
         if job.status in status:
-          logger.info("Deleting job '%d' from the database." % job.id)
+          if delete_jobs:
+            logger.info("Deleting job '%d' from the database." % job.id)
           _delete(job, True)
 
     self.session.commit()
