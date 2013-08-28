@@ -142,5 +142,5 @@ class JobManagerSGE(JobManager):
         logger.info("Stopped job '%s' in the SGE grid." % job)
         job.status = 'submitted'
 
-    self.session.commit()
+      self.session.commit()
     self.unlock()

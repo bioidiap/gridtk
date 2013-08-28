@@ -94,13 +94,14 @@ class JobManagerLocal(JobManager):
     self.lock()
 
     job, array_job = self._job_and_array(job_id, array_id)
-    if job.status == 'executing':
-      logger.info("Reset job '%s' in the database" % job)
-      job.status = 'submitted'
+    if job is not None:
+      if job.status == 'executing':
+        logger.info("Reset job '%s' in the database" % job)
+        job.status = 'submitted'
 
-    if array_job is not None and array_job.status == 'executing':
-      logger.debug("Reset array job '%s' in the database" % array_job)
-      array_job.status = 'submitted'
+      if array_job is not None and array_job.status == 'executing':
+        logger.debug("Reset array job '%s' in the database" % array_job)
+        array_job.status = 'submitted'
 
     self.session.commit()
     self.unlock()
@@ -142,14 +143,14 @@ class JobManagerLocal(JobManager):
     self.lock()
     # get the files to write to
     job, array_job = self._job_and_array(job_id, array_id)
-    if no_log:
+    if job is None or no_log:
       out, err = None, None
-    elif array_job:
+    elif array_job is not None:
       out, err = array_job.std_out_file(), array_job.std_err_file()
     else:
       out, err = job.std_out_file(), job.std_err_file()
 
-    log_dir = job.log_dir if not no_log else None
+    log_dir = job.log_dir if not no_log and job is not None else None
     job_id = job.id
     array_id = array_job.id if array_job else None
     self.unlock()

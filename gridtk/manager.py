@@ -78,7 +78,12 @@ class JobManager:
   def _job_and_array(self, job_id, array_id = None):
     # get the job (and the array job) with the given id(s)
     job = self.get_jobs((job_id,))
-    assert (len(job) == 1)
+    if len(job) > 1:
+      logger.error("%d jobs with the same ID '%d' were detected in the database"%(len(job), job_id))
+    elif not len(job):
+      logger.warn("Job with ID '%d' was not found in the database."%job_id)
+      return (None, None)
+
     job = job[0]
     unique_id = job.unique
 

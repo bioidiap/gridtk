@@ -29,14 +29,13 @@ class GridTKTest(unittest.TestCase):
     # make sure that all scheduler jobs are stopped after exiting
     if self.scheduler_job:
       self.scheduler_job.send_signal(signal.SIGINT)
+      self.scheduler_job.wait()
     # Clean up the mess that we created
     import shutil
     shutil.rmtree(self.temp_dir)
 
   def test01_local(self):
     # This test executes all commands of the local grid manager and asserts that everything is fine
-
-    raise nose.plugins.skip.SkipTest("[AA, 17.08.2013] Skipping test because it does not work on nightlies until MG is back from holidays")
 
     # first, add some commands to the database
     script_1 = pkg_resources.resource_filename('gridtk.tests', 'test_script.sh')
@@ -79,7 +78,7 @@ class GridTKTest(unittest.TestCase):
     self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
 
     # sleep some time to assure that the scheduler was able to start the first job
-    time.sleep(2)
+    time.sleep(4)
     # ... and kill the scheduler
     self.scheduler_job.send_signal(signal.SIGINT)
     self.scheduler_job = None
@@ -100,10 +99,10 @@ class GridTKTest(unittest.TestCase):
     jman.main(['./bin/jman', '--local', '--database', self.database, 'resubmit', '--job-id', '1', '--running-jobs'])
 
     # now, start the local execution of the job in a parallel job
-    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '4', '--parallel', '2'])
+    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
 
     # sleep some time to assure that the scheduler was able to finish the first and start the second job
-    time.sleep(6)
+    time.sleep(9)
     # ... and kill the scheduler
     self.scheduler_job.send_signal(signal.SIGINT)
     self.scheduler_job = None
@@ -138,9 +137,9 @@ class GridTKTest(unittest.TestCase):
     assert os.path.exists(self.log_dir)
 
     # now, let the scheduler run all jobs
-    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished'])
+    self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
     # ... and kill the scheduler
-    time.sleep(3)
+    time.sleep(10)
     assert self.scheduler_job.poll() is not None
     self.scheduler_job = None
 
