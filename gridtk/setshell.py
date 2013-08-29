@@ -19,17 +19,18 @@ def environ(context):
     # It seems that we are in a hostile environment
     # try to source the Idiap-wide shell
     idiap_source = "/idiap/resource/software/initfiles/shrc"
-    logger.debug("Sourcing: '%s'"%idiap_source)
-    try:
-      command = ['bash', '-c', 'source %s && env' % idiap_source]
-      pi = subprocess.Popen(command, stdout = subprocess.PIPE)
-      # overwrite the default environment
-      for line in pi.stdout:
-        (key, _, value) = line.partition("=")
-        os.environ[key.strip()] = value.strip()
-    except OSError as e:
-      # occurs when the file is not executable or not found
-      pass
+    if os.path.exists(idiap_source):
+      logger.debug("Sourcing: '%s'"%idiap_source)
+      try:
+        command = ['bash', '-c', 'source %s && env' % idiap_source]
+        pi = subprocess.Popen(command, stdout = subprocess.PIPE)
+        # overwrite the default environment
+        for line in pi.stdout:
+          (key, _, value) = line.partition("=")
+          os.environ[key.strip()] = value.strip()
+      except OSError as e:
+        # occurs when the file is not executable or not found
+        pass
 
   # in case the BASEDIRSETSHELL environment variable is not set,
   # we are not at Idiap,
