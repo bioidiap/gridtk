@@ -143,7 +143,7 @@ class JobManagerLocal(JobManager):
     """Finalizes the execution of the job by writing the stdout and stderr results into the according log files."""
     def write(file, std, process):
       f = std if file is None else open(str(file), 'w')
-      f.write(process.read())
+      f.write(process.read().decode('utf-8'))
 
     self.lock()
     # get the files to write to

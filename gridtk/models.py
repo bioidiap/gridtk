@@ -1,7 +1,6 @@
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey
-from bob.db.sqlalchemy_migration import Enum, relationship
-from sqlalchemy.orm import backref
+from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey, Enum
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 import os
@@ -9,8 +8,10 @@ import sys
 
 if sys.version_info[0] >= 3:
   from pickle import dumps, loads
+  python_3 = True
 else:
   from cPickle import dumps, loads
+  python_3 = False
 
 from .tools import logger
 
@@ -172,13 +173,13 @@ class Job(Base):
 
 
   def get_command_line(self):
-    return loads(str(self.command_line))
+    return loads(self.command_line) if python_3 else loads(str(self.command_line))
 
   def get_array(self):
-    return loads(str(self.array_string))
+    return loads(self.array_string) if python_3 else loads(str(self.array_string))
 
   def get_arguments(self):
-    return loads(str(self.grid_arguments))
+    return loads(self.grid_arguments) if python_3 else loads(str(self.grid_arguments))
 
   def get_jobs_we_wait_for(self):
     return [j.waited_for_job for j in self.jobs_we_have_to_wait_for if j.waited_for_job is not None]
