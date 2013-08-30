@@ -40,7 +40,7 @@ Make sure to have your shell environment setup to reach it w/o requiring to type
 The first task you may need to pursue is to submit jobs.
 Here is how::
 
-  $ jman submit myscript.py --help
+  $ jman -vv submit myscript.py --help
   ... Added job '<Job: 1> : submitted -- /usr/bin/python myscript.py --help' to the database
   ... Submitted job '<Job: 6151645> : queued -- /usr/bin/python myscript.py --help' to the SGE grid.
 

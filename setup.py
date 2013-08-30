@@ -9,14 +9,14 @@ if sys.version_info[:2] < (2, 7) or ((3,0) <= sys.version_info[:2] < (3,2)):
 
 setup(
     name='gridtk',
-    version='1.0.0.a0',
-    description='SGE Grid Submission and Monitoring Tools for Idiap',
+    version='1.0.0',
+    description='SGE Grid and Local Submission and Monitoring Tools for Idiap',
 
     url='https://github.com/idiap/gridtk',
     license='LICENSE.txt',
 
-    author='Andre Anjos',
-    author_email='andre.anjos@idiap.ch',
+    author='Manuel Guenther',
+    author_email='manuel.guenther@idiap.ch',
 
     packages=find_packages(),
 

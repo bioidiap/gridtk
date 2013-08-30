@@ -9,9 +9,48 @@ probing.
 
 import os
 import re
-import six
 import hashlib
 import random
+
+
+# sqlalchemy migration; copied from Bob
+try:
+  from sqlalchemy import Enum
+except ImportError:
+  from sqlalchemy import types
+
+  class Enum(types.TypeDecorator):
+    impl = types.Unicode
+
+    def __init__(self, *values):
+      """Emulates an Enum type.
+      values:
+      A list of valid values for this column
+      """
+
+      if values is None or len(values) is 0:
+          raise AssertionError('Enum requires a list of values')
+      self.values = values[:]
+
+      # The length of the string/unicode column should be the longest string
+      # in values
+      size = max([len(v) for v in values if v is not None])
+      super(Enum, self).__init__(size)
+
+    def process_bind_param(self, value, dialect):
+      if value not in self.values:
+          raise AssertionError('"%s" not in Enum.values' % value)
+      return value
+
+    def process_result_value(self, value, dialect):
+      return value
+
+try:
+  from sqlalchemy.orm import relationship
+except ImportError:
+  from sqlalchemy.orm import relation as relationship
+
+
 
 # initialize the logging system
 import logging
@@ -43,6 +82,16 @@ def makedirs_safe(fulldir):
     import errno
     if exc.errno == errno.EEXIST: pass
     else: raise
+
+
+def str_(name):
+  """Return the string representation of the given 'name'.
+  If it is a bytes object, it will be converted into str.
+  If it is a str object, it will simply be resurned."""
+  if isinstance(name, bytes) and not isinstance(name, str):
+    return name.decode('utf8')
+  else:
+    return name
 
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
@@ -138,6 +187,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   scmd = ['qsub']
 
+  import six
   if isinstance(queue, six.string_types) and queue not in ('all.q', 'default'):
     scmd += ['-l', queue]
 
@@ -212,7 +262,7 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   logger.debug("Qsub command '%s'", ' '.join(scmd))
 
   from .setshell import sexec
-  jobid = sexec(context, scmd)
+  jobid = str_(sexec(context, scmd))
   return int(jobid.split('.',1)[0])
 
 def make_shell(shell, command):
@@ -253,7 +303,7 @@ def qstat(jobid, context='grid'):
   logger.debug("Qstat command '%s'", ' '.join(scmd))
 
   from .setshell import sexec
-  data = sexec(context, scmd, error_on_nonzero=False)
+  data = str_(sexec(context, scmd, error_on_nonzero=False))
 
   # some parsing:
   retval = {}

@@ -8,10 +8,9 @@
 
 import os
 import sys
-import six
 import signal
 import subprocess
-from .tools import logger
+from .tools import logger, str_
 
 def environ(context):
   """Retrieves the environment for a particular SETSHELL context"""
@@ -26,8 +25,7 @@ def environ(context):
         pi = subprocess.Popen(command, stdout = subprocess.PIPE)
         # overwrite the default environment
         for line in pi.stdout:
-          if isinstance(line, bytes) and not isinstance(line, str):
-            line = line.decode('utf8')
+          line = str_(line)
           (key, _, value) = line.partition("=")
           os.environ[key.strip()] = value.strip()
       except OSError as e:
@@ -54,8 +52,7 @@ def environ(context):
     raise OSError("Error executing '%s': %s (%d)" % (' '.join(command), e.strerror, e.errno))
 
   try:
-    source = p.communicate()[0]
-    source = source.strip()
+    source = str_(p.communicate()[0]).strip()
   except KeyboardInterrupt: # the user CTRL-C'ed
     os.kill(p.pid, signal.SIGTERM)
     sys.exit(signal.SIGTERM)
@@ -72,6 +69,7 @@ def environ(context):
 
   new_environ = dict(os.environ)
   for line in p2.stdout:
+    line = str_(line)
     (key, _, value) = line.partition("=")
     new_environ[key.strip()] = value.strip()
 
@@ -92,6 +90,7 @@ def environ(context):
 def sexec(context, command, error_on_nonzero=True):
   """Executes a command within a particular Idiap SETSHELL context"""
 
+  import six
   if isinstance(context, six.string_types): E = environ(context)
   else: E = context
 
@@ -102,10 +101,10 @@ def sexec(context, command, error_on_nonzero=True):
     (stdout, stderr) = p.communicate() #note: stderr will be 'None'
     if p.returncode != 0:
       if error_on_nonzero:
-        raise RuntimeError("Execution of '%s' exited with status != 0 (%d): %s" % (' '.join(command), p.returncode, stdout))
+        raise RuntimeError("Execution of '%s' exited with status != 0 (%d): %s" % (' '.join(command), p.returncode, str_(stdout)))
       else:
         logger.debug("Execution of '%s' exited with status != 0 (%d): %s" % \
-            (' '.join(command), p.returncode, stdout))
+            (' '.join(command), p.returncode, str_(stdout)))
 
     return stdout.strip()
 

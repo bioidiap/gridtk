@@ -1,7 +1,8 @@
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey, Enum
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
+from .tools import Enum, relationship
 
 import os
 import sys

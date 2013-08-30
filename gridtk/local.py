@@ -17,7 +17,7 @@ if sys.version_info[0] >= 3:
 else:
   from cPickle import dumps, loads
 
-from .tools import makedirs_safe, logger
+from .tools import makedirs_safe, logger, str_
 
 
 from .manager import JobManager
@@ -143,7 +143,7 @@ class JobManagerLocal(JobManager):
     """Finalizes the execution of the job by writing the stdout and stderr results into the according log files."""
     def write(file, std, process):
       f = std if file is None else open(str(file), 'w')
-      f.write(process.read().decode('utf-8'))
+      f.write(str_(process.read()))
 
     self.lock()
     # get the files to write to
