@@ -4,7 +4,6 @@
 *.swp
 build
 dist
-MANIFEST
 .installed.cfg
 develop-eggs
 eggs
@@ -13,4 +12,6 @@ sphinx
 .project
 .pydevproject
 .settings
+submitted.sql3
+logs
 

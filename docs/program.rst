@@ -1,19 +1,20 @@
 .. vim: set fileencoding=utf-8 :
 .. Andre Anjos <andre.anjos@idiap.ch>
-.. Thu 25 Aug 2011 15:58:21 CEST 
+.. Thu 25 Aug 2011 15:58:21 CEST
 
-=======================
- The GridTk User Guide
-=======================
+.. _developer:
 
-The ``gridtk`` framework is a python library to help submitting, tracking and
-querying SGE. Here is quick example on how to use the ``gridtk`` framework to
-submit a python script:
+=====================
+The GridTk User Guide
+=====================
+
+The ``gridtk`` framework is a python library to help submitting, tracking and querying SGE.
+Here is quick example on how to use the ``gridtk`` framework to submit a python script:
 
 .. code-block:: python
 
   import sys
-  from gridtk.manager import JobManager
+  from gridtk.sge import JobManager
   from gridtk.tools import make_shell
 
   manager = JobManager()
@@ -23,14 +24,27 @@ submit a python script:
 You can do, programatically, everything you can do with the job manager - just
 browse the help messages and the ``jman`` script for more information.
 
-Reference Manual
-----------------
 
-API to the Job Manager
-======================
+API to the Job Managers
+=======================
 
 .. automodule:: gridtk.manager
   :members:
+
+
+.. automodule:: gridtk.sge
+  :members:
+
+.. automodule:: gridtk.local
+  :members:
+
+
+The Models of the SQL3 Databases
+================================
+
+.. automodule:: gridtk.models
+  :members:
+
 
 Middleware
 ==========

@@ -1,161 +1,215 @@
-=================
- SGE Job Manager
-=================
+.. vim: set fileencoding=utf-8 :
+.. author: Manuel Günther <manuel.guenther@idiap.ch>
+.. date: Fri Aug 30 14:31:49 CEST 2013
 
-The Job Manager is python wrapper around SGE utilities like ``qsub``, ``qstat``
-and ``qdel``. It interacts with these tools to submit and manage grid jobs
-making up a complete workflow ecosystem.
+.. _command_line:
 
-Everytime you interact with the Job Manager, a local database file (normally
-named ``submitted.db``) is read or written so it preserves its state during
-decoupled calls. The database contains all informations about jobs that is
-required for the Job Manager to:
+==========================
+The Command Line Interface
+==========================
 
-* submit jobs (includes wrapped python jobs or Torch5spro specific jobs)
+The command line interface requires the package to be installed properly.
+Fortunately, this is easy to be done, using the Buildout tools in the main directory of GridTK:
+
+.. code-block:: sh
+
+  $ python boostrap.py
+  $ ./bin/buildout
+
+These two commands will download all required dependencies and create a ``bin`` directory containing all the command line utilities that we will need in this section.
+To verify the installation, you can call out nose tests:
+
+.. code-block:: sh
+
+  $ ./bin/nosetests -v
+
+
+The Job Manager
+===============
+The most important utility is the Job Manager ``bin/jman``.
+This Job Manager can be used to:
+
+* submit jobs
 * probe for submitted jobs
-* query SGE for submitted jobs
 * identify problems with submitted jobs
 * cleanup logs from submitted jobs
 * easily re-submit jobs if problems occur
 * support for parametric (array) jobs
 
-Many of these features are also achieveable using the stock SGE utilities, the
-Job Manager only makes it dead simple.
+The Job Manager has a common set of parameters, which will be explained in the next section.
+Additionally, several commands can be issued, each of which has its own set of options.
+These commands will be explained afterwards.
 
-Submitting a job
-----------------
+Basic Job Manager Parameters
+----------------------------
+There are two versions of Job Managers: One that submits jobs to the SGE grid, and one that submits jobs so that they are run in parallel on the local machine.
+By default, the SGE manager is engaged.
+If you don't have access to the SGE grid, or you want to submit locally, please issue the ``bin/jman --local`` (or shortly ``bin/jman -l``) command.
 
-To interact with the Job Manager we use the ``jman`` utility. Make sure to have
-your shell environment setup to reach it w/o requiring to type-in the full
-path. The first task you may need to pursue is to submit jobs. Here is how:
+To keep track of the submitted jobs, an SQL3 database is written.
+This database is by default called ``submitted.sql3`` and put in the current directory, but this can be changed using the ``bin/jman --database`` (``bin/jman -d``) flag.
+
+Normally, the Job Manager acts silently, and only error messages are reported.
+To make the Job Manager more verbose, you can use the ``--verbose`` (``-v``) option several times, to increase the verbosity level to 1) WARNING, 2) INFO, 3) DEBUG.
+
+
+Submitting Jobs
+---------------
+To submit a job, the ``bin/jman submit`` command is used.
+The simplest way to submit a job to be run in the SGE grid is:
 
 .. code-block:: sh
 
-  $ jman submit myscript.py --help
-  Submitted 6151645 @all.q (0 seconds ago) -S /usr/bin/python myscript.py --help
+  $ bin/jman -vv submit myscript.py
+
+This command will create an SQL3 database, submit the job to the grid and register it in the database.
+To be more easily separable from other jobs in the database, you can give your job a name:
+
+.. code-block:: sh
+
+  $ bin/jman -vv submit -n [name] myscript.py
+
+If the job requires certain machine specifications, you can add these (please see the SGE manual for possible specifications of [key] and [value] pairs).
+Please note the ``--`` option that separates specifications from the command:
+
+.. code-block:: sh
+
+  $ bin/jman -vv submit -q [queue-name] -m [memory] --io-big -s [key1]=[value1] [key2]=[value2] -- myscript.py
+
+To have jobs run in parallel, you can submit a parametric job.
+Simply call:
+
+.. code-block:: sh
+
+  $ bin/jman -vv submit -t 10 myscript.py
+
+to run ``myscript.py`` 10 times in parallel.
+Each of the parallel jobs will have a different environment variable called ``SGE_TASK_ID``, which will range from 1 to 10 in this case.
+If your script can handle this environment variable, it can actually execute 10 different tasks.
+
+Also, jobs with dependencies can be submitted.
+When submitted to the grid, each job has its own job id.
+These job ids can be used to create dependencies between the jobs (i.e., one job needs to finish before the next one can be started):
+
+.. code-block:: sh
+
+  $ bin/jman -vv submit -x [job_id_1] [job_id_2] -- myscript.py
+
+In case the first job fails, it can automatically stop the depending jobs from being executed.
+Just submit jobs with the ``--stop-on-failure`` option.
 
 .. note::
+  The ``--stop-on-failure`` option is under development and might not work properly.
+  Use this option with care.
 
-  The command `submit` of the Job Manager will submit a job that will run in
-  a python environment. It is not the only way to submit a job using the Job
-  Manager. You can also use `submit`, that considers the command as a self
-  sufficient application. Read the full help message of ``jman`` for details and
-  instructions.
 
-Submitting a parametric job
----------------------------
-
-Parametric or array jobs are jobs that execute the same way, except for the
-environment variable ``SGE_TASK_ID``, which changes for every job. This way,
-your program controls which bit of the full job has to be executed in each
-(parallel) instance. It is great for forking thousands of jobs into the grid.
-
-The next example sends 10 copies of the ``myscript.py`` job to the grid with
-the same parameters. Only the variable ``SGE_TASK_ID`` changes between them:
+While the jobs run, the output and error stream are captured in log files, which are written into a ``logs`` directory.
+This directory can be changed by specifying:
 
 .. code-block:: sh
 
-  $ jman submit -t 10 myscript.py --help
-  Submitted 6151645 @all.q (0 seconds ago) -S /usr/bin/python myscript.py --help
-
-The ``-t`` option in ``jman`` accepts different kinds of job array
-descriptions. Have a look at the help documentation for details with ``jman
---help``.
-
-Probing for jobs
-----------------
-
-Once the job has been submitted you will noticed a database file (by default
-called ``submitted.db``) has been created in the current working directory. It
-contains the information for the job you just submitted:
-
-.. code-block:: sh
-
-  $ jman list
-  job-id   queue  age                         arguments                       
-  ========  =====  ===  =======================================================
-  6151645  all.q   2m  -S /usr/bin/python myscript.py --help
-
-From this dump you can see the SGE job identifier, the queue the job has been
-submitted to and the command that was given to ``qsub``. The ``list`` command
-from ``jman`` only lists the contents of the database, it does **not** update
-it.
-
-Refreshing the list
--------------------
-
-You may instruct the job manager to probe SGE and update the status of the jobs
-it is monitoring. Finished jobs will be reported to the screen and removed from
-the job manager database and placed on a second database (actually two)
-containing jobs that failed and jobs that succeeded.
-
-.. code-block:: sh
-  
-  $ jman refresh
-  These jobs require attention:
-  6151645 @all.q (30 minutes ago) -S /usr/bin/python myscript.py --help
+  $ bin/jman -vv submit -l [log_dir]
 
 .. note::
+  When submitting jobs locally, by default the output and error streams are written to console and no log directory is created.
+  To get back the SGE grid logging behavior, please specify the log directory.
+  In this case, output and error streams are written into the log files **after** the job has finished.
 
-  Detection of success or failure is based on the length of the standard error
-  output of the job. If it is greater than zero, it is considered a failure. 
+
+Running Jobs Locally
+--------------------
+When jobs are submitted to the SGE grid, they are run immediately.
+However, when jobs are submitted locally, (using the ``--local`` option, see above), a local scheduler needs to be run.
+This is achieved by issuing the command:
+
+.. code-block:: sh
+
+  $ bin/jman -vv run-scheduler -p [parallel_jobs] -s [sleep_time]
+
+This will start the scheduler in the daemon mode.
+This will constantly monitor the SQL3 database and execute jobs after submission, starting every ``[sleep_time]`` second.
+Use ``Ctrl-C`` to stop the scheduler (if jobs are still running locally, they will automatically be stopped).
+
+If you want to submit a list of jobs and have the scheduler to run the jobs and stop afterward, simply use the ``--die-when-finished`` option.
+Also, it is possible to run only specific jobs (and array jobs), which can be specified with the ``--j`` and ``--a`` option, respectively.
+
+
+Probing for Jobs
+----------------
+To list the contents of the job database, you can use the ``jman list`` command.
+This will show you the job-id, the queue, the current status, the name and the command line of each job.
+Since the database is automatically updated when jobs finish, you can use the ``jman list`` again after some time.
+
+Normally, long command lines are cut so that each job is listed in a single line.
+To get the full command line, please use the ``-vv`` option:
+
+.. code-block:: sh
+
+  $ bin/jman -vv list
+
+By default, array jobs are not listed, but the ``-a`` option changes this behavior.
+Usually, it is a good idea to combine the ``-a`` option with ``-j``, which will list only the jobs of the given job id(s):
+
+.. code-block:: sh
+
+  $ bin/jman -vv list -a -j [job_id_1] [job_id_2]
+
 
 Inspecting log files
 --------------------
-
-As can be seen the job we submitted just failed. The job manager says it
-requires attention. If jobs fail, they are moved to a database named
-``failure.db`` in the current directory. Otherwise, they are moved to
-``success.db``. You can inspect the job log files like this:
+When a job fails, the status will be ``failure``.
+In this case, you might want to know, what happened.
+As a first indicator, the exit code of the program is reported as well.
+Also, the output and error streams of the job has been recorded and can be seen using the utilities.
+E.g.:
 
 .. code-block:: sh
 
-  $ jman explain failure.db
-  Job 6151645 @all.q (34 minutes ago) -S /usr/bin/python myscript.py --help
-  Command line: (['-S', '/usr/bin/python', '--', 'myscript.py', '--help'],) {'deps': [], 'stderr': 'logs', 'stdout': 'logs', 'queue': 'all.q', 'cwd': True, 'name': None}
+  $ bin/jman -vv report -j [job_id] -a [array_id]
 
-  6151645 stdout (/remote/filer.gx/user.active/aanjos/work/spoofing/idiap-gridtk/logs/shell.py.o6151645)
+will print the contents of the output and error log file from the job with the desired ID (and only the array job with the given ID).
 
-
-  6151645 stderr (/remote/filer.gx/user.active/aanjos/work/spoofing/idiap-gridtk/logs/shell.py.e6151645)
-  Traceback (most recent call last):
-     ...
-
+To report only the output or only the error logs, you can use the ``-o`` or ``-e`` option, respectively.
 Hopefully, that helps in debugging the problem!
+
 
 Re-submitting the job
 ---------------------
-
-If you are convinced the job did not work because of external conditions (e.g.
-temporary network outage), you may re-submit it, *exactly* like it was
-submitted the first time:
+After correcting your code you might want to submit the same command line again.
+For this purpose, the ``bin/jman resubmit`` command exists.
+Simply specify the job id(s) that you want to resubmit:
 
 .. code-block:: sh
 
-  $ jman resubmit --clean failure.db
-  Re-submitted job 6151663 @all.q (1 second ago) -S /usr/bin/python myscript.py --help
-    removed `logs/myscript.py.o6151645'
-    removed `logs/myscript.py.e6151645'
-    deleted job 6151645 from database
+  $ bin/jman -vv resubmit -j [job_id_1] [job_id_2]
 
-The ``--clean`` flag tells the job manager to clean-up the old failure and the
-log files as it re-submits the new job. Notice the new job identifier has
-changed as expected.
+This will clean up the old log files (if you didn't specify the ``--keep-logs`` option) and re-submit the job.
+If the submission is done in the grid the job id(s) will change during this process.
 
-Cleaning-up
+
+Cleaning up
 -----------
+After the job was successfully (or not) executed, you should clean up the database using the ``bin/jman delete`` command.
+If not specified otherwise (i.e., using the ``--keep-logs`` option), this command will delete all jobs from the database and delete the log files (including the log directory in case it is empty), and remove the database as well.
 
-If the job in question will not work no matter how many times we re-submit it,
-you may just want to clean it up and do something else. The job manager is
-here for you again:
+Again, job ids and array ids can be specified to limit the deleted jobs with the ``-j`` and ``-a`` option, respectively.
+It is also possible to clean up only those jobs (and array jobs) with a certain status.
+E.g. use:
 
 .. code-block:: sh
 
-  $ jman cleanup --remove-job failure.db
-  Cleaning-up logs for job 6151663 @all.q (5 minutes ago) -S /usr/bin/python myscript.py --help
-    removed `logs/myscript.py.o6151663'
-    removed `logs/myscript.py.e6151663'
-    deleted job 6151663 from database
+  $ bin/jman -vv delete -s success
 
-Inspection on the current directory will now show you everything concerning the
-said job is gone.
+to delete all jobs and the logs of all successfully finished jobs from the database.
+
+
+Other command line tools
+========================
+For convenience, we also provide additional command line tools, which are mainly useful at Idiap.
+These tools are:
+
+- ``bin/qstat.py``: writes the statuses of the jobs that are currently running in the SGE grid
+- ``bin/qsub.py``: submit job to the SGE grid without logging them into the database
+- ``bin/qdel.py``: delete job from the SGE grid without logging them into the database
+- ``bin/grid``: executes the command in an grid environment (i.e., as if a ``SETSHELL grid`` command would have been issued before)
+

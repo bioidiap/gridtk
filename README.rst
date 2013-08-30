@@ -9,7 +9,30 @@ Currently, it is set up to work with the SGE grid at Idiap, but it is also possi
 Since version 1.0 there is also a local submission system introduced.
 Instead of sending jobs to the SGE grid, it executes them in parallel processes on the local machine, using a simple scheduling system.
 
+.. warning::
+  The new version of gridtk was completely rewritten and is no longer compatible with older versions of gridtk.
+  In particular, the database type has changed.
+  If you still have old ``submitted.db``, ``success.db`` or ``failure.db`` databases, please use an older version of gridtk to handle them.
 
+.. warning::
+  Though tested thoroughly, this version might still be unstable and the reported statuses of the grid jobs might be incorrect.
+  If you are in doubt that the status is correct, please double-check with other grid utilities (like ``bin/grid qmon``).
+  In case you found any problem, please report it using the `bug reporting system <http://github.com/idiap/gridtk/issues>`.
+
+.. note::
+  In the current version, gridtk is compatible with python3.
+  Anyways, due to limitations of the working environment, the grid functionality is not tested with python 3.
+  However, with python 2.7 everything should work out fine.
+
+This package uses the Buildout system to install it.
+Please call::
+
+  $ python bootstrap.py
+  $ bin/buildout
+  $ bin/sphinx-build docs sphinx
+  $ firefox sphinx/index.html
+
+to create and open the documentation including even more information than given in this README below.
 
 Submitting jobs to the SGE grid
 +++++++++++++++++++++++++++++++
