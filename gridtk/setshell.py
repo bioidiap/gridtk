@@ -26,6 +26,8 @@ def environ(context):
         pi = subprocess.Popen(command, stdout = subprocess.PIPE)
         # overwrite the default environment
         for line in pi.stdout:
+          if isinstance(line, bytes) and not isinstance(line, str):
+            line = line.decode('utf8')
           (key, _, value) = line.partition("=")
           os.environ[key.strip()] = value.strip()
       except OSError as e:

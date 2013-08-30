@@ -28,8 +28,7 @@ class GridTKTest(unittest.TestCase):
   def tearDown(self):
     # make sure that all scheduler jobs are stopped after exiting
     if self.scheduler_job:
-      self.scheduler_job.send_signal(signal.SIGINT)
-      self.scheduler_job.wait()
+      self.scheduler_job.kill()
     # Clean up the mess that we created
     import shutil
     shutil.rmtree(self.temp_dir)
@@ -80,7 +79,7 @@ class GridTKTest(unittest.TestCase):
     # sleep some time to assure that the scheduler was able to start the first job
     time.sleep(4)
     # ... and kill the scheduler
-    self.scheduler_job.send_signal(signal.SIGINT)
+    self.scheduler_job.kill()
     self.scheduler_job = None
 
     # now, the first job needs to have status failure, and the second needs to be queued
@@ -104,7 +103,7 @@ class GridTKTest(unittest.TestCase):
     # sleep some time to assure that the scheduler was able to finish the first and start the second job
     time.sleep(9)
     # ... and kill the scheduler
-    self.scheduler_job.send_signal(signal.SIGINT)
+    self.scheduler_job.kill()
     self.scheduler_job = None
 
     # Job 1 and two array jobs of job two should be finished now, the other two still need to be queued
@@ -138,9 +137,8 @@ class GridTKTest(unittest.TestCase):
 
     # now, let the scheduler run all jobs
     self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
-    # ... and kill the scheduler
-    time.sleep(10)
-    assert self.scheduler_job.poll() is not None
+    # and wait for the job to finish (the timeout argument to Popen only exists from python 3.3 onwards)
+    self.scheduler_job.wait()
     self.scheduler_job = None
 
     # check that all output files are generated again
@@ -188,9 +186,8 @@ class GridTKTest(unittest.TestCase):
 
     # and execute them, but without writing the log files
     self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished', '--no-log-files'])
-    # ... and kill the scheduler
-    time.sleep(3)
-    assert self.scheduler_job.poll() is not None
+    # and wait for the job to finish (the timeout argument to Popen only exists from python 3.3 onwards)
+    self.scheduler_job.wait()
     self.scheduler_job = None
 
     # assert that the log files are not there

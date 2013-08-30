@@ -8,10 +8,8 @@ import sys
 
 if sys.version_info[0] >= 3:
   from pickle import dumps, loads
-  python_3 = True
 else:
   from cPickle import dumps, loads
-  python_3 = False
 
 from .tools import logger
 
@@ -173,13 +171,22 @@ class Job(Base):
 
 
   def get_command_line(self):
-    return loads(self.command_line) if python_3 else loads(str(self.command_line))
+    """Returns the command line for the job."""
+    # In python 2, the command line is unicode, which needs to be converted to string before pickling;
+    # In python 3, the command line is bytes, which can be pickled directly
+    return loads(self.command_line) if isinstance(self.command_line, bytes) else loads(str(self.command_line))
 
   def get_array(self):
-    return loads(self.array_string) if python_3 else loads(str(self.array_string))
+    """Returns the array arguments for the job; usually a string."""
+    # In python 2, the command line is unicode, which needs to be converted to string before pickling;
+    # In python 3, the command line is bytes, which can be pickled directly
+    return loads(self.array_string) if isinstance(self.array_string, bytes) else loads(str(self.array_string))
 
   def get_arguments(self):
-    return loads(self.grid_arguments) if python_3 else loads(str(self.grid_arguments))
+    """Returns the additional options for the grid (such as the queue, memory requirements, ...)."""
+    # In python 2, the command line is unicode, which needs to be converted to string before pickling;
+    # In python 3, the command line is bytes, which can be pickled directly
+    return loads(self.grid_arguments) if isinstance(self.grid_arguments, bytes) else loads(str(self.grid_arguments))
 
   def get_jobs_we_wait_for(self):
     return [j.waited_for_job for j in self.jobs_we_have_to_wait_for if j.waited_for_job is not None]
