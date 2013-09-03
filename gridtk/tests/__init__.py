@@ -47,7 +47,7 @@ class GridTKTest(unittest.TestCase):
       jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', script_2])
 
       # check that the database was created successfully
-      assert os.path.exists(self.database)
+      self.assertTrue(os.path.exists(self.database))
 
       print()
       # test that the list command works (should also work with the "default" grid manager
@@ -58,20 +58,20 @@ class GridTKTest(unittest.TestCase):
       job_manager = gridtk.local.JobManagerLocal(database=self.database)
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      assert len(jobs) == 2
-      assert jobs[0].id == 1
-      assert jobs[1].id == 2
-      assert len(jobs[1].array) == 4
-      assert jobs[0].status == 'submitted'
-      assert jobs[1].status == 'submitted'
+      self.assertEqual(len(jobs), 2)
+      self.assertEqual(jobs[0].id, 1)
+      self.assertEqual(jobs[1].id, 2)
+      self.assertEqual(len(jobs[1].array), 4)
+      self.assertEqual(jobs[0].status, 'submitted')
+      self.assertEqual(jobs[1].status, 'submitted')
 
       # check that the job dependencies are correct
       waiting = jobs[0].get_jobs_waiting_for_us()
-      assert len(waiting) == 1
-      assert waiting[0].id == 2
+      self.assertEqual(len(waiting), 1)
+      self.assertEqual(waiting[0].id, 2)
       waited = jobs[1].get_jobs_we_wait_for()
-      assert len(waited) == 1
-      assert waited[0].id == 1
+      self.assertEqual(len(waited), 1)
+      self.assertEqual(waited[0].id, 1)
 
       job_manager.unlock()
 
@@ -87,12 +87,12 @@ class GridTKTest(unittest.TestCase):
       # now, the first job needs to have status failure, and the second needs to be queued
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      assert len(jobs) == 2
-      assert jobs[0].status == 'failure'
-      assert jobs[1].status == 'queued'
+      self.assertEqual(len(jobs), 2)
+      self.assertEqual(jobs[0].status, 'failure')
+      self.assertEqual(jobs[1].status, 'queued')
       # the result files should not be there yet
-      assert not os.path.exists(jobs[0].std_out_file())
-      assert not os.path.exists(jobs[0].std_err_file())
+      self.assertFalse(os.path.exists(jobs[0].std_out_file()))
+      self.assertFalse(os.path.exists(jobs[0].std_err_file()))
       job_manager.unlock()
 
 
@@ -111,31 +111,31 @@ class GridTKTest(unittest.TestCase):
       # Job 1 and two array jobs of job two should be finished now, the other two still need to be queued
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      assert len(jobs) == 2
-      assert jobs[0].status == 'failure'
-      assert jobs[1].status == 'executing'
-      assert jobs[1].array[0].status == 'failure'
-      assert jobs[1].array[0].result == 1
-      assert jobs[1].array[1].status == 'success'
-      assert jobs[1].array[1].result == 0
-      assert len([a for a in jobs[1].array if a.status == 'queued']) == 2
+      self.assertEqual(len(jobs), 2)
+      self.assertEqual(jobs[0].status, 'failure')
+      self.assertEqual(jobs[1].status, 'executing')
+      self.assertEqual(jobs[1].array[0].status, 'failure')
+      self.assertEqual(jobs[1].array[0].result, 1)
+      self.assertEqual(jobs[1].array[1].status, 'success')
+      self.assertEqual(jobs[1].array[1].result, 0)
+      self.assertEqual(len([a for a in jobs[1].array if a.status == 'queued']), 2)
       out_file = jobs[0].std_out_file()
       err_file = jobs[0].std_err_file()
       job_manager.unlock()
 
       # the result files of the first job should now be there
-      assert os.path.isfile(out_file)
-      assert os.path.isfile(err_file)
-      assert open(out_file).read().rstrip() == 'This is a text message to std-out'
-      assert open(err_file).read().rstrip() == 'This is a text message to std-err'
+      self.assertTrue(os.path.isfile(out_file))
+      self.assertTrue(os.path.isfile(err_file))
+      self.assertEqual(open(out_file).read().rstrip(), 'This is a text message to std-out')
+      self.assertEqual(open(err_file).read().rstrip(), 'This is a text message to std-err')
 
       # resubmit all jobs
       jman.main(['./bin/jman', '--local', '--database', self.database, 'resubmit', '--running-jobs'])
       # check that the log files have been cleaned
-      assert not os.path.exists(out_file)
-      assert not os.path.exists(err_file)
+      self.assertFalse(os.path.exists(out_file))
+      self.assertFalse(os.path.exists(err_file))
       # ... but the log dir still exists
-      assert os.path.exists(self.log_dir)
+      self.assertTrue(os.path.exists(self.log_dir))
 
       # now, let the scheduler run all jobs
       self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
@@ -144,28 +144,28 @@ class GridTKTest(unittest.TestCase):
       self.scheduler_job = None
 
       # check that all output files are generated again
-      assert os.path.isfile(out_file)
-      assert os.path.isfile(err_file)
-      assert open(out_file).read().rstrip() == 'This is a text message to std-out'
-      assert open(err_file).read().rstrip() == 'This is a text message to std-err'
+      self.assertTrue(os.path.isfile(out_file))
+      self.assertTrue(os.path.isfile(err_file))
+      self.assertEqual(open(out_file).read().rstrip(), 'This is a text message to std-out')
+      self.assertEqual(open(err_file).read().rstrip(), 'This is a text message to std-err')
 
       # check that exactly four output and four error files have been created
       files = os.listdir(self.log_dir)
-      assert len(files) == 10
+      self.assertEqual(len(files), 10)
       for i in range(1,8,2):
-        assert 'test_2.o2.%d'%i in files
-        assert 'test_2.e2.%d'%i in files
+        self.assertTrue('test_2.o2.%d'%i in files)
+        self.assertTrue('test_2.e2.%d'%i in files)
 
       # check that all array jobs are finished now
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      assert len(jobs) == 2
-      assert jobs[1].status == 'failure'
-      assert jobs[1].array[0].status == 'failure'
-      assert jobs[1].array[0].result == 1
+      self.assertEqual(len(jobs), 2)
+      self.assertEqual(jobs[1].status, 'failure')
+      self.assertEqual(jobs[1].array[0].status, 'failure')
+      self.assertEqual(jobs[1].array[0].result, 1)
       for i in range(1,4):
-        assert jobs[1].array[i].status == 'success'
-        assert jobs[1].array[i].result == 0
+        self.assertEqual(jobs[1].array[i].status, 'success')
+        self.assertEqual(jobs[1].array[i].result, 0)
       job_manager.unlock()
 
       print()
@@ -180,7 +180,7 @@ class GridTKTest(unittest.TestCase):
       jman.main(['./bin/jman', '--local', '--database', self.database, 'delete'])
 
       # check that the database and the log files are gone
-      assert len(os.listdir(self.temp_dir)) == 0
+      self.assertEqual(len(os.listdir(self.temp_dir)), 0)
 
       # add the scripts again, but this time with the --stop-on-failure option
       jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--stop-on-failure', script_1])
@@ -193,18 +193,18 @@ class GridTKTest(unittest.TestCase):
       self.scheduler_job = None
 
       # assert that the log files are not there
-      assert not os.path.isfile(out_file)
-      assert not os.path.isfile(err_file)
+      self.assertFalse(os.path.isfile(out_file))
+      self.assertFalse(os.path.isfile(err_file))
 
 
       # check that all array jobs are finished now
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      assert len(jobs) == 2
-      assert jobs[0].status == 'failure'
-      assert jobs[0].result == 255
-      assert jobs[1].status == 'failure'
-      assert jobs[1].result is None
+      self.assertEqual(len(jobs), 2)
+      self.assertEqual(jobs[0].status, 'failure')
+      self.assertEqual(jobs[0].result, 255)
+      self.assertEqual(jobs[1].status, 'failure')
+      self.assertTrue(jobs[1].result is None)
       job_manager.unlock()
 
       # and clean up again
