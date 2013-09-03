@@ -36,6 +36,11 @@ class GridTKTest(unittest.TestCase):
   def test01_local(self):
     # This test executes all commands of the local grid manager and asserts that everything is fine
 
+    # first test, if the '/bin/bash' exists
+    bash = '/bin/bash'
+    if not os.path.exists(bash):
+      raise SkipException("Could not find '%s' which is required to run the test scripts"%bash)
+
     try:
 
       # first, add some commands to the database
@@ -43,8 +48,8 @@ class GridTKTest(unittest.TestCase):
       script_2 = pkg_resources.resource_filename('gridtk.tests', 'test_array.sh')
       from gridtk.script import jman
       # add a simple script that will write some information to the
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', script_1])
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', script_2])
+      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', bash, script_1])
+      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', bash, script_2])
 
       # check that the database was created successfully
       self.assertTrue(os.path.exists(self.database))
@@ -183,8 +188,8 @@ class GridTKTest(unittest.TestCase):
       self.assertEqual(len(os.listdir(self.temp_dir)), 0)
 
       # add the scripts again, but this time with the --stop-on-failure option
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--stop-on-failure', script_1])
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', '--stop-on-failure', script_2])
+      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--stop-on-failure', bash, script_1])
+      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', '--stop-on-failure', bash, script_2])
 
       # and execute them, but without writing the log files
       self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished', '--no-log-files'])
