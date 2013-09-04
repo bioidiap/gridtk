@@ -154,21 +154,21 @@ class JobManager:
     self.unlock()
 
 
-  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False):
+  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status):
     """Lists the jobs currently added to the database."""
     # configuration for jobs
     if print_dependencies:
       fields = ("job-id", "queue", "status", "job-name", "dependencies", "submitted command line")
       lengths = (20, 9, 14, 20, 30, 43)
-      format = "{:^%d}  {:^%d}  {:^%d}  {:^%d}  {:^%d}  {:<%d}" % lengths
+      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
       dependency_length = lengths[4]
     else:
       fields = ("job-id", "queue", "status", "job-name", "submitted command line")
       lengths = (20, 9, 14, 20, 43)
-      format = "{:^%d}  {:^%d}  {:^%d}  {:^%d}  {:<%d}" % lengths
+      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:<%d}" % lengths
       dependency_length = 0
 
-    array_format = "{:>%d}  {:^%d}  {:^%d}" % lengths[:3]
+    array_format = "{0:>%d}  {1:^%d}  {2:^%d}" % lengths[:3]
     delimiter = format.format(*['='*k for k in lengths])
     array_delimiter = array_format.format(*["-"*k for k in lengths[:3]])
     header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
@@ -180,12 +180,13 @@ class JobManager:
 
     self.lock()
     for job in self.get_jobs(job_ids):
-      print(job.format(format, dependency_length, None if long else 43))
-      if print_array_jobs and job.array:
-        print(array_delimiter)
-        for array_job in job.array:
-          print(array_job.format(array_format))
-        print(array_delimiter)
+      if job.status in status:
+        print(job.format(format, dependency_length, None if long else 43))
+        if print_array_jobs and job.array:
+          print(array_delimiter)
+          for array_job in job.array:
+            print(array_job.format(array_format))
+          print(array_delimiter)
 
     self.unlock()
 
