@@ -41,7 +41,7 @@ class JobManager:
     if hasattr(self, 'session'):
       raise RuntimeError('Dead lock detected. Please do not try to lock the session when it is already locked!')
 
-    if sqlalchemy_version < (0,7,8):
+    if sqlalchemy_version < [0,7,8]:
       # for old sqlalchemy versions, in some cases it is required to re-generate the enging for each session
       self._engine = sqlalchemy.create_engine("sqlite:///"+self._database)
       self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
