@@ -9,8 +9,10 @@ from .tools import logger
 import sqlalchemy
 
 """This file defines a minimum Job Manager interface."""
+sqlalchemy_version = [int(v) for v in sqlalchemy.__version__.split('.')]
 
 class JobManager:
+  """This job manager defines the basic interface for handling jobs in the SQL database."""
 
   def __init__(self, database, wrapper_script = './bin/jman', debug = False):
     self._database = os.path.realpath(database)
@@ -38,12 +40,21 @@ class JobManager:
     """Generates (and returns) a blocking session object to the database."""
     if hasattr(self, 'session'):
       raise RuntimeError('Dead lock detected. Please do not try to lock the session when it is already locked!')
+
+    if sqlalchemy_version < (0,7,8):
+      # for old sqlalchemy versions, in some cases it is required to re-generate the enging for each session
+      self._engine = sqlalchemy.create_engine("sqlite:///"+self._database)
+      self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
+
+    # create the database if it does not exist yet
     if not os.path.exists(self._database):
       self._create()
+
     # now, create a session
     self.session = self._session_maker()
     logger.debug("Created new database session to '%s'" % self._database)
     return self.session
+
 
   def unlock(self):
     """Closes the session to the database."""
