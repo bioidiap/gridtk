@@ -134,15 +134,15 @@ class JobManagerLocal(JobManager):
       out, err = sys.stdout, sys.stderr
     else:
       makedirs_safe(job.log_dir)
-      # create unbuffered files for writing output and error status
+      # create line-buffered files for writing output and error status
       if array_job is not None:
-        out, err = open(array_job.std_out_file(), 'w', 0), open(array_job.std_err_file(), 'w', 0)
+        out, err = open(array_job.std_out_file(), 'w', 1), open(array_job.std_err_file(), 'w', 1)
       else:
-        out, err = open(job.std_out_file(), 'w', 0), open(job.std_err_file(), 'w', 0)
+        out, err = open(job.std_out_file(), 'w', 1), open(job.std_err_file(), 'w', 1)
 
     # return the subprocess pipe to the process
     try:
-      return subprocess.Popen(command, env=environ, stdout=out, stderr=err)
+      return subprocess.Popen(command, env=environ, stdout=out, stderr=err, bufsize=1)
     except OSError as e:
       logger.error("Could not execute job '%s' locally,\nreason:\t%s,\ncommand_line\t%s:" % (self._format_log(job_id, array_id, len(job.array)), e, job.get_command_line()))
       job.finish(117, array_id) # ASCII 'O'
