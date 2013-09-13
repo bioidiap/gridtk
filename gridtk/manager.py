@@ -165,7 +165,7 @@ class JobManager:
     self.unlock()
 
 
-  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status):
+  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status, ids_only=False):
     """Lists the jobs currently added to the database."""
     # configuration for jobs
     if print_dependencies:
@@ -178,6 +178,13 @@ class JobManager:
       lengths = (20, 9, 14, 20, 43)
       format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:<%d}" % lengths
       dependency_length = 0
+
+    if ids_only:
+      self.lock()
+      for job in self.get_jobs():
+        print(job.id, end=" ")
+      self.unlock()
+      return
 
     array_format = "{0:>%d}  {1:^%d}  {2:^%d}" % lengths[:3]
     delimiter = format.format(*['='*k for k in lengths])

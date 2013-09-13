@@ -9,7 +9,7 @@ if sys.version_info[:2] < (2, 7) or ((3,0) <= sys.version_info[:2] < (3,2)):
 
 setup(
     name='gridtk',
-    version='1.0.3a1',
+    version='1.0.4a1',
     description='SGE Grid and Local Submission and Monitoring Tools for Idiap',
 
     url='https://github.com/idiap/gridtk',
