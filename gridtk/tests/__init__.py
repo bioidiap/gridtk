@@ -95,9 +95,9 @@ class GridTKTest(unittest.TestCase):
       self.assertEqual(len(jobs), 2)
       self.assertEqual(jobs[0].status, 'failure')
       self.assertEqual(jobs[1].status, 'queued')
-      # the result files should not be there yet
-      self.assertFalse(os.path.exists(jobs[0].std_out_file()))
-      self.assertFalse(os.path.exists(jobs[0].std_err_file()))
+      # the result files should already be there
+      self.assertTrue(os.path.exists(jobs[0].std_out_file()))
+      self.assertTrue(os.path.exists(jobs[0].std_err_file()))
       job_manager.unlock()
 
 
