@@ -100,7 +100,7 @@ class JobManagerSGE(JobManager):
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
     for job in jobs:
-      if job.status == 'executing':
+      if job.status in ('queued', 'executing'):
         status = qstat(job.id, context=self.context)
         if len(status) == 0:
           job.status = 'failure'

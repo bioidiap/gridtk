@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import os
 import subprocess
+import socket # to get the host name
 from .models import Base, Job, ArrayJob, Status
 from .tools import logger
 
@@ -117,8 +118,11 @@ class JobManager:
       return
     job = jobs[0]
 
+    # get the machine name we are executing on; this might only work at idiap
+    machine_name = socket.gethostname()
+
     # set the 'executing' status to the job
-    job.execute(array_id)
+    job.execute(array_id, machine_name)
 
     if job.status == 'failure':
       # there has been a dependent job that has failed before
@@ -170,12 +174,12 @@ class JobManager:
     # configuration for jobs
     if print_dependencies:
       fields = ("job-id", "queue", "status", "job-name", "dependencies", "submitted command line")
-      lengths = (20, 9, 14, 20, 30, 43)
+      lengths = (20, 14, 14, 20, 30, 43)
       format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
       dependency_length = lengths[4]
     else:
       fields = ("job-id", "queue", "status", "job-name", "submitted command line")
-      lengths = (20, 9, 14, 20, 43)
+      lengths = (20, 14, 14, 20, 43)
       format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:<%d}" % lengths
       dependency_length = 0
 
