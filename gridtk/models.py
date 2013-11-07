@@ -95,11 +95,14 @@ class Job(Base):
     """Sets the status of this job to 'submitted'."""
     self.status = 'submitted'
     self.result = None
+    self.machine_name = None
     if new_queue is not None:
       self.queue_name = new_queue
     for array_job in self.array:
       array_job.status = 'submitted'
       array_job.result = None
+      array_job.machine_name = None
+
 
   def queue(self, new_job_id = None, new_job_name = None, queue_name = None):
     """Sets the status of this job to 'queued' or 'waiting'."""
@@ -152,7 +155,6 @@ class Job(Base):
         job.finish(0, -1)
 
 
-
   def finish(self, result, array_id = None):
     """Sets the status of this job to 'success' or 'failure'."""
     # check if there is any array job still running
@@ -180,6 +182,20 @@ class Job(Base):
           job.queue()
 
 
+  def refresh(self):
+    """Refreshes the status information."""
+    if self.status == 'executing' and self.array:
+      new_result = 0
+      for array_job in self.array:
+        if array_job.status == 'failure' and new_result is not None:
+          new_result = array_job.result
+        elif array_job.status not in ('success', 'failure'):
+          new_result = None
+      if new_result is not None:
+        self.status = 'success' if new_result == 0 else 'failure'
+        self.result = new_result
+
+
   def get_command_line(self):
     """Returns the command line for the job."""
     # In python 2, the command line is unicode, which needs to be converted to string before pickling;
@@ -192,11 +208,26 @@ class Job(Base):
     # In python 3, the command line is bytes, which can be pickled directly
     return loads(self.array_string) if isinstance(self.array_string, bytes) else loads(str(self.array_string))
 
+
   def get_arguments(self):
     """Returns the additional options for the grid (such as the queue, memory requirements, ...)."""
     # In python 2, the command line is unicode, which needs to be converted to string before pickling;
     # In python 3, the command line is bytes, which can be pickled directly
-    return loads(self.grid_arguments) if isinstance(self.grid_arguments, bytes) else loads(str(self.grid_arguments))
+    args = loads(self.grid_arguments)['kwargs'] if isinstance(self.grid_arguments, bytes) else loads(str(self.grid_arguments))['kwargs']
+    retval = {}
+    if 'pe_opt' in args:
+      retval['pe_opt'] = args['pe_opt']
+    if 'memfree' in args and args['memfree'] is not None:
+      retval['memfree'] = args['memfree']
+    if 'hvmem' in args and args['hvmem'] is not None:
+      retval['hvmem'] = args['hvmem']
+    if 'env' in args and len(args['env']) > 0:
+      retval['env'] = args['env']
+    if 'io_big' in args and args['io_big']:
+      retval['io_big'] = True
+
+    return retval
+
 
   def get_jobs_we_wait_for(self):
     return [j.waited_for_job for j in self.jobs_we_have_to_wait_for if j.waited_for_job is not None]
@@ -233,6 +264,11 @@ class Job(Base):
     job_id = "%d" % self.id + (" [%d-%d:%d]" % self.get_array() if self.array else "")
     status = "%s" % self.status + (" (%d)" % self.result if self.result is not None else "" )
     queue = self.queue_name if self.machine_name is None else self.machine_name
+    if limit_command_line is None:
+      grid_opt = self.get_arguments()
+      if grid_opt:
+        # add additional information about the job at the end
+        command_line = "<" + ",".join(["%s=%s" % (key,value) for key,value in grid_opt.iteritems()]) + ">: " + command_line
 
     if dependencies:
       deps = str([dep.id for dep in self.get_jobs_we_wait_for()])

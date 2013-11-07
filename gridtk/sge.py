@@ -39,7 +39,7 @@ class JobManagerSGE(JobManager):
 
   def _queue(self, kwargs):
     """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To
-    process it we have to split it twice (spaces and then on '='), create a
+    process it we have to split it twice (',' and then on '='), create a
     dictionary and extract just the qname"""
     if not 'hard resource_list' in kwargs: return 'all.q'
     d = dict([reversed(k.split('=')) for k in kwargs['hard resource_list'].split(',')])
@@ -100,6 +100,7 @@ class JobManagerSGE(JobManager):
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
     for job in jobs:
+      job.refresh()
       if job.status in ('queued', 'executing'):
         status = qstat(job.id, context=self.context)
         if len(status) == 0:
@@ -109,6 +110,7 @@ class JobManagerSGE(JobManager):
 
     self.session.commit()
     self.unlock()
+
 
   def resubmit(self, job_ids = None, failed_only = False, running_jobs = False):
     """Re-submit jobs automatically"""
@@ -122,10 +124,10 @@ class JobManagerSGE(JobManager):
         # re-submit job to the grid
         if job.queue_name == 'local':
           logger.warn("Re-submitting job '%s' locally (since no queue name is specified)." % job)
-          job.submit()
         else:
           logger.debug("Re-submitting job '%s' to the grid." % job)
-          self._submit_to_grid(job, job.name, job.get_array(), [dep.id for dep in job.get_jobs_we_wait_for()], job.log_dir)
+          self._submit_to_grid(job, job.name, job.get_array(), [dep.id for dep in job.get_jobs_we_wait_for()], job.log_dir, **job.get_arguments())
+        job.submit()
 
     self.session.commit()
     self.unlock()

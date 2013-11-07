@@ -96,7 +96,7 @@ def str_(name):
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None,
-    mem=None, memfree=None, hvmem=None, pe_opt=None, io_big=False):
+    memfree=None, hvmem=None, pe_opt=None, io_big=False):
   """Submits a shell job to a given grid queue
 
   Keyword parameters:
@@ -154,12 +154,6 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     dictionary in which case we just setup using that context instead of
     probing for a new one, what can be fast.
 
-  mem
-    @deprecated Please use memfree and hvmem options separately
-    If set, it asks the queue for a node with a minimum amount of memory,
-    setting both mem_free and h_vmem.
-    (cf. qsub -l mem_free=<...> -l h_vmem=<...>)
-
   memfree
     If set, it asks the queue for a node with a minimum amount of memory
     Used only if mem is not set
@@ -191,12 +185,8 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
   if isinstance(queue, six.string_types) and queue not in ('all.q', 'default'):
     scmd += ['-l', queue]
 
-  if mem:
-    scmd += ['-l', 'mem_free=%s' % mem]
-    scmd += ['-l', 'h_vmem=%s' % mem]
-  else:
-    if memfree: scmd += ['-l', 'mem_free=%s' % memfree]
-    if hvmem: scmd += ['-l', 'h_vmem=%s' % hvmem]
+  if memfree: scmd += ['-l', 'mem_free=%s' % memfree]
+  if hvmem: scmd += ['-l', 'h_vmem=%s' % hvmem]
 
   if io_big: scmd += ['-l', 'io_big']
 

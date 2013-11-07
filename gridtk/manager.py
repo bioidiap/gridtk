@@ -202,6 +202,7 @@ class JobManager:
 
     self.lock()
     for job in self.get_jobs(job_ids):
+      job.refresh()
       if job.status in status:
         print(job.format(format, dependency_length, None if long else 43))
         if print_array_jobs and job.array:
