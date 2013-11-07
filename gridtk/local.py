@@ -159,7 +159,6 @@ class JobManagerLocal(JobManager):
 
       # keep the scheduler alive until every job is finished or the KeyboardInterrupt is caught
       while True:
-
         # Flag that might be set in some rare cases, and that prevents the scheduler to die
         repeat_execution = False
         # FIRST, try if there are finished processes; this does not need a lock
@@ -171,11 +170,14 @@ class JobManagerLocal(JobManager):
             # process ended
             job_id = task[1]
             array_id = task[2] if len(task) > 2 else None
-
-            logger.info("Job '%s' finished execution" % self._format_log(job_id, array_id))
+            self.lock()
+            job, array_job = self._job_and_array(job_id, array_id)
+            if array_job: job = array_job
+            result = "%s (%d)" % (job.status, job.result)
+            self.unlock()
+            logger.info("Job '%s' finished execution with result %s" % (self._format_log(job_id, array_id), result))
             # in any case, remove the job from the list
             del running_tasks[task_index]
-
         # SECOND, check if new jobs can be submitted; THIS NEEDS TO LOCK THE DATABASE
         if len(running_tasks) < parallel_jobs:
           # get all unfinished jobs:

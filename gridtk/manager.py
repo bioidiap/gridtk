@@ -43,7 +43,7 @@ class JobManager:
       raise RuntimeError('Dead lock detected. Please do not try to lock the session when it is already locked!')
 
     if sqlalchemy_version < [0,7,8]:
-      # for old sqlalchemy versions, in some cases it is required to re-generate the enging for each session
+      # for old sqlalchemy versions, in some cases it is required to re-generate the engine for each session
       self._engine = sqlalchemy.create_engine("sqlite:///"+self._database)
       self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
 
@@ -160,6 +160,7 @@ class JobManager:
     if not len(jobs):
       # it seems that the job has been deleted in the meanwhile
       logger.error("The job with id '%d' could not be found in the database!" % job_id)
+      self.unlock()
       return
 
     job = jobs[0]
