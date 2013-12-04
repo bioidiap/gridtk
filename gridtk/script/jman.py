@@ -68,7 +68,7 @@ def get_array(array):
       c = 1
     else:
       b = int(array[start+1:step])
-      c = int(array[step+1])
+      c = int(array[step+1:])
 
   return (a,b,c)
 
