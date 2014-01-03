@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 import sys
 
 # If Python < 2.7 or 3.0 <= Python < 3.2, require some more stuff
-DEPS = ['six', 'sphinx-pypi-upload']
+DEPS = ['six']
 if sys.version_info[:2] < (2, 7) or ((3,0) <= sys.version_info[:2] < (3,2)):
   DEPS.append('argparse')
 
