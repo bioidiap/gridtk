@@ -194,7 +194,7 @@ class GridTKTest(unittest.TestCase):
       jman.main(['./bin/jman', '--database', self.database, 'report'])
 
       # clean-up
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'delete'])
+      jman.main(['./bin/jman', '--local', '--database', self.database, 'delete', '--job-ids', '1-2'])
 
       # check that the database and the log files are gone
       self.assertEqual(len(os.listdir(self.temp_dir)), 0)

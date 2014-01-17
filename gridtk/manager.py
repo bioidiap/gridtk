@@ -209,7 +209,8 @@ class JobManager:
         if print_array_jobs and job.array:
           print(array_delimiter)
           for array_job in job.array:
-            print(array_job.format(array_format))
+            if array_job.status in status:
+              print(array_job.format(array_format))
           print(array_delimiter)
 
     self.unlock()

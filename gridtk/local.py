@@ -41,6 +41,9 @@ class JobManagerLocal(JobManager):
   def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = None, dry_run = False, stop_on_failure = False, **kwargs):
     """Submits a job that will be executed on the local machine during a call to "run".
     All kwargs will simply be ignored."""
+    # remove duplicate dependencies
+    dependencies = sorted(list(set(dependencies)))
+
     # add job to database
     self.lock()
     job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, log_dir=log_dir, stop_on_failure=stop_on_failure)
@@ -59,12 +62,12 @@ class JobManagerLocal(JobManager):
     return job_id
 
 
-  def resubmit(self, job_ids = None, failed_only = False, running_jobs = False):
+  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, **kwargs):
     """Re-submit jobs automatically"""
     self.lock()
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
-    accepted_old_status = ('failure',) if failed_only else ('success', 'failure')
+    accepted_old_status = ('success', 'failure') if also_success else ('failure',)
     for job in jobs:
       # check if this job needs re-submission
       if running_jobs or job.status in accepted_old_status:
@@ -82,7 +85,7 @@ class JobManagerLocal(JobManager):
 
     jobs = self.get_jobs(job_ids)
     for job in jobs:
-      if job.status in ('executing', 'queued', 'waiting'):
+      if job.status in ('executing', 'queued', 'waiting') and job.queue_name == 'local':
         logger.info("Reset job '%s' in the database" % job.name)
         job.submit()
 
@@ -115,7 +118,7 @@ class JobManagerLocal(JobManager):
 #####################################################################
 ###### Methods to run the jobs in parallel on the local machine #####
 
-  def _run_parallel_job(self, job_id, array_id = None, no_log = False):
+  def _run_parallel_job(self, job_id, array_id = None, no_log = False, nice = None):
     """Executes the code for this job on the local machine."""
     environ = copy.deepcopy(os.environ)
     environ['JOB_ID'] = str(job_id)
@@ -126,6 +129,9 @@ class JobManagerLocal(JobManager):
 
     # generate call to the wrapper script
     command = [self.wrapper_script, '-ld', self._database, 'run-job']
+
+    if nice is not None:
+      command = ['nice', '-n%d'%nice] + command
 
     job, array_job = self._job_and_array(job_id, array_id)
     logger.info("Starting execution of Job '%s': '%s'" % (self._format_log(job_id, array_id, len(job.array)), job.name))
@@ -152,7 +158,7 @@ class JobManagerLocal(JobManager):
   def _format_log(self, job_id, array_id = None, array_count = 0):
     return ("%d (%d/%d)" % (job_id, array_id, array_count)) if array_id is not None and array_count else ("%d (%d)" % (job_id, array_id)) if array_id is not None else ("%d" % job_id)
 
-  def run_scheduler(self, parallel_jobs = 1, job_ids = None, sleep_time = 0.1, die_when_finished = False, no_log = False):
+  def run_scheduler(self, parallel_jobs = 1, job_ids = None, sleep_time = 0.1, die_when_finished = False, no_log = False, nice = None):
     """Starts the scheduler, which is constantly checking for jobs that should be ran."""
     running_tasks = []
     try:
@@ -178,6 +184,7 @@ class JobManagerLocal(JobManager):
             logger.info("Job '%s' finished execution with result %s" % (self._format_log(job_id, array_id), result))
             # in any case, remove the job from the list
             del running_tasks[task_index]
+
         # SECOND, check if new jobs can be submitted; THIS NEEDS TO LOCK THE DATABASE
         if len(running_tasks) < parallel_jobs:
           # get all unfinished jobs:
@@ -185,7 +192,7 @@ class JobManagerLocal(JobManager):
           jobs = self.get_jobs(job_ids)
           # put all new jobs into the queue
           for job in jobs:
-            if job.status == 'submitted':
+            if job.status == 'submitted' and job.queue_name == 'local':
               job.queue()
 
           # get all unfinished jobs that are submitted to the local queue
@@ -202,7 +209,7 @@ class JobManagerLocal(JobManager):
                 for i in range(min(parallel_jobs - len(running_tasks), len(queued_array_jobs))):
                   array_job = queued_array_jobs[i]
                   # start a new job from the array
-                  process = self._run_parallel_job(job.id, array_job.id, no_log=no_log)
+                  process = self._run_parallel_job(job.id, array_job.id, no_log=no_log, nice=nice)
                   if process is None:
                     continue
                   running_tasks.append((process, job.id, array_job.id))
@@ -215,7 +222,7 @@ class JobManagerLocal(JobManager):
             else:
               if job.status == 'queued':
                 # start a new job
-                process = self._run_parallel_job(job.id, no_log=no_log)
+                process = self._run_parallel_job(job.id, no_log=no_log, nice=nice)
                 if process is None:
                   continue
                 running_tasks.append((process, job.id))
@@ -245,5 +252,5 @@ class JobManagerLocal(JobManager):
         logger.warn("Killing job '%s' that was still running." % self._format_log(task[1], task[2] if len(task) > 2 else None))
         task[0].kill()
         self.stop_job(task[1])
-      # stopp all jobs that are currently running or queued
+      # stop all jobs that are currently running or queued
       self.stop_jobs()

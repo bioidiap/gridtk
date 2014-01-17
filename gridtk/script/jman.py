@@ -73,6 +73,23 @@ def get_array(array):
   return (a,b,c)
 
 
+def get_ids(jobs):
+  if jobs is None:
+    return None
+  indexes = []
+  for job in jobs:
+    # check if a range is specified
+    separator = job.find('-')
+    if separator == -1:
+      index = int(job)
+      indexes.append(index)
+    else:
+      first = int(job[0:separator])
+      last = int(job[separator+1:])
+      indexes.extend(range(first, last+1))
+  return indexes
+
+
 def submit(args):
   """Submission command"""
 
@@ -91,7 +108,7 @@ def submit(args):
       'memfree': args.memory,
       'hvmem': args.memory,
       'io_big': args.io_big,
-      }
+  }
 
   if args.array is not None:         kwargs['array'] = get_array(args.array)
   if args.log_dir is not None:       kwargs['log_dir'] = args.log_dir
@@ -111,7 +128,25 @@ def resubmit(args):
   jm = setup(args)
   if not args.keep_logs:
     jm.delete(job_ids=args.job_ids, delete_jobs=False)
-  jm.resubmit(args.job_ids, args.failed_only, args.running_jobs)
+
+  kwargs = {
+      'cwd': True
+  }
+  if args.qname is not None:
+    kwargs['queue'] = args.qname
+  if args.memory is not None:
+    kwargs['memfree'] = args.memory
+    kwargs['hvmem'] = args.memory
+  if args.parallel is not None:
+    kwargs['pe_opt'] = "pe_mth %d" % args.parallel
+    kwargs['memfree'] = "%d%s" % (int(args.memory.rstrip(string.ascii_letters)) * args.parallel, args.memory.lstrip(string.digits))
+  if args.io_big:
+    kwargs['io_big'] = True
+  if args.no_io_big:
+    kwargs['io_big'] = False
+
+
+  jm.resubmit(get_ids(args.job_ids), args.also_success, args.running_jobs, **kwargs)
 
 
 def run_scheduler(args):
@@ -119,13 +154,13 @@ def run_scheduler(args):
   if not args.local:
     raise ValueError("The execute command can only be used with the '--local' command line option")
   jm = setup(args)
-  jm.run_scheduler(parallel_jobs=args.parallel, job_ids=args.job_ids, sleep_time=args.sleep_time, die_when_finished=args.die_when_finished, no_log=args.no_log_files)
+  jm.run_scheduler(parallel_jobs=args.parallel, job_ids=get_ids(args.job_ids), sleep_time=args.sleep_time, die_when_finished=args.die_when_finished, no_log=args.no_log_files, nice=args.nice)
 
 
 def list(args):
   """Lists the jobs in the given database."""
   jm = setup(args)
-  jm.list(job_ids=args.job_ids, print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, status=args.status, long=args.verbose > 1 or args.long, ids_only=args.ids_only)
+  jm.list(job_ids=get_ids(args.job_ids), print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, status=args.status, long=args.verbose > 1 or args.long, ids_only=args.ids_only)
 
 
 def communicate(args):
@@ -133,13 +168,13 @@ def communicate(args):
   if args.local:
     raise ValueError("The communicate command can only be used without the '--local' command line option")
   jm = setup(args)
-  jm.communicate(job_ids=args.job_ids)
+  jm.communicate(job_ids=get_ids(args.job_ids))
 
 
 def report(args):
   """Reports the results of the finished (and unfinished) jobs."""
   jm = setup(args)
-  jm.report(job_ids=args.job_ids, array_ids=args.array_ids, unfinished=args.unfinished_also, output=not args.errors_only, error=not args.output_only)
+  jm.report(job_ids=get_ids(args.job_ids), array_ids=get_ids(args.array_ids), unfinished=args.unfinished_also, output=not args.errors_only, error=not args.output_only)
 
 
 def stop(args):
@@ -147,7 +182,7 @@ def stop(args):
   if args.local:
     raise ValueError("Stopping commands locally is not supported (please kill them yourself)")
   jm = setup(args)
-  jm.stop_jobs(args.job_ids)
+  jm.stop_jobs(get_ids(args.job_ids))
 
 
 def delete(args):
@@ -157,7 +192,7 @@ def delete(args):
   if not args.local and 'executing' in args.status:
     stop(args)
   # then, delete them from the database
-  jm.delete(job_ids=args.job_ids, array_ids=args.array_ids, delete_logs=not args.keep_logs, delete_log_dir=not args.keep_log_dir, status=args.status)
+  jm.delete(job_ids=get_ids(args.job_ids), array_ids=get_ids(args.array_ids), delete_logs=not args.keep_logs, delete_log_dir=not args.keep_log_dir, status=args.status)
 
 
 def run_job(args):
@@ -227,7 +262,7 @@ def main(command_line_options = None):
 
   # subcommand 'submit'
   submit_parser = cmdparser.add_parser('submit', aliases=['sub'], formatter_class=formatter, help='Submits jobs to the SGE queue or to the local job scheduler and logs them in a database.')
-  submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', choices=('q1d', 'q1w', 'q1m', 'q1dm', 'q1wm'), help='the name of the SGE queue to submit the job to')
+  submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', choices=('all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm'), help='the name of the SGE queue to submit the job to')
   submit_parser.add_argument('-m', '--memory', help='Sets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
   submit_parser.add_argument('-p', '--parallel', '--pe_mth', type=int, help='Sets the number of slots per job (-pe pe_mth) and multiplies the mem_free parameter. E.g. to get 16 G of memory, use -m 8G -p 2.')
   submit_parser.add_argument('-n', '--name', dest='name', help='Gives the job a name')
@@ -237,26 +272,31 @@ def main(command_line_options = None):
   submit_parser.add_argument('-s', '--environment', metavar='KEY=VALUE', dest='env', nargs='*', default=[], help='Passes specific environment variables to the job.')
   submit_parser.add_argument('-t', '--array', '--parametric', metavar='(first-)last(:step)', help="Creates a parametric (array) job. You must specify the 'last' value, but 'first' (default=1) and 'step' (default=1) can be specified as well (when specifying 'step', 'first' has to be given, too).")
   submit_parser.add_argument('-z', '--dry-run', action='store_true', help='Do not really submit anything, just print out what would submit in this case')
-  submit_parser.add_argument('-I', '--io-big', action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput.')
+  submit_parser.add_argument('-i', '--io-big', action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput.')
   submit_parser.add_argument('job', metavar='command', nargs=argparse.REMAINDER, help = "The job that should be executed. Sometimes a -- is required to separate the job from other command line options.")
   submit_parser.set_defaults(func=submit)
 
   # subcommand 're-submit'
   resubmit_parser = cmdparser.add_parser('resubmit', aliases=['reset', 'requeue', 're'], formatter_class=formatter, help='Re-submits a list of jobs.')
-  resubmit_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Re-submit only the jobs with the given ids (by default, all finished jobs are re-submitted).')
+  resubmit_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Re-submit only the jobs with the given ids (by default, all finished jobs are re-submitted).')
+  resubmit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', choices=('all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm'), help='Reset the SGE queue to submit the job to')
+  resubmit_parser.add_argument('-m', '--memory', help='Resets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
+  resubmit_parser.add_argument('-p', '--parallel', '--pe_mth', type=int, help='Resets the number of slots per job (-pe pe_mth) and multiplies the mem_free parameter. E.g. to get 16 G of memory, use -m 8G -p 2.')
+  resubmit_parser.add_argument('-i', '--io-big', action='store_true', help='Resubmits the job to the "io_big" queue.')
+  resubmit_parser.add_argument('-I', '--no-io-big', action='store_true', help='Resubmits the job NOT to the "io_big" queue.')
   resubmit_parser.add_argument('-k', '--keep-logs', action='store_true', help='Do not clean the log files of the old job before re-submitting.')
-  resubmit_parser.add_argument('-f', '--failed-only', action='store_true', help='Re-submit only jobs that have failed.')
+  resubmit_parser.add_argument('-s', '--also-success', action='store_true', help='Re-submit also jobs that have finished successfully.')
   resubmit_parser.add_argument('-a', '--running-jobs', action='store_true', help='Re-submit even jobs that are running or waiting (use this flag with care).')
   resubmit_parser.set_defaults(func=resubmit)
 
   # subcommand 'stop'
   stop_parser = cmdparser.add_parser('stop', formatter_class=formatter, help='Stops the execution of jobs in the grid.')
-  stop_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Stop only the jobs with the given ids (by default, all jobs are stopped).')
+  stop_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Stop only the jobs with the given ids (by default, all jobs are stopped).')
   stop_parser.set_defaults(func=stop)
 
   # subcommand 'list'
   list_parser = cmdparser.add_parser('list', aliases=['ls'], formatter_class=formatter,  help='Lists jobs stored in the database. Use the -vv option to get a long listing.')
-  list_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='List only the jobs with the given ids (by default, all jobs are listed)')
+  list_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='List only the jobs with the given ids (by default, all jobs are listed)')
   list_parser.add_argument('-a', '--print-array-jobs', action='store_true', help='Also list the array ids.')
   list_parser.add_argument('-l', '--long', action='store_true', help='Prints additional information about the submitted job.')
   list_parser.add_argument('-x', '--print-dependencies', action='store_true', help='Print the dependencies of the jobs as well.')
@@ -266,7 +306,7 @@ def main(command_line_options = None):
 
   # subcommand 'communicate'
   stop_parser = cmdparser.add_parser('communicate', aliases = ['com'], formatter_class=formatter, help='Communicates with the grid to see if there were unexpected errors (e.g. a timeout) during the job execution.')
-  stop_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Check only the jobs with the given ids (by default, all jobs are checked)')
+  stop_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Check only the jobs with the given ids (by default, all jobs are checked)')
   stop_parser.set_defaults(func=communicate)
 
 
@@ -275,14 +315,14 @@ def main(command_line_options = None):
   report_parser.add_argument('-e', '--errors-only', action='store_true', help='Only report the error logs (by default, both logs are reported).')
   report_parser.add_argument('-o', '--output-only', action='store_true', help='Only report the output logs  (by default, both logs are reported).')
   report_parser.add_argument('-u', '--unfinished-also', action='store_true', help='Report also the unfinished jobs; use this option also to check error files for jobs with success status.')
-  report_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Report only the jobs with the given ids (by default, all finished jobs are reported)')
-  report_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='*', type=int, help='Report only the jobs with the given array ids. If specified, a single job-id must be given as well.')
+  report_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Report only the jobs with the given ids (by default, all finished jobs are reported)')
+  report_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='+', help='Report only the jobs with the given array ids. If specified, a single job-id must be given as well.')
   report_parser.set_defaults(func=report)
 
   # subcommand 'delete'
   delete_parser = cmdparser.add_parser('delete', aliases=['del', 'rm', 'remove'], formatter_class=formatter, help='Removes jobs from the database; if jobs are running or are still scheduled in SGE, the jobs are also removed from the SGE queue.')
-  delete_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Delete only the jobs with the given ids (by default, all jobs are deleted).')
-  delete_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='*', type=int, help='Delete only the jobs with the given array ids. If specified, a single job-id must be given as well. Note that the whole job including all array jobs will be removed from the SGE queue.')
+  delete_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Delete only the jobs with the given ids (by default, all jobs are deleted).')
+  delete_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='+', help='Delete only the jobs with the given array ids. If specified, a single job-id must be given as well. Note that the whole job including all array jobs will be removed from the SGE queue.')
   delete_parser.add_argument('-r', '--keep-logs', action='store_true', help='If set, the log files will NOT be removed.')
   delete_parser.add_argument('-R', '--keep-log-dir', action='store_true', help='When removing the logs, keep the log directory.')
   delete_parser.add_argument('-s', '--status', nargs='+', choices = Status, default = Status, help='Delete only jobs that have the given statuses; by default all jobs are deleted.')
@@ -291,10 +331,11 @@ def main(command_line_options = None):
   # subcommand 'run_scheduler'
   scheduler_parser = cmdparser.add_parser('run-scheduler', aliases=['sched', 'x'], formatter_class=formatter, help='Runs the scheduler on the local machine. To stop the scheduler safely, please use Ctrl-C; only valid in combination with the \'--local\' option.')
   scheduler_parser.add_argument('-p', '--parallel', type=int, default=1, help='Select the number of parallel jobs that you want to execute locally')
-  scheduler_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='*', type=int, help='Select the job ids that should be run (be default, all submitted and queued jobs are run).')
+  scheduler_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Select the job ids that should be run (be default, all submitted and queued jobs are run).')
   scheduler_parser.add_argument('-s', '--sleep-time', type=float, default=0.1, help='Set the sleep time between for the scheduler in seconds.')
   scheduler_parser.add_argument('-x', '--die-when-finished', action='store_true', help='Let the job manager die when it has finished all jobs of the database.')
   scheduler_parser.add_argument('-l', '--no-log-files', action='store_true', help='Overwrites the log file setup to print the results to the console.')
+  scheduler_parser.add_argument('-n', '--nice', type=int, help='Jobs will be run with the given priority (can only be positive, i.e., to have lower priority')
   scheduler_parser.set_defaults(func=run_scheduler)
 
 

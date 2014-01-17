@@ -214,6 +214,7 @@ class Job(Base):
     # In python 2, the command line is unicode, which needs to be converted to string before pickling;
     # In python 3, the command line is bytes, which can be pickled directly
     args = loads(self.grid_arguments)['kwargs'] if isinstance(self.grid_arguments, bytes) else loads(str(self.grid_arguments))['kwargs']
+    # in any case, the commands have to be converted to str
     retval = {}
     if 'pe_opt' in args:
       retval['pe_opt'] = args['pe_opt']
@@ -226,8 +227,14 @@ class Job(Base):
     if 'io_big' in args and args['io_big']:
       retval['io_big'] = True
 
+    # also add the queue
+    if self.queue_name is not None:
+      retval['queue'] = str(self.queue_name)
+
     return retval
 
+  def set_arguments(self, **kwargs):
+    self.grid_arguments = dumps(kwargs)
 
   def get_jobs_we_wait_for(self):
     return [j.waited_for_job for j in self.jobs_we_have_to_wait_for if j.waited_for_job is not None]
@@ -243,6 +250,16 @@ class Job(Base):
     return os.path.join(self.log_dir, (self.name if self.name else 'job') + ".e" + str(self.id)) if self.log_dir else None
 
 
+  def _cmdline(self):
+    cmdline = self.get_command_line()
+    c = ""
+    for cmd in cmdline:
+      if cmd[0] == '-':
+        c += "%s " % cmd
+      else:
+        c += "'%s' " % cmd
+    return c
+
   def __str__(self):
     id = "%d" % self.id
     if self.machine_name: m = "%s - %s" % (self.queue_name, self.machine_name)
@@ -253,11 +270,11 @@ class Job(Base):
     else: n = "<Job: %s>" % id
     if self.result is not None: r = "%s (%d)" % (self.status, self.result)
     else: r = "%s" % self.status
-    return "%s | %s : %s -- %s" % (n, m, r, " ".join(self.get_command_line()))
+    return "%s | %s : %s -- %s" % (n, m, r, self._cmdline())
 
   def format(self, format, dependencies = 0, limit_command_line = None):
     """Formats the current job into a nicer string to fit into a table."""
-    command_line = " ".join(self.get_command_line())
+    command_line = self._cmdline()
     if limit_command_line is not None and len(command_line) > limit_command_line:
       command_line = command_line[:limit_command_line-3] + '...'
 
@@ -271,7 +288,7 @@ class Job(Base):
         command_line = "<" + ",".join(["%s=%s" % (key,value) for key,value in grid_opt.iteritems()]) + ">: " + command_line
 
     if dependencies:
-      deps = str([dep.id for dep in self.get_jobs_we_wait_for()])
+      deps = str(sorted(list(set([dep.id for dep in self.get_jobs_we_wait_for()]))))
       if dependencies < len(deps):
         deps = deps[:dependencies-3] + '...'
       return format.format(job_id, queue, status, self.name, deps, command_line)

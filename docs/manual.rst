@@ -154,6 +154,11 @@ Usually, it is a good idea to combine the ``-a`` option with ``-j``, which will 
 
   $ bin/jman -vv list -a -j [job_id_1] [job_id_2]
 
+Note that the ``-j`` option is in general relatively smart.
+You can use it to select a range of job ids, e.g., ``-j 1-4 6-8``.
+In this case, please assert that there are no spaces between job ids and the ``-`` separator.
+If any job id is specified, which is not available in the database, it will simply be ignored, including job ids that in the ranges.
+
 
 Inspecting log files
 --------------------
@@ -170,6 +175,7 @@ E.g.:
 will print the contents of the output and error log file from the job with the desired ID (and only the array job with the given ID).
 
 To report only the output or only the error logs, you can use the ``-o`` or ``-e`` option, respectively.
+When some (array-)jobs are still running, use the ``-u`` option to list their current output and/or error logs.
 Hopefully, that helps in debugging the problem!
 
 
@@ -198,9 +204,9 @@ E.g. use:
 
 .. code-block:: sh
 
-  $ bin/jman -vv delete -s success
+  $ bin/jman -vv delete -s success -j 10-20
 
-to delete all jobs and the logs of all successfully finished jobs from the database.
+to delete all jobs and the logs of all successfully finished jobs with job ids from 10 to 20 from the database.
 
 
 Other command line tools

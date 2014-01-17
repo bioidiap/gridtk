@@ -42,10 +42,10 @@ class JobManagerSGE(JobManager):
     process it we have to split it twice (',' and then on '='), create a
     dictionary and extract just the qname"""
     if not 'hard resource_list' in kwargs: return 'all.q'
-    d = dict([reversed(k.split('=')) for k in kwargs['hard resource_list'].split(',')])
-    if not 'TRUE' in d: return 'all.q'
-    return d['TRUE']
-
+    d = dict([k.split('=') for k in kwargs['hard resource_list'].split(',')])
+    for k in d:
+      if k[0] == 'q' and d[k] == 'TRUE': return k
+    return 'all.q'
 
 
   def _submit_to_grid(self, job, name, array, dependencies, log_dir, **kwargs):
@@ -53,6 +53,9 @@ class JobManagerSGE(JobManager):
     # get the name of the file that was called originally
     jman = self.wrapper_script
     python = sys.executable
+
+    # remove duplicate dependencies
+    dependencies = sorted(list(set(dependencies)))
 
     # generate call to the wrapper script
     command = make_shell(python, [jman, '-d', self._database, 'run-job'])
@@ -66,6 +69,11 @@ class JobManagerSGE(JobManager):
     job.queue(new_job_id = int(status['job_number']), new_job_name = status['job_name'], queue_name = self._queue(status))
 
     logger.info("Submitted job '%s' to the SGE grid." % job)
+
+    if 'io_big' in kwargs and kwargs['io_big'] and ('queue' not in kwargs or kwargs['queue'] == 'all.q'):
+      logger.warn("This job will never be executed since the 'io_big' flag is not available for the 'all.q'.")
+    if 'pe_opt' in kwargs and ('queue' not in kwargs or kwargs['queue'] not in ('q1dm', 'q_1day_mth', 'q1wm', 'q_1week_mth')):
+      logger.warn("This job will never be executed since the queue '%s' does not support multi-threading (pe_mth) -- use 'q1dm' or 'q1wm' instead." % kwargs['queue'] if 'queue' in kwargs else 'all.q')
 
     assert job.id == grid_id
     return grid_id
@@ -112,22 +120,31 @@ class JobManagerSGE(JobManager):
     self.unlock()
 
 
-  def resubmit(self, job_ids = None, failed_only = False, running_jobs = False):
+  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, **kwargs):
     """Re-submit jobs automatically"""
     self.lock()
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
-    accepted_old_status = ('failure',) if failed_only else ('success', 'failure')
+    accepted_old_status = ('success', 'failure') if also_success else ('failure',)
     for job in jobs:
       # check if this job needs re-submission
       if running_jobs or job.status in accepted_old_status:
+        grid_status = qstat(job.id, context=self.context)
+        if len(grid_status) != 0:
+          logger.warn("Deleting job '%d' since it was still running in the grid." % job.id)
+          qdel(job.id, context=self.context)
         # re-submit job to the grid
-        if job.queue_name == 'local':
+        arguments = job.get_arguments()
+        arguments.update(**kwargs)
+        job.set_arguments(kwargs=arguments)
+        # delete old status and result of the job
+        job.submit()
+        if job.queue_name == 'local' and 'queue' not in arguments:
           logger.warn("Re-submitting job '%s' locally (since no queue name is specified)." % job)
         else:
-          logger.debug("Re-submitting job '%s' to the grid." % job)
-          self._submit_to_grid(job, job.name, job.get_array(), [dep.id for dep in job.get_jobs_we_wait_for()], job.log_dir, **job.get_arguments())
-        job.submit()
+          deps = [dep.id for dep in job.get_jobs_we_wait_for()]
+          logger.debug("Re-submitting job '%s' with dependencies '%s' to the grid." % (job, deps))
+          self._submit_to_grid(job, job.name, job.get_array(), deps, job.log_dir, **arguments)
 
     self.session.commit()
     self.unlock()
@@ -143,6 +160,10 @@ class JobManagerSGE(JobManager):
         qdel(job.id, context=self.context)
         logger.info("Stopped job '%s' in the SGE grid." % job)
         job.status = 'submitted'
+        for array_job in job.array:
+          if array_job.status in ('executing', 'queued', 'waiting'):
+            array_job.status = 'submitted'
+
 
       self.session.commit()
     self.unlock()
