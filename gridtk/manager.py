@@ -84,7 +84,7 @@ class JobManager:
     q = self.session.query(Job)
     if job_ids:
       q = q.filter(Job.id.in_(job_ids))
-    return list(q)
+    return sorted(list(q), key=lambda job: job.unique)
 
 
   def _job_and_array(self, job_id, array_id = None):
@@ -170,7 +170,7 @@ class JobManager:
     self.unlock()
 
 
-  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status, ids_only=False):
+  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status, names=None, ids_only=False):
     """Lists the jobs currently added to the database."""
     # configuration for jobs
     if print_dependencies:
@@ -204,7 +204,7 @@ class JobManager:
     self.lock()
     for job in self.get_jobs(job_ids):
       job.refresh()
-      if job.status in status:
+      if job.status in status and names is None or job.name in names:
         print(job.format(format, dependency_length, None if long else 43))
         if print_array_jobs and job.array:
           print(array_delimiter)

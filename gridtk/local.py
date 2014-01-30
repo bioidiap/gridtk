@@ -167,7 +167,7 @@ class JobManagerLocal(JobManager):
       while True:
         # Flag that might be set in some rare cases, and that prevents the scheduler to die
         repeat_execution = False
-        # FIRST, try if there are finished processes; this does not need a lock
+        # FIRST, try if there are finished processes
         for task_index in range(len(running_tasks)-1, -1, -1):
           task = running_tasks[task_index]
           process = task[0]
@@ -253,4 +253,4 @@ class JobManagerLocal(JobManager):
         task[0].kill()
         self.stop_job(task[1])
       # stop all jobs that are currently running or queued
-      self.stop_jobs()
+      self.stop_jobs(job_ids)
