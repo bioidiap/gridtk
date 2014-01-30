@@ -70,7 +70,7 @@ class Job(Base):
   queue_name = Column(String(20))              # The name of the queue
   machine_name = Column(String(10))            # The name of the machine in which the job is run
   grid_arguments = Column(String(255))         # The kwargs arguments for the job submission (e.g. in the grid)
-  id = Column(Integer, unique = True)          # The ID of the job as given from the grid
+  id = Column(Integer)                         # The ID of the job as given from the grid
   log_dir = Column(String(255))                # The directory where the log files will be put to
   array_string = Column(String(255))           # The array string (only needed for re-submission)
   stop_on_failure = Column(Boolean)            # An indicator whether to stop depending jobs when this job finishes with an error
@@ -102,6 +102,7 @@ class Job(Base):
       array_job.status = 'submitted'
       array_job.result = None
       array_job.machine_name = None
+    self.id = self.unique
 
 
   def queue(self, new_job_id = None, new_job_name = None, queue_name = None):
@@ -261,7 +262,7 @@ class Job(Base):
     return c
 
   def __str__(self):
-    id = "%d" % self.id
+    id = "%d (%d)" % (self.unique, self.id)
     if self.machine_name: m = "%s - %s" % (self.queue_name, self.machine_name)
     else: m = self.queue_name
     if self.array: a = "[%d-%d:%d]" % self.get_array()
@@ -291,9 +292,9 @@ class Job(Base):
       deps = str(sorted(list(set([dep.id for dep in self.get_jobs_we_wait_for()]))))
       if dependencies < len(deps):
         deps = deps[:dependencies-3] + '...'
-      return format.format(job_id, queue, status, self.name, deps, command_line)
+      return format.format(self.unique, job_id, queue, status, self.name, deps, command_line)
     else:
-      return format.format(job_id, queue, status, self.name, command_line)
+      return format.format(self.unique, job_id, queue, status, self.name, command_line)
 
 
 

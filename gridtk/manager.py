@@ -83,7 +83,7 @@ class JobManager:
     """Returns a list of jobs that are stored in the database."""
     q = self.session.query(Job)
     if job_ids:
-      q = q.filter(Job.id.in_(job_ids))
+      q = q.filter(Job.unique.in_(job_ids))
     return sorted(list(q), key=lambda job: job.unique)
 
 
@@ -128,7 +128,7 @@ class JobManager:
       # there has been a dependent job that has failed before
       # stop this and all dependent jobs from execution
       dependent_jobs = job.get_jobs_waiting_for_us()
-      dependent_job_ids = set([dep.id for dep in dependent_jobs] + [job.id])
+      dependent_job_ids = set([dep.id for dep in dependent_jobs] + [job.unique])
       while len(dependent_jobs):
         dep = dependent_jobs[0]
         new = dep.get_jobs_waiting_for_us()
@@ -174,20 +174,20 @@ class JobManager:
     """Lists the jobs currently added to the database."""
     # configuration for jobs
     if print_dependencies:
-      fields = ("job-id", "queue", "status", "job-name", "dependencies", "submitted command line")
-      lengths = (20, 14, 14, 20, 30, 43)
-      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
+      fields = ("job-id", "grid-id", "queue", "status", "job-name", "dependencies", "submitted command line")
+      lengths = (8, 20, 14, 14, 20, 30, 43)
+      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:^%d}  {6:<%d}" % lengths
       dependency_length = lengths[4]
     else:
-      fields = ("job-id", "queue", "status", "job-name", "submitted command line")
-      lengths = (20, 14, 14, 20, 43)
-      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:<%d}" % lengths
+      fields = ("job-id", "grid-id", "queue", "status", "job-name", "submitted command line")
+      lengths = (8, 20, 14, 14, 20, 43)
+      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
       dependency_length = 0
 
     if ids_only:
       self.lock()
       for job in self.get_jobs():
-        print(job.id, end=" ")
+        print(job.unique, end=" ")
       self.unlock()
       return
 
@@ -233,7 +233,7 @@ class JobManager:
     def _write_array_jobs(array_jobs):
       for array_job in array_jobs:
         if unfinished or array_job.status in accepted_status:
-          print("Array Job", str(array_job.id), ":")
+          print("Array Job", str(array_job.unique), ":")
           _write_contents(array_job)
 
     self.lock()
@@ -242,7 +242,7 @@ class JobManager:
     # check if an array job should be reported
     if array_ids:
       if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
-      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.id.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
+      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.unique.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
       if array_jobs: print(array_jobs[0].job)
       _write_array_jobs(array_jobs)
 
@@ -292,18 +292,18 @@ class JobManager:
     # check if array ids are specified
     if array_ids:
       if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
-      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.id.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
+      array_jobs = list(self.session.query(ArrayJob).join(Job).filter(Job.unique.in_(job_ids)).filter(Job.unique == ArrayJob.job_id).filter(ArrayJob.id.in_(array_ids)))
       if array_jobs:
         job = array_jobs[0].job
         for array_job in array_jobs:
           if array_job.status in status:
             if delete_jobs:
-              logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.id)
+              logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.unique)
             _delete(array_job)
         if not job.array:
           if job.status in status:
             if delete_jobs:
-              logger.info("Deleting job '%d' from the database." % job.id)
+              logger.info("Deleting job '%d' from the database." % job.unique)
             _delete(job, True)
 
     else:
@@ -315,12 +315,12 @@ class JobManager:
           for array_job in job.array:
             if array_job.status in status:
               if delete_jobs:
-                logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.id))
+                logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.unique))
               _delete(array_job)
         # delete this job
         if job.status in status:
           if delete_jobs:
-            logger.info("Deleting job '%d' from the database." % job.id)
+            logger.info("Deleting job '%d' from the database." % job.unique)
           _delete(job, True)
 
     self.session.commit()

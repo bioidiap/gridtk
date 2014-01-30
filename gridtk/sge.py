@@ -136,7 +136,7 @@ class JobManagerSGE(JobManager):
       if running_jobs or job.status in accepted_old_status:
         grid_status = qstat(job.id, context=self.context)
         if len(grid_status) != 0:
-          logger.warn("Deleting job '%d' since it was still running in the grid." % job.id)
+          logger.warn("Deleting job '%d' since it was still running in the grid." % job.unique)
           qdel(job.id, context=self.context)
         # re-submit job to the grid
         arguments = job.get_arguments()

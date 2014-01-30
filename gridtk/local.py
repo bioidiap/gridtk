@@ -55,7 +55,7 @@ class JobManagerLocal(JobManager):
       logger.info("Deleted job '%s' from the database due to dry-run option" % job)
       job_id = None
     else:
-      job_id = job.id
+      job_id = job.unique
 
     # return the new job id
     self.unlock()
@@ -209,10 +209,10 @@ class JobManagerLocal(JobManager):
                 for i in range(min(parallel_jobs - len(running_tasks), len(queued_array_jobs))):
                   array_job = queued_array_jobs[i]
                   # start a new job from the array
-                  process = self._run_parallel_job(job.id, array_job.id, no_log=no_log, nice=nice)
+                  process = self._run_parallel_job(job.unique, array_job.id, no_log=no_log, nice=nice)
                   if process is None:
                     continue
-                  running_tasks.append((process, job.id, array_job.id))
+                  running_tasks.append((process, job.unique, array_job.id))
                   # we here set the status to executing manually to avoid jobs to be run twice
                   # e.g., if the loop is executed while the asynchronous job did not start yet
                   array_job.status = 'executing'
@@ -222,10 +222,10 @@ class JobManagerLocal(JobManager):
             else:
               if job.status == 'queued':
                 # start a new job
-                process = self._run_parallel_job(job.id, no_log=no_log, nice=nice)
+                process = self._run_parallel_job(job.unique, no_log=no_log, nice=nice)
                 if process is None:
                   continue
-                running_tasks.append((process, job.id))
+                running_tasks.append((process, job.unique))
                 # we here set the status to executing manually to avoid jobs to be run twice
                 # e.g., if the loop is executed while the asynchronous job did not start yet
                 job.status = 'executing'
