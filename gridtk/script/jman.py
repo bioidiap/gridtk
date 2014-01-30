@@ -160,7 +160,7 @@ def run_scheduler(args):
 def list(args):
   """Lists the jobs in the given database."""
   jm = setup(args)
-  jm.list(job_ids=get_ids(args.job_ids), print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, status=args.status, long=args.verbose > 1 or args.long, ids_only=args.ids_only, names=args.names)
+  jm.list(job_ids=get_ids(args.job_ids), print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, status=args.status, long=args.long, ids_only=args.ids_only, names=args.names)
 
 
 def communicate(args):

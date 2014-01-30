@@ -57,7 +57,7 @@ class ArrayJob(Base):
     queue = self.job.queue_name if self.machine_name is None else self.machine_name
     status = "%s" % self.status + (" (%d)" % self.result if self.result is not None else "" )
 
-    return format.format(job_id, queue, status)
+    return format.format("", job_id, queue, status)
 
 
 class Job(Base):

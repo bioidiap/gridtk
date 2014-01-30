@@ -191,9 +191,9 @@ class JobManager:
       self.unlock()
       return
 
-    array_format = "{0:>%d}  {1:^%d}  {2:^%d}" % lengths[:3]
+    array_format = "{0:^%d}  {1:>%d}  {2:^%d}  {3:^%d}" % lengths[:4]
     delimiter = format.format(*['='*k for k in lengths])
-    array_delimiter = array_format.format(*["-"*k for k in lengths[:3]])
+    array_delimiter = array_format.format(*["-"*k for k in lengths[:4]])
     header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
 
     # print header
@@ -233,7 +233,7 @@ class JobManager:
     def _write_array_jobs(array_jobs):
       for array_job in array_jobs:
         if unfinished or array_job.status in accepted_status:
-          print("Array Job", str(array_job.unique), ":")
+          print("Array Job", str(array_job.id), ":")
           _write_contents(array_job)
 
     self.lock()

@@ -10,7 +10,7 @@ from __future__ import print_function
 
 from .manager import JobManager
 from .setshell import environ
-from .models import add_job
+from .models import add_job, Job
 from .tools import logger, qsub, qstat, qdel, make_shell
 
 import os, sys
@@ -153,6 +153,17 @@ class JobManagerSGE(JobManager):
 
     self.session.commit()
     self.unlock()
+
+
+  def run_job(self, job_id, array_id = None):
+    """Overwrites the run-job command from the manager to extract the correct job id before calling base class implementation."""
+    # get the unique job id from the given grid id
+    self.lock()
+    job = self.session.query(Job).filter(Job.id == job_id)
+    job_id = list(job)[0].unique
+    self.unlock()
+    # call base class implementation with the corrected job id
+    return JobManager.run_job(self, job_id, array_id)
 
 
   def stop_jobs(self, job_ids):
