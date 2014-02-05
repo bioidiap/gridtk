@@ -289,7 +289,7 @@ class Job(Base):
         command_line = "<" + ",".join(["%s=%s" % (key,value) for key,value in grid_opt.iteritems()]) + ">: " + command_line
 
     if dependencies:
-      deps = str(sorted(list(set([dep.id for dep in self.get_jobs_we_wait_for()]))))
+      deps = str(sorted(list(set([dep.unique for dep in self.get_jobs_we_wait_for()]))))
       if dependencies < len(deps):
         deps = deps[:dependencies-3] + '...'
       return format.format(self.unique, job_id, queue, status, self.name, deps, command_line)

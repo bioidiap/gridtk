@@ -69,7 +69,7 @@ class JobManagerSGE(JobManager):
     # set the grid id of the job
     job.queue(new_job_id = int(status['job_number']), new_job_name = status['job_name'], queue_name = self._queue(status))
 
-    logger.info("Submitted job '%s' to the SGE grid." % job)
+    logger.info("Submitted job '%s' with dependencies '%s' to the SGE grid." % (job, str(deps)))
 
     if 'io_big' in kwargs and kwargs['io_big'] and ('queue' not in kwargs or kwargs['queue'] == 'all.q'):
       logger.warn("This job will never be executed since the 'io_big' flag is not available for the 'all.q'.")
