@@ -112,7 +112,7 @@ def submit(args):
   if args.array is not None:         kwargs['array'] = get_array(args.array)
   if args.log_dir is not None:       kwargs['log_dir'] = args.log_dir
   if args.dependencies is not None:  kwargs['dependencies'] = args.dependencies
-  if args.queue != 'all.q':          kwargs['hvmem'] = args.memory
+  if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     kwargs['memfree'] = "%d%s" % (int(args.memory.rstrip(string.ascii_letters)) * args.parallel, args.memory.lstrip(string.digits))
