@@ -106,13 +106,13 @@ def submit(args):
       'name': args.name,
       'env': args.env,
       'memfree': args.memory,
-      'hvmem': args.memory,
       'io_big': args.io_big,
   }
 
   if args.array is not None:         kwargs['array'] = get_array(args.array)
   if args.log_dir is not None:       kwargs['log_dir'] = args.log_dir
   if args.dependencies is not None:  kwargs['dependencies'] = args.dependencies
+  if args.queue != 'all.q':          kwargs['hvmem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     kwargs['memfree'] = "%d%s" % (int(args.memory.rstrip(string.ascii_letters)) * args.parallel, args.memory.lstrip(string.digits))
@@ -136,7 +136,8 @@ def resubmit(args):
     kwargs['queue'] = args.qname
   if args.memory is not None:
     kwargs['memfree'] = args.memory
-    kwargs['hvmem'] = args.memory
+    if args.qname not in (None, 'all.q'):
+      kwargs['hvmem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     kwargs['memfree'] = "%d%s" % (int(args.memory.rstrip(string.ascii_letters)) * args.parallel, args.memory.lstrip(string.digits))

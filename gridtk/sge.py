@@ -131,7 +131,7 @@ class JobManagerSGE(JobManager):
     self.lock()
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
-    accepted_old_status = ('success', 'failure') if also_success else ('failure',)
+    accepted_old_status = ('submitted', 'success', 'failure') if also_success else ('submitted', 'failure',)
     for job in jobs:
       # check if this job needs re-submission
       if running_jobs or job.status in accepted_old_status:
@@ -142,6 +142,8 @@ class JobManagerSGE(JobManager):
         # re-submit job to the grid
         arguments = job.get_arguments()
         arguments.update(**kwargs)
+        if ('queue' not in kwargs or kwargs['queue'] == 'all.q') and 'hvmem' in kwargs:
+          del kwargs['hvmem']
         job.set_arguments(kwargs=arguments)
         # delete old status and result of the job
         job.submit()
