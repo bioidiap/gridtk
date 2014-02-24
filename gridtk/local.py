@@ -179,7 +179,7 @@ class JobManagerLocal(JobManager):
             self.lock()
             job, array_job = self._job_and_array(job_id, array_id)
             if array_job: job = array_job
-            result = "%s (%d)" % (job.status, job.result)
+            result = "%s (%d)" % (job.status, job.result) if job.result is not None else "%s (?)" % job.status
             self.unlock()
             logger.info("Job '%s' finished execution with result %s" % (self._format_log(job_id, array_id), result))
             # in any case, remove the job from the list
