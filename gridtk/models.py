@@ -328,7 +328,7 @@ def add_job(session, command_line, name = 'job', dependencies = [], array = None
   job.id = job.unique
 
   for d in dependencies:
-    depending = list(session.query(Job).filter(Job.id == d))
+    depending = list(session.query(Job).filter(Job.unique == d))
     if len(depending):
       session.add(JobDependence(job.unique, depending[0].unique))
     else:
