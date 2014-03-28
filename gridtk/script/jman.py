@@ -90,6 +90,14 @@ def get_ids(jobs):
   return indexes
 
 
+def get_memfree(memory, parallel):
+  """Computes the memory required for the memfree field."""
+  number = int(memory.rstrip(string.ascii_letters))
+  memtype = memory.lstrip(string.digits)
+  if not memtype:
+    memtype = "G"
+  return "%d%s" % (number*parallel, memtype)
+
 def submit(args):
   """Submission command"""
 
@@ -115,7 +123,7 @@ def submit(args):
   if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
-    kwargs['memfree'] = "%d%s" % (int(args.memory.rstrip(string.ascii_letters)) * args.parallel, args.memory.lstrip(string.digits))
+    kwargs['memfree'] = get_memfree(args.memory, args.parallel)
   kwargs['dry_run'] = args.dry_run
   kwargs['stop_on_failure'] = args.stop_on_failure
 
@@ -140,7 +148,7 @@ def resubmit(args):
       kwargs['hvmem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
-    kwargs['memfree'] = "%d%s" % (int(args.memory.rstrip(string.ascii_letters)) * args.parallel, args.memory.lstrip(string.digits))
+    kwargs['memfree'] = get_memfree(args.memory, args.parallel)
   if args.io_big:
     kwargs['io_big'] = True
   if args.no_io_big:

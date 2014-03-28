@@ -154,7 +154,8 @@ class JobManagerSGE(JobManager):
           logger.debug("Re-submitting job '%s' with dependencies '%s' to the grid." % (job, deps))
           self._submit_to_grid(job, job.name, job.get_array(), deps, job.log_dir, **arguments)
 
-    self.session.commit()
+        # commit after each job to avoid failures of not finding the job during execution in the grid
+        self.session.commit()
     self.unlock()
 
 
