@@ -162,7 +162,8 @@ class JobManager:
     # execute the command line of the job, and wait until it has finished
     try:
       result = subprocess.call(command_line)
-    except Exception:
+    except Exception as e:
+      logger.error("The job with id '%d' could not be executed: %s" % (job_id, e))
       result = 69 # ASCII: 'E'
 
     # set a new status and the results of the job
