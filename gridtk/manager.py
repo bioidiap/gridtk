@@ -249,7 +249,7 @@ class JobManager:
     def _write_array_jobs(array_jobs):
       for array_job in array_jobs:
         if unfinished or array_job.status in accepted_status:
-          print("Array Job", str(array_job.id), ":")
+          print("Array Job", str(array_job.id), ("(%s) :"%array_job.machine_name if array_job.machine_name is not None else ":"))
           _write_contents(array_job)
 
     self.lock()
@@ -314,7 +314,7 @@ class JobManager:
         for array_job in array_jobs:
           if array_job.status in status:
             if delete_jobs:
-              logger.debug("Deleting array job '%d' of job '%d' from the database." % array_job.id, job.unique)
+              logger.debug("Deleting array job '%d' of job '%d' from the database." % (array_job.id, job.unique))
             _delete(array_job)
         if not job.array:
           if job.status in status:

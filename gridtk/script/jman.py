@@ -155,7 +155,7 @@ def resubmit(args):
     kwargs['io_big'] = False
 
 
-  jm.resubmit(get_ids(args.job_ids), args.also_success, args.running_jobs, **kwargs)
+  jm.resubmit(get_ids(args.job_ids), args.also_success, args.running_jobs, args.overwrite_command, **kwargs)
 
 
 def run_scheduler(args):
@@ -296,6 +296,7 @@ def main(command_line_options = None):
   resubmit_parser.add_argument('-k', '--keep-logs', action='store_true', help='Do not clean the log files of the old job before re-submitting.')
   resubmit_parser.add_argument('-s', '--also-success', action='store_true', help='Re-submit also jobs that have finished successfully.')
   resubmit_parser.add_argument('-a', '--running-jobs', action='store_true', help='Re-submit even jobs that are running or waiting (use this flag with care).')
+  resubmit_parser.add_argument('-o', '--overwrite-command', nargs=argparse.REMAINDER, help = "Overwrite the command line (of a single job) that should be executed (useful to keep job dependencies).")
   resubmit_parser.set_defaults(func=resubmit)
 
   # subcommand 'stop'

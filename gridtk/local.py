@@ -62,11 +62,16 @@ class JobManagerLocal(JobManager):
     return job_id
 
 
-  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, **kwargs):
+  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, **kwargs):
     """Re-submit jobs automatically"""
     self.lock()
     # iterate over all jobs
     jobs = self.get_jobs(job_ids)
+    if new_command is not None:
+      if len(jobs) == 1:
+        jobs[0].set_command_line(new_command)
+      else:
+        logger.warn("Ignoring new command since no single job id was specified")
     accepted_old_status = ('success', 'failure') if also_success else ('failure',)
     for job in jobs:
       # check if this job needs re-submission
