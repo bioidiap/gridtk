@@ -333,6 +333,9 @@ def add_job(session, command_line, name = 'job', dependencies = [], array = None
   job.id = job.unique
 
   for d in dependencies:
+    if d == job.unique:
+      logger.warn("Adding self-dependency of job %d is not allowed" % d)
+      continue
     depending = list(session.query(Job).filter(Job.unique == d))
     if len(depending):
       session.add(JobDependence(job.unique, depending[0].unique))
