@@ -183,7 +183,7 @@ def communicate(args):
 def report(args):
   """Reports the results of the finished (and unfinished) jobs."""
   jm = setup(args)
-  jm.report(job_ids=get_ids(args.job_ids), array_ids=get_ids(args.array_ids), unfinished=args.unfinished_also, output=not args.errors_only, error=not args.output_only)
+  jm.report(job_ids=get_ids(args.job_ids), array_ids=get_ids(args.array_ids), output=not args.errors_only, error=not args.output_only)
 
 
 def stop(args):
@@ -325,7 +325,6 @@ def main(command_line_options = None):
   report_parser = cmdparser.add_parser('report', aliases=['rep', 'r', 'explain', 'why'], formatter_class=formatter, help='Iterates through the result and error log files and prints out the logs.')
   report_parser.add_argument('-e', '--errors-only', action='store_true', help='Only report the error logs (by default, both logs are reported).')
   report_parser.add_argument('-o', '--output-only', action='store_true', help='Only report the output logs  (by default, both logs are reported).')
-  report_parser.add_argument('-u', '--unfinished-also', action='store_true', help='Report also the unfinished jobs; use this option also to check error files for jobs with success status.')
   report_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Report only the jobs with the given ids (by default, all finished jobs are reported)')
   report_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='+', help='Report only the jobs with the given array ids. If specified, a single job-id must be given as well.')
   report_parser.set_defaults(func=report)

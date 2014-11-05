@@ -2,10 +2,12 @@
 .. author: Manuel Günther <manuel.guenther@idiap.ch>
 .. date: Fri Aug 30 14:31:49 CEST 2013
 
-Welcome to GridTk's documentation!
-==================================
+.. _gridtk:
 
-The GridTK serves as a tool to submit jobs and keep track of their dependencies and their current statusus.
+Parallel Execution of Jobs in the SGE Grid or on a Local Machine
+================================================================
+
+The GridTK serves as a tool to submit jobs and keep track of their dependencies and their current statuses.
 These jobs can either be submitted to an SGE grid, or to be run in parallel on the local machine.
 
 There are two main ways to interact with the GridTK.

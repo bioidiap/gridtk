@@ -232,7 +232,7 @@ class JobManager:
     self.unlock()
 
 
-  def report(self, job_ids=None, array_ids=None, unfinished=False, output=True, error=True):
+  def report(self, job_ids=None, array_ids=None, output=True, error=True):
     """Iterates through the output and error files and write the results to command line."""
     def _write_contents(job):
       # Writes the contents of the output and error files to command line
@@ -248,13 +248,11 @@ class JobManager:
 
     def _write_array_jobs(array_jobs):
       for array_job in array_jobs:
-        if unfinished or array_job.status in accepted_status:
-          print("Array Job", str(array_job.id), ("(%s) :"%array_job.machine_name if array_job.machine_name is not None else ":"))
-          _write_contents(array_job)
+        print("Array Job", str(array_job.id), ("(%s) :"%array_job.machine_name if array_job.machine_name is not None else ":"))
+        _write_contents(array_job)
 
     self.lock()
 
-    accepted_status = ('failure',) if error and not output else ('success', 'failure')
     # check if an array job should be reported
     if array_ids:
       if len(job_ids) != 1: logger.error("If array ids are specified exactly one job id must be given.")
@@ -267,14 +265,12 @@ class JobManager:
       jobs = self.get_jobs(job_ids)
       for job in jobs:
         if job.array:
-          if unfinished or job.status in accepted_status or job.status == 'executing':
-            print(job)
-            _write_array_jobs(job.array)
+          print(job)
+          _write_array_jobs(job.array)
         else:
-          if unfinished or job.status in accepted_status:
-            print(job)
-            _write_contents(job)
-        if job.log_dir is not None and job.status in accepted_status:
+          print(job)
+          _write_contents(job)
+        if job.log_dir is not None:
           print("-"*60)
 
     self.unlock()

@@ -175,7 +175,6 @@ E.g.:
 will print the contents of the output and error log file from the job with the desired ID (and only the array job with the given ID).
 
 To report only the output or only the error logs, you can use the ``-o`` or ``-e`` option, respectively.
-When some (array-)jobs are still running, use the ``-u`` option to list their current output and/or error logs.
 Hopefully, that helps in debugging the problem!
 
 
