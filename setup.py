@@ -33,10 +33,6 @@ setup(
         'man.py = gridtk.script.grid:main',
       ],
 
-      'bob.test' : [
-        'gridtk = gridtk.tests:GridTKTest',
-      ],
-
     },
 
     long_description=open('README.rst').read(),

@@ -3,6 +3,8 @@
 # Andre Anjos <andre.anjos@idiap.ch>
 # Wed 24 Aug 2011 16:13:31 CEST
 
+from __future__ import print_function
+
 """A logging Idiap/SGE job manager
 """
 
@@ -130,12 +132,15 @@ def submit(args):
   # submit the job
   job_id = jm.submit(args.job, **kwargs)
 
+  if args.print_id:
+    print (job_id, end='')
+
 
 def resubmit(args):
   """Re-submits the jobs with the given ids."""
   jm = setup(args)
   if not args.keep_logs:
-    jm.delete(job_ids=args.job_ids, delete_jobs=False)
+    jm.delete(job_ids=get_ids(args.job_ids), delete_jobs=False)
 
   kwargs = {
       'cwd': True
@@ -183,7 +188,7 @@ def communicate(args):
 def report(args):
   """Reports the results of the finished (and unfinished) jobs."""
   jm = setup(args)
-  jm.report(job_ids=get_ids(args.job_ids), array_ids=get_ids(args.array_ids), output=not args.errors_only, error=not args.output_only)
+  jm.report(job_ids=get_ids(args.job_ids), array_ids=get_ids(args.array_ids), output=not args.errors_only, error=not args.output_only, status=args.status, name=args.name)
 
 
 def stop(args):
@@ -282,6 +287,7 @@ def main(command_line_options = None):
   submit_parser.add_argument('-t', '--array', '--parametric', metavar='(first-)last(:step)', help="Creates a parametric (array) job. You must specify the 'last' value, but 'first' (default=1) and 'step' (default=1) can be specified as well (when specifying 'step', 'first' has to be given, too).")
   submit_parser.add_argument('-z', '--dry-run', action='store_true', help='Do not really submit anything, just print out what would submit in this case')
   submit_parser.add_argument('-i', '--io-big', action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput.')
+  submit_parser.add_argument('-o', '--print-id', action='store_true', help='Prints the new job id (so that they can be parsed by automatic scripts).')
   submit_parser.add_argument('job', metavar='command', nargs=argparse.REMAINDER, help = "The job that should be executed. Sometimes a -- is required to separate the job from other command line options.")
   submit_parser.set_defaults(func=submit)
 
@@ -327,6 +333,8 @@ def main(command_line_options = None):
   report_parser.add_argument('-o', '--output-only', action='store_true', help='Only report the output logs  (by default, both logs are reported).')
   report_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Report only the jobs with the given ids (by default, all finished jobs are reported)')
   report_parser.add_argument('-a', '--array-ids', metavar='ID', nargs='+', help='Report only the jobs with the given array ids. If specified, a single job-id must be given as well.')
+  report_parser.add_argument('-n', '--name', help="Report only the jobs with the given name; by default all jobs are reported.")
+  report_parser.add_argument('-s', '--status', nargs='+', choices = Status, default = Status, help='Report only jobs that have the given statuses; by default all jobs are reported.')
   report_parser.set_defaults(func=report)
 
   # subcommand 'delete'

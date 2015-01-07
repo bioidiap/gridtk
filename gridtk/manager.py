@@ -232,7 +232,7 @@ class JobManager:
     self.unlock()
 
 
-  def report(self, job_ids=None, array_ids=None, output=True, error=True):
+  def report(self, job_ids=None, array_ids=None, output=True, error=True, status=Status, name=None):
     """Iterates through the output and error files and write the results to command line."""
     def _write_contents(job):
       # Writes the contents of the output and error files to command line
@@ -264,6 +264,10 @@ class JobManager:
       # iterate over all jobs
       jobs = self.get_jobs(job_ids)
       for job in jobs:
+        if name is not None and job.name != name:
+          continue
+        if job.status not in status:
+          continue
         if job.array:
           print(job)
           _write_array_jobs(job.array)
@@ -316,7 +320,7 @@ class JobManager:
           if job.status in status:
             if delete_jobs:
               logger.info("Deleting job '%d' from the database." % job.unique)
-            _delete(job, True)
+            _delete(job, delete_jobs)
 
     else:
       # iterate over all jobs
@@ -333,7 +337,7 @@ class JobManager:
         if job.status in status:
           if delete_jobs:
             logger.info("Deleting job '%d' from the database." % job.unique)
-          _delete(job, True)
+          _delete(job, delete_jobs)
 
     self.session.commit()
     self.unlock()

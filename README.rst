@@ -27,7 +27,7 @@ Instead of sending jobs to the SGE grid, it executes them in parallel processes 
 This package uses the Buildout system to install it.
 Please call::
 
-  $ python bootstrap.py
+  $ python bootstrap-buildout.py
   $ bin/buildout
   $ bin/sphinx-build docs sphinx
   $ firefox sphinx/index.html
