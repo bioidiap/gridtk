@@ -7,9 +7,11 @@ DEPS = ['six']
 if sys.version_info[:2] < (2, 7) or ((3,0) <= sys.version_info[:2] < (3,2)):
   DEPS.append('argparse')
 
+version = open("version.txt").read().rstrip()
+
 setup(
     name='gridtk',
-    version='1.1.8a0',
+    version=version,
     description='SGE Grid and Local Submission and Monitoring Tools for Idiap',
 
     url='http://github.com/idiap/gridtk',

@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import unittest
-import nose
 
 import os
 import pkg_resources
@@ -42,6 +41,8 @@ class GridTKTest(unittest.TestCase):
       raise SkipException("Could not find '%s' which is required to run the test scripts"%bash)
 
     try:
+
+      import nose
 
       # first, add some commands to the database
       script_1 = pkg_resources.resource_filename('gridtk.tests', 'test_script.sh')
@@ -234,5 +235,5 @@ class GridTKTest(unittest.TestCase):
 
   def notest02_grid(self):
     # Tests the functionality of the grid toolkit in the grid
+    import nose
     raise nose.plugins.skip.SkipTest("This test is not yet implemented. If you find a proper ways to test the grid functionality, please go ahead and implement the test.")
-
