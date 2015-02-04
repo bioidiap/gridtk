@@ -147,8 +147,10 @@ class JobManagerSGE(JobManager):
         # re-submit job to the grid
         arguments = job.get_arguments()
         arguments.update(**kwargs)
-        if ('queue' not in kwargs or kwargs['queue'] == 'all.q') and 'hvmem' in kwargs:
-          del kwargs['hvmem']
+        if ('queue' not in arguments or arguments['queue'] == 'all.q'):
+          for arg in ('hvmem', 'pe_opt', 'io_big'):
+            if arg in arguments:
+              del arguments[arg]
         job.set_arguments(kwargs=arguments)
         # delete old status and result of the job
         job.submit()
