@@ -189,11 +189,7 @@ class JobManagerSGE(JobManager):
       if job.status in ('executing', 'queued', 'waiting'):
         qdel(job.id, context=self.context)
         logger.info("Stopped job '%s' in the SGE grid." % job)
-        job.status = 'submitted'
-        for array_job in job.array:
-          if array_job.status in ('executing', 'queued', 'waiting'):
-            array_job.status = 'submitted'
-
+        job.submit()
 
       self.session.commit()
     self.unlock()
