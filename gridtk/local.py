@@ -72,13 +72,16 @@ class JobManagerLocal(JobManager):
         jobs[0].set_command_line(new_command)
       else:
         logger.warn("Ignoring new command since no single job id was specified")
-    accepted_old_status = ('success', 'failure') if also_success else ('failure',)
+    accepted_old_status = ('submitted', 'success', 'failure') if also_success else ('submitted', 'failure',)
     for job in jobs:
       # check if this job needs re-submission
       if running_jobs or job.status in accepted_old_status:
-        # re-submit job to the grid
-        logger.info("Re-submitted job '%s' to the database" % job)
-        job.submit('local')
+        if job.queue_name != 'local' and job.status == 'executing':
+          logger.error("Cannot re-submit job '%s' locally since it is still running in the grid. Use 'jman stop' to stop it\'s execution!")
+        else:
+          # re-submit job to the grid
+          logger.info("Re-submitted job '%s' to the database" % job)
+          job.submit('local')
 
     self.session.commit()
     self.unlock()
