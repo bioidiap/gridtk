@@ -169,6 +169,7 @@ class JobManagerLocal(JobManager):
   def run_scheduler(self, parallel_jobs = 1, job_ids = None, sleep_time = 0.1, die_when_finished = False, no_log = False, nice = None):
     """Starts the scheduler, which is constantly checking for jobs that should be ran."""
     running_tasks = []
+    finished_tasks = set()
     try:
 
       # keep the scheduler alive until every job is finished or the KeyboardInterrupt is caught
@@ -190,6 +191,7 @@ class JobManagerLocal(JobManager):
             result = "%s (%d)" % (job.status, job.result) if job.result is not None else "%s (?)" % job.status
             self.unlock()
             logger.info("Job '%s' finished execution with result %s" % (self._format_log(job_id, array_id), result))
+            finished_tasks.add(job_id)
             # in any case, remove the job from the list
             del running_tasks[task_index]
 
@@ -262,3 +264,10 @@ class JobManagerLocal(JobManager):
         self.stop_job(task[1])
       # stop all jobs that are currently running or queued
       self.stop_jobs(job_ids)
+
+    # check the result of the jobs that we have run, and return the list of failed jobs
+    self.lock()
+    jobs = self.get_jobs(finished_tasks)
+    failures = [job.unique for job in jobs if job.status != 'success']
+    self.unlock()
+    return sorted(failures)

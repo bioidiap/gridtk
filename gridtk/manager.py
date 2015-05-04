@@ -180,7 +180,7 @@ class JobManager:
         print ("WARNING: Stopped dependent jobs '%s' since this job failed." % str(deps), file=sys.stderr)
 
     except Exception as e:
-      print ("ERROR: Caught exception '%s'" % e)
+      print ("ERROR: Caught exception '%s'" % e, file=sys.stderr)
       pass
     finally:
       if hasattr(self, 'session'):
@@ -240,8 +240,8 @@ class JobManager:
     def _write_contents(job):
       # Writes the contents of the output and error files to command line
       out_file, err_file = job.std_out_file(), job.std_err_file()
+      logger.info("Contents of output file: '%s'" % out_file)
       if output and out_file is not None and os.path.exists(out_file) and os.stat(out_file).st_size > 0:
-        logger.info("Contents of output file: '%s'" % out_file)
         print(open(out_file).read().rstrip())
         print("-"*20)
       if error and err_file is not None and os.path.exists(err_file) and os.stat(err_file).st_size > 0:
