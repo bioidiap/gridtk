@@ -158,7 +158,7 @@ class JobManagerLocal(JobManager):
     try:
       return subprocess.Popen(command, env=environ, stdout=out, stderr=err, bufsize=1)
     except OSError as e:
-      logger.error("Could not execute job '%s' locally,\nreason:\t%s,\ncommand_line\t%s:" % (self._format_log(job_id, array_id, len(job.array)), e, job.get_command_line()))
+      logger.error("Could not execute job '%s' locally\n- reason:\t%s\n- command line:\t%s\n- command:\t%s", self._format_log(job_id, array_id, len(job.array)), e, " ".join(job.get_command_line()), " ".join(command))
       job.finish(117, array_id) # ASCII 'O'
       return None
 
@@ -189,8 +189,11 @@ class JobManagerLocal(JobManager):
             job, array_job = self._job_and_array(job_id, array_id)
             if array_job: job = array_job
             result = "%s (%d)" % (job.status, job.result) if job.result is not None else "%s (?)" % job.status
+            if job.status not in ('success', 'failure'):
+              logger.error("Job '%s' finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", self._format_log(job_id, array_id), job.status)
+              raise StopIteration("Job did not finish correctly.")
             self.unlock()
-            logger.info("Job '%s' finished execution with result %s" % (self._format_log(job_id, array_id), result))
+            logger.info("Job '%s' finished execution with result '%s'" % (self._format_log(job_id, array_id), result))
             finished_tasks.add(job_id)
             # in any case, remove the job from the list
             del running_tasks[task_index]
@@ -254,7 +257,7 @@ class JobManagerLocal(JobManager):
         time.sleep(sleep_time)
 
     # This is the only way to stop: you have to interrupt the scheduler
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, StopIteration):
       if hasattr(self, 'session'):
         self.unlock()
       logger.info("Stopping task scheduler due to user interrupt.")

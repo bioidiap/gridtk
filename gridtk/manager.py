@@ -7,6 +7,7 @@ import socket # to get the host name
 from .models import Base, Job, ArrayJob, Status
 from .tools import logger
 
+
 import sqlalchemy
 
 """This file defines a minimum Job Manager interface."""
@@ -15,12 +16,21 @@ sqlalchemy_version = [int(v) for v in sqlalchemy.__version__.split('.')]
 class JobManager:
   """This job manager defines the basic interface for handling jobs in the SQL database."""
 
-  def __init__(self, database, wrapper_script = './bin/jman', debug = False):
+  def __init__(self, database, wrapper_script = None, debug = False):
     self._database = os.path.realpath(database)
     self._engine = sqlalchemy.create_engine("sqlite:///"+self._database, connect_args={'timeout': 600}, echo=debug)
     self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
 
     # store the command that this job manager was called with
+    if wrapper_script is None:
+      # try to find the executable, search in the bin path first
+      import distutils.spawn
+      wrapper_script = os.path.realpath(distutils.spawn.find_executable('jman', '.' + os.pathsep + 'bin' + os.pathsep + os.environ['PATH']))
+
+    if wrapper_script is None:
+      raise IOError("Could not find the installation path of gridtk. Please specify it in the wrapper_script parameter of the JobManager.")
+    if not os.path.exists(wrapper_script):
+      raise IOError("Your wrapper_script cannot be found. Jobs will not be executable.")
     self.wrapper_script = wrapper_script
 
 
