@@ -14,7 +14,7 @@ setup(
     version=version,
     description='SGE Grid and Local Submission and Monitoring Tools for Idiap',
 
-    url='http://github.com/idiap/gridtk',
+    url='http://github.com/bioidiap/gridtk',
     license='GPLv3',
 
     author='Manuel Guenther',
