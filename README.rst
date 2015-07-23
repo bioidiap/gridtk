@@ -17,7 +17,7 @@ Instead of sending jobs to the SGE grid, it executes them in parallel processes 
 .. warning::
   Though tested thoroughly, this version might still be unstable and the reported statuses of the grid jobs might be incorrect.
   If you are in doubt that the status is correct, please double-check with other grid utilities (like ``bin/grid qmon``).
-  In case you found any problem, please report it using the `bug reporting system <http://github.com/idiap/gridtk/issues>`.
+  In case you found any problem, please report it using the `bug reporting system <http://github.com/bioidiap/gridtk/issues>`.
 
 .. note::
   In the current version, gridtk is compatible with python3.
