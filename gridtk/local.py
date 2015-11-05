@@ -47,12 +47,12 @@ class JobManagerLocal(JobManager):
     # add job to database
     self.lock()
     job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, log_dir=log_dir, stop_on_failure=stop_on_failure)
-    logger.info("Added job '%s' to the database" % job)
+    logger.info("Added job '%s' to the database", job)
 
     if dry_run:
       print("Would have added the Job", job, "to the database to be executed locally.")
       self.session.delete(job)
-      logger.info("Deleted job '%s' from the database due to dry-run option" % job)
+      logger.info("Deleted job '%s' from the database due to dry-run option", job)
       job_id = None
     else:
       job_id = job.unique
@@ -77,10 +77,10 @@ class JobManagerLocal(JobManager):
       # check if this job needs re-submission
       if running_jobs or job.status in accepted_old_status:
         if job.queue_name != 'local' and job.status == 'executing':
-          logger.error("Cannot re-submit job '%s' locally since it is still running in the grid. Use 'jman stop' to stop it\'s execution!")
+          logger.error("Cannot re-submit job '%s' locally since it is still running in the grid. Use 'jman stop' to stop it\'s execution!", job)
         else:
           # re-submit job to the grid
-          logger.info("Re-submitted job '%s' to the database" % job)
+          logger.info("Re-submitted job '%s' to the database", job)
           job.submit('local')
 
     self.session.commit()
@@ -94,7 +94,7 @@ class JobManagerLocal(JobManager):
     jobs = self.get_jobs(job_ids)
     for job in jobs:
       if job.status in ('executing', 'queued', 'waiting') and job.queue_name == 'local':
-        logger.info("Reset job '%s' in the database" % job.name)
+        logger.info("Reset job '%s' (%s) in the database", job.name, self._format_log(job.id))
         job.submit()
 
     self.session.commit()
@@ -107,16 +107,16 @@ class JobManagerLocal(JobManager):
     job, array_job = self._job_and_array(job_id, array_id)
     if job is not None:
       if job.status in ('executing', 'queued', 'waiting'):
-        logger.info("Reset job '%s' in the database" % job.name)
+        logger.info("Reset job '%s' (%s) in the database", job.name, self._format_log(job.id))
         job.status = 'submitted'
 
       if array_job is not None and array_job.status in ('executing', 'queued', 'waiting'):
-        logger.debug("Reset array job '%s' in the database" % array_job)
+        logger.debug("Reset array job '%s' in the database", array_job)
         array_job.status = 'submitted'
       if array_job is None:
         for array_job in job.array:
           if array_job.status in ('executing', 'queued', 'waiting'):
-            logger.debug("Reset array job '%s' in the database" % array_job)
+            logger.debug("Reset array job '%s' in the database", array_job)
             array_job.status = 'submitted'
 
     self.session.commit()
@@ -142,7 +142,7 @@ class JobManagerLocal(JobManager):
       command = ['nice', '-n%d'%nice] + command
 
     job, array_job = self._job_and_array(job_id, array_id)
-    logger.info("Starting execution of Job '%s': '%s'" % (self._format_log(job_id, array_id, len(job.array)), job.name))
+    logger.info("Starting execution of Job '%s' (%s)", job.name, self._format_log(job_id, array_id, len(job.array)))
     # create log files
     if no_log or job.log_dir is None:
       out, err = sys.stdout, sys.stderr
@@ -158,7 +158,7 @@ class JobManagerLocal(JobManager):
     try:
       return subprocess.Popen(command, env=environ, stdout=out, stderr=err, bufsize=1)
     except OSError as e:
-      logger.error("Could not execute job '%s' locally\n- reason:\t%s\n- command line:\t%s\n- command:\t%s", self._format_log(job_id, array_id, len(job.array)), e, " ".join(job.get_command_line()), " ".join(command))
+      logger.error("Could not execute job '%s' (%s) locally\n- reason:\t%s\n- command line:\t%s\n- command:\t%s", job.name, self._format_log(job_id, array_id, len(job.array)), e, " ".join(job.get_command_line()), " ".join(command))
       job.finish(117, array_id) # ASCII 'O'
       return None
 
@@ -190,10 +190,10 @@ class JobManagerLocal(JobManager):
             if array_job: job = array_job
             result = "%s (%d)" % (job.status, job.result) if job.result is not None else "%s (?)" % job.status
             if job.status not in ('success', 'failure'):
-              logger.error("Job '%s' finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", self._format_log(job_id, array_id), job.status)
+              logger.error("Job '%s' (%s) finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", job.name, self._format_log(job_id, array_id), job.status)
               raise StopIteration("Job did not finish correctly.")
+            logger.info("Job '%s' (%s) finished execution with result '%s'", job.name, self._format_log(job_id, array_id), result)
             self.unlock()
-            logger.info("Job '%s' finished execution with result '%s'" % (self._format_log(job_id, array_id), result))
             finished_tasks.add(job_id)
             # in any case, remove the job from the list
             del running_tasks[task_index]
