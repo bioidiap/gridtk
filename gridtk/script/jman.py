@@ -125,7 +125,8 @@ def submit(args):
   if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
-    kwargs['memfree'] = get_memfree(args.memory, args.parallel)
+    if args.memory is not None:
+      kwargs['memfree'] = get_memfree(args.memory, args.parallel)
   kwargs['dry_run'] = args.dry_run
   kwargs['stop_on_failure'] = args.stop_on_failure
 
