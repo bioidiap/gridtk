@@ -187,10 +187,10 @@ class JobManagerLocal(JobManager):
             array_id = task[2] if len(task) > 2 else None
             self.lock()
             job, array_job = self._job_and_array(job_id, array_id)
-            if array_job: job = array_job
-            result = "%s (%d)" % (job.status, job.result) if job.result is not None else "%s (?)" % job.status
-            if job.status not in ('success', 'failure'):
-              logger.error("Job '%s' (%s) finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", job.name, self._format_log(job_id, array_id), job.status)
+            jj = array_job if array_job is not None else job
+            result = "%s (%d)" % (jj.status, jj.result) if jj.result is not None else "%s (?)" % jj.status
+            if jj.status not in ('success', 'failure'):
+              logger.error("Job '%s' (%s) finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", job.name, self._format_log(job_id, array_id), jj.status)
               raise StopIteration("Job did not finish correctly.")
             logger.info("Job '%s' (%s) finished execution with result '%s'", job.name, self._format_log(job_id, array_id), result)
             self.unlock()
