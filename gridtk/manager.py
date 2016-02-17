@@ -213,12 +213,12 @@ class JobManager:
       format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
       dependency_length = 0
 
-    if ids_only:
-      self.lock()
-      for job in self.get_jobs():
-        print(job.unique, end=" ")
-      self.unlock()
-      return
+    # if ids_only:
+    #   self.lock()
+    #   for job in self.get_jobs():
+    #     print(job.unique, end=" ")
+    #   self.unlock()
+    #   return
 
     array_format = "{0:^%d}  {1:>%d}  {2:^%d}  {3:^%d}" % lengths[:4]
     delimiter = format.format(*['='*k for k in lengths])
@@ -226,16 +226,20 @@ class JobManager:
     header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
 
     # print header
-    print('  '.join(header))
-    print(delimiter)
+    if not ids_only:
+      print('  '.join(header))
+      print(delimiter)
 
 
     self.lock()
     for job in self.get_jobs(job_ids):
       job.refresh()
       if job.status in status and (names is None or job.name in names):
-        print(job.format(format, dependency_length, None if long else 43))
-        if print_array_jobs and job.array:
+        if ids_only:
+          print(job.unique, end=" ")
+        else:
+          print(job.format(format, dependency_length, None if long else 43))
+        if (not ids_only) and print_array_jobs and job.array:
           print(array_delimiter)
           for array_job in job.array:
             if array_job.status in status:
