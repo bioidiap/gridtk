@@ -13,7 +13,7 @@ matrix:
 before_install:
 # - sudo add-apt-repository -y ppa:biometrics/bob
 - sudo apt-get update -qq
-- sudo apt-get install -qq --force-yes python-ipdb python3-ipdb dvipng texlive-latex-base texlive-latex-extra texlive-math-extra texlive-latex-recommended texlive-fonts-recommended
+- sudo apt-get install -qq --force-yes dvipng texlive-latex-base texlive-latex-extra texlive-math-extra texlive-latex-recommended texlive-fonts-recommended
 - pip install --upgrade pip
 - pip install --find-links https://www.idiap.ch/software/bob/wheels/travis/ --use-wheel sphinx nose numpy scipy matplotlib coverage
 - pip install --find-links https://www.idiap.ch/software/bob/wheels/travis/ --use-wheel --pre -r requirements.txt coveralls
