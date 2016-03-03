@@ -9,9 +9,8 @@ from .tools import logger
 
 
 import sqlalchemy
+from distutils.version import LooseVersion
 
-"""This file defines a minimum Job Manager interface."""
-sqlalchemy_version = [int(v) for v in sqlalchemy.__version__.split('.')]
 
 class JobManager:
   """This job manager defines the basic interface for handling jobs in the SQL database."""
@@ -52,7 +51,7 @@ class JobManager:
     if hasattr(self, 'session'):
       raise RuntimeError('Dead lock detected. Please do not try to lock the session when it is already locked!')
 
-    if sqlalchemy_version < [0,7,8]:
+    if LooseVersion(sqlalchemy.__version__) < LooseVersion('0.7.8'):
       # for old sqlalchemy versions, in some cases it is required to re-generate the engine for each session
       self._engine = sqlalchemy.create_engine("sqlite:///"+self._database)
       self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
