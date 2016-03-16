@@ -9,9 +9,8 @@ from .tools import logger
 
 
 import sqlalchemy
+from distutils.version import LooseVersion
 
-"""This file defines a minimum Job Manager interface."""
-sqlalchemy_version = [int(v) for v in sqlalchemy.__version__.split('.')]
 
 class JobManager:
   """This job manager defines the basic interface for handling jobs in the SQL database."""
@@ -52,7 +51,7 @@ class JobManager:
     if hasattr(self, 'session'):
       raise RuntimeError('Dead lock detected. Please do not try to lock the session when it is already locked!')
 
-    if sqlalchemy_version < [0,7,8]:
+    if LooseVersion(sqlalchemy.__version__) < LooseVersion('0.7.8'):
       # for old sqlalchemy versions, in some cases it is required to re-generate the engine for each session
       self._engine = sqlalchemy.create_engine("sqlite:///"+self._database)
       self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
@@ -214,12 +213,12 @@ class JobManager:
       format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
       dependency_length = 0
 
-    if ids_only:
-      self.lock()
-      for job in self.get_jobs():
-        print(job.unique, end=" ")
-      self.unlock()
-      return
+    # if ids_only:
+    #   self.lock()
+    #   for job in self.get_jobs():
+    #     print(job.unique, end=" ")
+    #   self.unlock()
+    #   return
 
     array_format = "{0:^%d}  {1:>%d}  {2:^%d}  {3:^%d}" % lengths[:4]
     delimiter = format.format(*['='*k for k in lengths])
@@ -227,16 +226,20 @@ class JobManager:
     header = [fields[k].center(lengths[k]) for k in range(len(lengths))]
 
     # print header
-    print('  '.join(header))
-    print(delimiter)
+    if not ids_only:
+      print('  '.join(header))
+      print(delimiter)
 
 
     self.lock()
     for job in self.get_jobs(job_ids):
       job.refresh()
       if job.status in status and (names is None or job.name in names):
-        print(job.format(format, dependency_length, None if long else 43))
-        if print_array_jobs and job.array:
+        if ids_only:
+          print(job.unique, end=" ")
+        else:
+          print(job.format(format, dependency_length, None if long else 43))
+        if (not ids_only) and print_array_jobs and job.array:
           print(array_delimiter)
           for array_job in job.array:
             if array_job.status in status:

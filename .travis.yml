@@ -1,0 +1,33 @@
+language: python
+matrix:
+  include:
+  - python: 2.7
+    env:
+    - secure: CchM+63gNGQp44wkG/vzx52uHg6R2XrFaV9P5Anid88h2wiqQi8N6UYD7oF7cNMc+e/wSaa4sv802blsk+8HUv6e6RUIWHqXsDQM9iXWemAAwrT8zvL+Nc/CtTKWGBhVn+rtwr7eEZRcAUii+obDSxc5R7lJGMJzqxO5x6tl77LDEHNcSguF58RJQOifcabThYT7VnZkV4DqGzfaG5ngZwcIGF34zlkOTvtVwnmfM7EdPjzQitKlurM1w2ViyiClby9OO/nAk7T7HgqT6ZkzW0G9exdgeztTzqjtS9DL4FIDdm17cCDWEdLeCgXBO3DKJ9J/XNS0ND7WQooMSFSf8dLQTYMfSDP1AZxPeyb260hIVwMSyJxeS6l8HnAphuBuOo/f8gNteWNxShxcAC8uiVm/EcCLmrwLWSmfPjGyje0QRaJzQ45kQXEf25lm1uPlH3cyYCIn52Y2yP7vwDk1JIbk9G6E6oIZjRq4myZUJCfOzyATZUlZ/EzzZS4fnSxGc9YGOERxAc1E8VcEAq+WbGuNmYJidOGRm5NKzL7rvXWAkfvbSDdNZPZPETAPSKFAqLyYZbCAKzefAQRTyA6CQE8d9HBkEr5iNevlxbuVBF70cUcnsTyLaFpA3t+XvbiR3FhOGjLrfJ/yiZjJihl7bgYimIlntI8vAasgjUxBZ3Q=
+    - secure: j4yg2mFK9jAzgB+aGJj9ieSGYq0iJBTopUSznd9HwT0xAwXGFkOhV2D8t+a0Ww1tuD8eYHKVfLBCMXV9ahelFbIBOM4ajMRsSJf8YcxdqaGFU/4BoKJd6G6chpz3HtScB/VGGO5uRLIqDQWgii6+pEAk3uj5csLp0amL0LCWdhCYHrh94NbeVsJvxPN4LTOTChKZjbo3yhUCPWuKTvbhPteE0NGuf1Ko6NqxaCzT9Iq11YbdNSmJmZnNbOqLkvFFQLdtzV3NXHFstep1YCRcDHLz/wNxkvh9iROUmrdT1b0D8IxexmwFMfVt8GsnrTRAe9jS7mQq7ccE90cJU2nHwh+pzAKyg/wmDdRBkDP08flEZprCUvYWGwoVv5E7GUGxG0voVdLJd2CD2NUHsvyvLZqY1R0EcRvc61aeVY9p/S/r2JzlzZjJTrdh3TUw0OcQ4cymM0VPXKU7N+x89KOhJMbGNwxibd4BtILY5A52nuTy+u1uiiUDFh96rFd3bl3ZwwmnY/CaOmclNILTpa9USsZGngn3Q+juoA8HPKZ7murNl+/mZpopb6tBqQNys5y9AHpX/wdWb36cupmysccmO54cmvfVIuVnOgxFMxlZpBhI4B/TGEeioED6gwJs092TaXBKs2eR5fVuwevZISQOpoH07cmp2bN7fwXQpgdVU6I=
+    - BOB_DOCUMENTATION_SERVER=https://www.idiap.ch/software/bob/docs/latest/bioidiap/%s/master
+    - BOB_UPLOAD_WHEEL="--universal"
+  - python: 3.3
+  - python: 3.4
+  - python: 3.5
+before_install:
+# - sudo add-apt-repository -y ppa:biometrics/bob
+- sudo apt-get update -qq
+- sudo apt-get install -qq --force-yes dvipng texlive-latex-base texlive-latex-extra texlive-math-extra texlive-latex-recommended texlive-fonts-recommended
+- pip install --upgrade pip
+- pip install --find-links https://www.idiap.ch/software/bob/wheels/travis/ --use-wheel sphinx nose numpy scipy matplotlib coverage
+- pip install --find-links https://www.idiap.ch/software/bob/wheels/travis/ --use-wheel --pre -r requirements.txt coveralls
+install:
+- python bootstrap-buildout.py
+- ./bin/buildout buildout:develop=. buildout:extensions=bob.buildout buildout:auto-checkout=
+script:
+# - ./bin/python -c 'import pkg_resources; from bob.bio.base import get_config; print(get_config())'
+- ./bin/coverage run --source=gridtk ./bin/nosetests -sv
+- ./bin/sphinx-build -b doctest doc sphinx
+- ./bin/sphinx-build -b html doc sphinx
+after_success:
+- coveralls
+- wget https://raw.githubusercontent.com/bioidiap/bob.extension/master/scripts/upload-{sphinx,wheel}.sh
+- chmod a+x upload-sphinx.sh upload-wheel.sh
+- ./upload-sphinx.sh
+- ./upload-wheel.sh
