@@ -38,7 +38,7 @@ class JobManagerLocal(JobManager):
     JobManager.__init__(self, **kwargs)
 
 
-  def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = None, dry_run = False, stop_on_failure = False, **kwargs):
+  def submit(self, command_line, name = None, array = None, dependencies = [], exec_dir = None, log_dir = None, dry_run = False, stop_on_failure = False, **kwargs):
     """Submits a job that will be executed on the local machine during a call to "run".
     All kwargs will simply be ignored."""
     # remove duplicate dependencies
@@ -46,7 +46,7 @@ class JobManagerLocal(JobManager):
 
     # add job to database
     self.lock()
-    job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, log_dir=log_dir, stop_on_failure=stop_on_failure)
+    job = add_job(self.session, command_line=command_line, name=name, dependencies=dependencies, array=array, exec_dir=exec_dir, log_dir=log_dir, stop_on_failure=stop_on_failure)
     logger.info("Added job '%s' to the database", job)
 
     if dry_run:
@@ -158,7 +158,7 @@ class JobManagerLocal(JobManager):
     try:
       return subprocess.Popen(command, env=environ, stdout=out, stderr=err, bufsize=1)
     except OSError as e:
-      logger.error("Could not execute job '%s' (%s) locally\n- reason:\t%s\n- command line:\t%s\n- command:\t%s", job.name, self._format_log(job_id, array_id, len(job.array)), e, " ".join(job.get_command_line()), " ".join(command))
+      logger.error("Could not execute job '%s' (%s) locally\n- reason:\t%s\n- command line:\t%s\n- directory:\t%s\n- command:\t%s", job.name, self._format_log(job_id, array_id, len(job.array)), e, " ".join(job.get_command_line()), "." if job.exec_dir is None else job.exec_dir, " ".join(command))
       job.finish(117, array_id) # ASCII 'O'
       return None
 
@@ -262,8 +262,11 @@ class JobManagerLocal(JobManager):
         self.unlock()
       logger.info("Stopping task scheduler due to user interrupt.")
       for task in running_tasks:
-        logger.warn("Killing job '%s' that was still running." % self._format_log(task[1], task[2] if len(task) > 2 else None))
-        task[0].kill()
+        logger.warn("Killing job '%s' that was still running.", self._format_log(task[1], task[2] if len(task) > 2 else None))
+        try:
+          task[0].kill()
+        except OSError as e:
+          logger.error("Killing job '%s' was not successful: '%s'", self._format_log(task[1], task[2] if len(task) > 2 else None), e)
         self.stop_job(task[1])
       # stop all jobs that are currently running or queued
       self.stop_jobs(job_ids)

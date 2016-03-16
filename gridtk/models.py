@@ -71,6 +71,7 @@ class Job(Base):
   machine_name = Column(String(10))            # The name of the machine in which the job is run
   grid_arguments = Column(String(255))         # The kwargs arguments for the job submission (e.g. in the grid)
   id = Column(Integer)                         # The ID of the job as given from the grid
+  exec_dir = Column(String(255))               # The directory in which the command should be executed
   log_dir = Column(String(255))                # The directory where the log files will be put to
   array_string = Column(String(255))           # The array string (only needed for re-submission)
   stop_on_failure = Column(Boolean)            # An indicator whether to stop depending jobs when this job finishes with an error
@@ -78,13 +79,14 @@ class Job(Base):
   status = Column(Enum(*Status))
   result = Column(Integer)
 
-  def __init__(self, command_line, name = None, log_dir = None, array_string = None, queue_name = 'local', machine_name = None, stop_on_failure = False, **kwargs):
+  def __init__(self, command_line, name = None, exec_dir = None, log_dir = None, array_string = None, queue_name = 'local', machine_name = None, stop_on_failure = False, **kwargs):
     """Constructs a Job object without an ID (needs to be set later)."""
     self.command_line = dumps(command_line)
     self.name = name
     self.queue_name = queue_name   # will be set during the queue command later
     self.machine_name = machine_name   # will be set during the execute command later
     self.grid_arguments = dumps(kwargs)
+    self.exec_dir = exec_dir
     self.log_dir = log_dir
     self.stop_on_failure = stop_on_failure
     self.array_string = dumps(array_string)
@@ -207,6 +209,13 @@ class Job(Base):
     """Sets / overwrites the command line for the job."""
     self.command_line = dumps(command_line)
 
+  def get_exec_dir(self):
+    """Returns the command line for the job."""
+    # In python 2, the command line is unicode, which needs to be converted to string before pickling;
+    # In python 3, the command line is bytes, which can be pickled directly
+    return str(os.path.realpath(self.exec_dir)) if self.exec_dir is not None else None
+
+
 
   def get_array(self):
     """Returns the array arguments for the job; usually a string."""
@@ -292,6 +301,8 @@ class Job(Base):
       if grid_opt:
         # add additional information about the job at the end
         command_line = "<" + ",".join(["%s=%s" % (key,value) for key,value in grid_opt.iteritems()]) + ">: " + command_line
+      if self.exec_dir is not None:
+        command_line += "; [Executed in directory: '%s']" % self.exec_dir
 
     if dependencies:
       deps = str(sorted(list(set([dep.unique for dep in self.get_jobs_we_wait_for()]))))
@@ -321,9 +332,9 @@ class JobDependence(Base):
 
 
 
-def add_job(session, command_line, name = 'job', dependencies = [], array = None, log_dir = None, stop_on_failure = False, **kwargs):
+def add_job(session, command_line, name = 'job', dependencies = [], array = None, exec_dir=None, log_dir = None, stop_on_failure = False, **kwargs):
   """Helper function to create a job, add the dependencies and the array jobs."""
-  job = Job(command_line=command_line, name=name, log_dir=log_dir, array_string=array, stop_on_failure=stop_on_failure, kwargs=kwargs)
+  job = Job(command_line=command_line, name=name, exec_dir=exec_dir, log_dir=log_dir, array_string=array, stop_on_failure=stop_on_failure, kwargs=kwargs)
 
   session.add(job)
   session.flush()

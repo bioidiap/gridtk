@@ -80,11 +80,11 @@ class JobManagerSGE(JobManager):
     return job.unique
 
 
-  def submit(self, command_line, name = None, array = None, dependencies = [], log_dir = "logs", dry_run = False, stop_on_failure = False, **kwargs):
+  def submit(self, command_line, name = None, array = None, dependencies = [], exec_dir = None, log_dir = "logs", dry_run = False, stop_on_failure = False, **kwargs):
     """Submits a job that will be executed in the grid."""
     # add job to database
     self.lock()
-    job = add_job(self.session, command_line, name, dependencies, array, log_dir=log_dir, stop_on_failure=stop_on_failure, context=self.context, **kwargs)
+    job = add_job(self.session, command_line, name, dependencies, array, exec_dir=exec_dir, log_dir=log_dir, stop_on_failure=stop_on_failure, context=self.context, **kwargs)
     logger.info("Added job '%s' to the database." % job)
     if dry_run:
       print("Would have added the Job")

@@ -120,6 +120,7 @@ def submit(args):
   }
 
   if args.array is not None:         kwargs['array'] = get_array(args.array)
+  if args.exec_dir is not None:      kwargs['exec_dir'] = args.exec_dir
   if args.log_dir is not None:       kwargs['log_dir'] = args.log_dir
   if args.dependencies is not None:  kwargs['dependencies'] = args.dependencies
   if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
@@ -129,6 +130,7 @@ def submit(args):
       kwargs['memfree'] = get_memfree(args.memory, args.parallel)
   kwargs['dry_run'] = args.dry_run
   kwargs['stop_on_failure'] = args.stop_on_failure
+
 
   # submit the job
   job_id = jm.submit(args.job, **kwargs)
@@ -283,6 +285,7 @@ def main(command_line_options = None):
   submit_parser.add_argument('-n', '--name', dest='name', help='Gives the job a name')
   submit_parser.add_argument('-x', '--dependencies', type=int, default=[], metavar='ID', nargs='*', help='Set job dependencies to the list of job identifiers separated by spaces')
   submit_parser.add_argument('-k', '--stop-on-failure', action='store_true', help='Stop depending jobs when this job finished with an error.')
+  submit_parser.add_argument('-d', '--exec-dir', metavar='DIR', help='Sets the executing directory, where the script should be executed. If not given, jobs will be executed in the current directory')
   submit_parser.add_argument('-l', '--log-dir', metavar='DIR', help='Sets the log directory. By default, "logs" is selected for the SGE. If the jobs are executed locally, by default the result is written to console.')
   submit_parser.add_argument('-s', '--environment', metavar='KEY=VALUE', dest='env', nargs='*', default=[], help='Passes specific environment variables to the job.')
   submit_parser.add_argument('-t', '--array', '--parametric', metavar='(first-)last(:step)', help="Creates a parametric (array) job. You must specify the 'last' value, but 'first' (default=1) and 'step' (default=1) can be specified as well (when specifying 'step', 'first' has to be given, too).")

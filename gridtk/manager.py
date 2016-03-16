@@ -147,11 +147,12 @@ class JobManager:
     self.lock()
     job = self.get_jobs((job_id,))[0]
     command_line = job.get_command_line()
+    exec_dir = job.get_exec_dir()
     self.unlock()
 
     # execute the command line of the job, and wait until it has finished
     try:
-      result = subprocess.call(command_line)
+      result = subprocess.call(command_line, cwd=exec_dir)
     except Exception as e:
       print("ERROR: The job with id '%d' could not be executed: %s" % (job_id, e), file=sys.stderr)
       result = 69 # ASCII: 'E'
