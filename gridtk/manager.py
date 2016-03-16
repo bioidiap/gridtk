@@ -137,7 +137,8 @@ class JobManager:
       job.execute(array_id, machine_name)
 
       self.session.commit()
-    except Exception:
+    except Exception as e:
+      logger.error("Caught exception '%s'", e)
       pass
     finally:
       self.unlock()
@@ -149,13 +150,15 @@ class JobManager:
     exec_dir = job.get_exec_dir()
     self.unlock()
 
+    logger.info("Starting job %d: %s", job_id, " ".join(command_line))
+
     # execute the command line of the job, and wait until it has finished
     try:
       result = subprocess.call(command_line, cwd=exec_dir)
+      logger.info("Job %d finished with result %s", job_id, str(result))
     except Exception as e:
-      print("ERROR: The job with id '%d' could not be executed: %s" % (job_id, e), file=sys.stderr)
+      logger.error("The job with id '%d' could not be executed: %s", job_id, e)
       result = 69 # ASCII: 'E'
-
 
     # set a new status and the results of the job
     try:
@@ -163,7 +166,7 @@ class JobManager:
       jobs = self.get_jobs((job_id,))
       if not len(jobs):
         # it seems that the job has been deleted in the meanwhile
-        print("ERROR: The job with id '%d' could not be found in the database!" % job_id, file=sys.stderr)
+        logger.error("The job with id '%d' could not be found in the database!", job_id)
         self.unlock()
         return
 
@@ -187,16 +190,14 @@ class JobManager:
         self.unlock()
         deps = sorted(list(dependent_job_ids))
         self.stop_jobs(deps)
-        print ("WARNING: Stopped dependent jobs '%s' since this job failed." % str(deps), file=sys.stderr)
+        logger.warn ("Stopped dependent jobs '%s' since this job failed.", str(deps))
 
     except Exception as e:
-      print ("ERROR: Caught exception '%s'" % e, file=sys.stderr)
+      logger.error("Caught exception '%s'", e)
       pass
     finally:
       if hasattr(self, 'session'):
         self.unlock()
-
-
 
 
   def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status, names=None, ids_only=False):

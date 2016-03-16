@@ -113,6 +113,7 @@ def submit(args):
   kwargs = {
       'queue': args.qname,
       'cwd': True,
+      'verbosity' : args.verbose,
       'name': args.name,
       'env': args.env,
       'memfree': args.memory,
@@ -146,7 +147,8 @@ def resubmit(args):
     jm.delete(job_ids=get_ids(args.job_ids), delete_jobs=False)
 
   kwargs = {
-      'cwd': True
+      'cwd': True,
+      'verbosity' : args.verbose
   }
   if args.qname is not None:
     kwargs['queue'] = args.qname
@@ -171,7 +173,7 @@ def run_scheduler(args):
   if not args.local:
     raise ValueError("The execute command can only be used with the '--local' command line option")
   jm = setup(args)
-  jm.run_scheduler(parallel_jobs=args.parallel, job_ids=get_ids(args.job_ids), sleep_time=args.sleep_time, die_when_finished=args.die_when_finished, no_log=args.no_log_files, nice=args.nice)
+  jm.run_scheduler(parallel_jobs=args.parallel, job_ids=get_ids(args.job_ids), sleep_time=args.sleep_time, die_when_finished=args.die_when_finished, no_log=args.no_log_files, nice=args.nice, verbosity=args.verbose)
 
 
 def list(args):

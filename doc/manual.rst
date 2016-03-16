@@ -192,6 +192,20 @@ This will clean up the old log files (if you didn't specify the ``--keep-logs`` 
 If the submission is done in the grid the job id(s) will change during this process.
 
 
+Note about verbosity and time stamps
+------------------------------------
+For some jobs, it might be interesting to get the time stamps when the job has started and when it has finished.
+These time stamps are added to the log files (usually the error log file) automatically, when you use the ``-vv`` option, one when starting the process and one when it is finished.
+However, there is a difference between the ``SGE`` operation and the ``--local`` operation.
+For the ``SGE`` operation, you need to use the ``-vv`` option during the submission or re-submission of a job.
+In ``--local`` mode, the ``-vv`` flag during execution (using ``--run-local-scheduler``) is used instead.
+
+.. note::
+   Why writing info logs the error log file, and not to the default output log file?
+   This is the default behavior of python's logging module.
+   All logs, independent of whether they are error, warning, info or debug logs are written to ``sys.stderr``, which in turn will be written into the error log files.
+
+
 Cleaning up
 -----------
 After the job was successfully (or not) executed, you should clean up the database using the ``bin/jman delete`` command.
@@ -217,4 +231,3 @@ These tools are:
 - ``bin/qsub.py``: submit job to the SGE grid without logging them into the database
 - ``bin/qdel.py``: delete job from the SGE grid without logging them into the database
 - ``bin/grid``: executes the command in an grid environment (i.e., as if a ``SETSHELL grid`` command would have been issued before)
-

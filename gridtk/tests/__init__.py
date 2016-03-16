@@ -162,8 +162,8 @@ class GridTKTest(unittest.TestCase):
       # ... but the log dir still exists
       self.assertTrue(os.path.exists(self.log_dir))
 
-      # now, let the scheduler run all jobs
-      self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
+      # now, let the scheduler run all jobs, but this time in verbose mode
+      self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '-vv', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
       # and wait for the job to finish (the timeout argument to Popen only exists from python 3.3 onwards)
       self.scheduler_job.wait()
       self.scheduler_job = None
@@ -172,7 +172,7 @@ class GridTKTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(out_file))
       self.assertTrue(os.path.isfile(err_file))
       self.assertEqual(open(out_file).read().rstrip(), 'This is a text message to std-out')
-      self.assertEqual(open(err_file).read().split('\n')[0], 'This is a text message to std-err')
+      self.assertEqual(open(err_file).read().split('\n')[1], 'This is a text message to std-err')
 
       # check that exactly four output and four error files have been created
       files = os.listdir(self.log_dir)

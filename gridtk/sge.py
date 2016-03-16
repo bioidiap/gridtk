@@ -48,7 +48,7 @@ class JobManagerSGE(JobManager):
     return 'all.q'
 
 
-  def _submit_to_grid(self, job, name, array, dependencies, log_dir, **kwargs):
+  def _submit_to_grid(self, job, name, array, dependencies, log_dir, verbosity, **kwargs):
     # ... what we will actually submit to the grid is a wrapper script that will call the desired command...
     # get the name of the file that was called originally
     jman = self.wrapper_script
@@ -59,7 +59,7 @@ class JobManagerSGE(JobManager):
     deps = sorted(list(set([j.id for j in dependent_jobs])))
 
     # generate call to the wrapper script
-    command = make_shell(python, [jman, '-d', self._database, 'run-job'])
+    command = make_shell(python, [jman, '-d%s' % ('v'*verbosity), self._database, 'run-job'])
     q_array = "%d-%d:%d" % array if array else None
     grid_id = qsub(command, context=self.context, name=name, deps=deps, array=q_array, stdout=log_dir, stderr=log_dir, **kwargs)
 
@@ -80,7 +80,7 @@ class JobManagerSGE(JobManager):
     return job.unique
 
 
-  def submit(self, command_line, name = None, array = None, dependencies = [], exec_dir = None, log_dir = "logs", dry_run = False, stop_on_failure = False, **kwargs):
+  def submit(self, command_line, name = None, array = None, dependencies = [], exec_dir = None, log_dir = "logs", dry_run = False, verbosity = 0, stop_on_failure = False, **kwargs):
     """Submits a job that will be executed in the grid."""
     # add job to database
     self.lock()
@@ -95,7 +95,7 @@ class JobManagerSGE(JobManager):
       job_id = None
 
     else:
-      job_id = self._submit_to_grid(job, name, array, dependencies, log_dir, **kwargs)
+      job_id = self._submit_to_grid(job, name, array, dependencies, log_dir, verbosity, **kwargs)
 
     self.session.commit()
     self.unlock()
@@ -126,7 +126,7 @@ class JobManagerSGE(JobManager):
     self.unlock()
 
 
-  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, **kwargs):
+  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, verbosity=0, **kwargs):
     """Re-submit jobs automatically"""
     self.lock()
     # iterate over all jobs
@@ -159,7 +159,7 @@ class JobManagerSGE(JobManager):
         else:
           deps = [dep.unique for dep in job.get_jobs_we_wait_for()]
           logger.debug("Re-submitting job '%s' with dependencies '%s' to the grid." % (job, deps))
-          self._submit_to_grid(job, job.name, job.get_array(), deps, job.log_dir, **arguments)
+          self._submit_to_grid(job, job.name, job.get_array(), deps, job.log_dir, verbosity, **arguments)
 
         # commit after each job to avoid failures of not finding the job during execution in the grid
         self.session.commit()

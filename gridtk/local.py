@@ -126,7 +126,7 @@ class JobManagerLocal(JobManager):
 #####################################################################
 ###### Methods to run the jobs in parallel on the local machine #####
 
-  def _run_parallel_job(self, job_id, array_id = None, no_log = False, nice = None):
+  def _run_parallel_job(self, job_id, array_id = None, no_log = False, nice = None, verbosity = 0):
     """Executes the code for this job on the local machine."""
     environ = copy.deepcopy(os.environ)
     environ['JOB_ID'] = str(job_id)
@@ -136,7 +136,7 @@ class JobManagerLocal(JobManager):
       environ['SGE_TASK_ID'] = 'undefined'
 
     # generate call to the wrapper script
-    command = [self.wrapper_script, '-ld', self._database, 'run-job']
+    command = [self.wrapper_script, '-l%sd'%("v"*verbosity), self._database, 'run-job']
 
     if nice is not None:
       command = ['nice', '-n%d'%nice] + command
@@ -166,7 +166,7 @@ class JobManagerLocal(JobManager):
   def _format_log(self, job_id, array_id = None, array_count = 0):
     return ("%d (%d/%d)" % (job_id, array_id, array_count)) if array_id is not None and array_count else ("%d (%d)" % (job_id, array_id)) if array_id is not None else ("%d" % job_id)
 
-  def run_scheduler(self, parallel_jobs = 1, job_ids = None, sleep_time = 0.1, die_when_finished = False, no_log = False, nice = None):
+  def run_scheduler(self, parallel_jobs = 1, job_ids = None, sleep_time = 0.1, die_when_finished = False, no_log = False, nice = None, verbosity = 0):
     """Starts the scheduler, which is constantly checking for jobs that should be ran."""
     running_tasks = []
     finished_tasks = set()
@@ -222,7 +222,7 @@ class JobManagerLocal(JobManager):
                 for i in range(min(parallel_jobs - len(running_tasks), len(queued_array_jobs))):
                   array_job = queued_array_jobs[i]
                   # start a new job from the array
-                  process = self._run_parallel_job(job.unique, array_job.id, no_log=no_log, nice=nice)
+                  process = self._run_parallel_job(job.unique, array_job.id, no_log=no_log, nice=nice, verbosity=verbosity)
                   if process is None:
                     continue
                   running_tasks.append((process, job.unique, array_job.id))
@@ -235,7 +235,7 @@ class JobManagerLocal(JobManager):
             else:
               if job.status == 'queued':
                 # start a new job
-                process = self._run_parallel_job(job.unique, no_log=no_log, nice=nice)
+                process = self._run_parallel_job(job.unique, no_log=no_log, nice=nice, verbosity=verbosity)
                 if process is None:
                   continue
                 running_tasks.append((process, job.unique))
