@@ -159,6 +159,9 @@ You can use it to select a range of job ids, e.g., ``-j 1-4 6-8``.
 In this case, please assert that there are no spaces between job ids and the ``-`` separator.
 If any job id is specified, which is not available in the database, it will simply be ignored, including job ids that in the ranges.
 
+Since version 1.3.0, GridTK also saves timing information about jobs, i.e., time stamps when jobs were submitted, started and finished.
+You can use the ``-t`` option of ``jman ls`` to add the time stamps to the listing, which are both written for jobs and parametric jobs (i.e., when using the ``-a`` option).
+
 
 Inspecting log files
 --------------------

@@ -60,7 +60,7 @@ class GridTKTest(unittest.TestCase):
       print()
       # test that the list command works (should also work with the "default" grid manager
       jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '1'])
-      jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '2', '--print-array-jobs', '--print-dependencies'])
+      jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '2', '--print-array-jobs', '--print-dependencies', '--print-times'])
 
       # get insight into the database
       job_manager = gridtk.local.JobManagerLocal(database=self.database)
@@ -74,6 +74,12 @@ class GridTKTest(unittest.TestCase):
       self.assertEqual(jobs[0].status, 'submitted')
       self.assertEqual(jobs[1].status, 'submitted')
       self.assertEqual(jobs[2].status, 'submitted')
+      self.assertTrue(all(j.submit_time is not None for j in jobs))
+      self.assertTrue(all(j.start_time is None for j in jobs))
+      self.assertTrue(all(j.finish_time is None for j in jobs))
+      self.assertTrue(all(j.submit_time is not None for j in jobs[1].array))
+      self.assertTrue(all(j.start_time is None for j in jobs[1].array))
+      self.assertTrue(all(j.finish_time is None for j in jobs[1].array))
 
       # check that the job dependencies are correct
       waiting = jobs[0].get_jobs_waiting_for_us()
@@ -107,6 +113,13 @@ class GridTKTest(unittest.TestCase):
       self.assertEqual(jobs[0].status, 'failure')
       self.assertEqual(jobs[1].status, 'queued')
       self.assertEqual(jobs[2].status, 'waiting')
+      self.assertTrue(jobs[0].start_time is not None)
+      self.assertTrue(jobs[0].finish_time is not None)
+      self.assertTrue(jobs[1].start_time is None)
+      self.assertTrue(jobs[1].finish_time is None)
+      self.assertTrue(jobs[2].start_time is None)
+      self.assertTrue(jobs[2].finish_time is None)
+
       # the result files should already be there
       self.assertTrue(os.path.exists(jobs[0].std_out_file()))
       self.assertTrue(os.path.exists(jobs[0].std_err_file()))
@@ -193,6 +206,14 @@ class GridTKTest(unittest.TestCase):
         self.assertEqual(jobs[1].array[i].result, 0)
       self.assertEqual(jobs[2].status, 'success')
       self.assertEqual(jobs[2].result, 0)
+
+      self.assertTrue(all(j.submit_time is not None for j in jobs))
+      self.assertTrue(all(j.start_time is not None for j in jobs))
+      self.assertTrue(all(j.finish_time is not None for j in jobs))
+      self.assertTrue(all(j.submit_time is not None for j in jobs[1].array))
+      self.assertTrue(all(j.start_time is not None for j in jobs[1].array))
+      self.assertTrue(all(j.finish_time is not None for j in jobs[1].array))
+
       job_manager.unlock()
 
       print()

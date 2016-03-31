@@ -1,11 +1,12 @@
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Table, Column, Integer, DateTime, String, Boolean, ForeignKey
 from sqlalchemy.orm import backref
 from sqlalchemy.ext.declarative import declarative_base
 from .tools import Enum, relationship
 
 import os
 import sys
+from datetime import datetime
 
 if sys.version_info[0] >= 3:
   from pickle import dumps, loads
@@ -29,6 +30,10 @@ class ArrayJob(Base):
   result = Column(Integer)
   machine_name = Column(String(10))
 
+  submit_time = Column(DateTime)
+  start_time = Column(DateTime)
+  finish_time = Column(DateTime)
+
   job = relationship("Job", backref='array', order_by=id)
 
   def __init__(self, id, job_id):
@@ -37,6 +42,11 @@ class ArrayJob(Base):
     self.status = Status[0]
     self.result = None
     self.machine_name = None # will be set later, by the Job class
+
+    self.submit_time = datetime.now()
+    self.start_time = None
+    self.finish_time = None
+
 
   def std_out_file(self):
     return self.job.std_out_file() + "." + str(self.id) if self.job.log_dir else None
@@ -76,6 +86,11 @@ class Job(Base):
   array_string = Column(String(255))           # The array string (only needed for re-submission)
   stop_on_failure = Column(Boolean)            # An indicator whether to stop depending jobs when this job finishes with an error
 
+  submit_time = Column(DateTime)
+  start_time = Column(DateTime)
+  finish_time = Column(DateTime)
+
+
   status = Column(Enum(*Status))
   result = Column(Integer)
 
@@ -105,6 +120,9 @@ class Job(Base):
       array_job.result = None
       array_job.machine_name = None
     self.id = self.unique
+    self.submit_time = datetime.now()
+    self.start_time = None
+    self.finish_time = None
 
 
   def queue(self, new_job_id = None, new_job_name = None, queue_name = None):
@@ -148,8 +166,11 @@ class Job(Base):
           array_job.status = 'executing'
           if machine_name is not None:
             array_job.machine_name = machine_name
+            array_job.start_time = datetime.now()
     elif machine_name is not None:
       self.machine_name = machine_name
+    if self.start_time is None:
+      self.start_time = datetime.now()
 
     # sometimes, the 'finish' command did not work for array jobs,
     # so check if any old job still has the 'executing' flag set
@@ -169,6 +190,7 @@ class Job(Base):
         if array_job.id == array_id:
           array_job.status = new_status
           array_job.result = result
+          array_job.finish_time = datetime.now()
         if array_job.status not in ('success', 'failure'):
           finished = False
         elif new_result == 0:
@@ -178,6 +200,7 @@ class Job(Base):
       # There was no array job, or all array jobs finished
       self.status = 'success' if new_result == 0 else 'failure'
       self.result = new_result
+      self.finish_time = datetime.now()
 
       # update all waiting jobs
       for job in self.get_jobs_waiting_for_us():
@@ -362,3 +385,12 @@ def add_job(session, command_line, name = 'job', dependencies = [], array = None
   session.commit()
 
   return job
+
+def times(job):
+  """Returns a string containing timing information for teh given job, which might be a :py:class:`Job` or an :py:class:`ArrayJob`."""
+  timing = "Submitted: %s" % job.submit_time.ctime()
+  if job.start_time is not None:
+    timing += "\nStarted  : %s \t Job waited  : %s" % (job.start_time.ctime(), job.start_time - job.submit_time)
+  if job.finish_time is not None:
+    timing += "\nFinished : %s \t Job executed: %s" % (job.finish_time.ctime(), job.finish_time - job.start_time)
+  return timing

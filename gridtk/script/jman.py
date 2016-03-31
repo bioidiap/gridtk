@@ -179,7 +179,7 @@ def run_scheduler(args):
 def list(args):
   """Lists the jobs in the given database."""
   jm = setup(args)
-  jm.list(job_ids=get_ids(args.job_ids), print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, status=args.status, long=args.long, ids_only=args.ids_only, names=args.names)
+  jm.list(job_ids=get_ids(args.job_ids), print_array_jobs=args.print_array_jobs, print_dependencies=args.print_dependencies, status=args.status, long=args.long, print_times=args.print_times, ids_only=args.ids_only, names=args.names)
 
 
 def communicate(args):
@@ -322,6 +322,7 @@ def main(command_line_options = None):
   list_parser.add_argument('-n', '--names', metavar='NAME', nargs='+', help='List only the jobs with the given names (by default, all jobs are listed)')
   list_parser.add_argument('-a', '--print-array-jobs', action='store_true', help='Also list the array ids.')
   list_parser.add_argument('-l', '--long', action='store_true', help='Prints additional information about the submitted job.')
+  list_parser.add_argument('-t', '--print-times', action='store_true', help='Prints timing information on when jobs were submited, executed and finished')
   list_parser.add_argument('-x', '--print-dependencies', action='store_true', help='Print the dependencies of the jobs as well.')
   list_parser.add_argument('-o', '--ids-only', action='store_true', help='Prints ONLY the job ids (so that they can be parsed by automatic scripts).')
   list_parser.add_argument('-s', '--status', nargs='+', choices = Status, default = Status, help='Delete only jobs that have the given statuses; by default all jobs are deleted.')
