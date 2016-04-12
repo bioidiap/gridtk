@@ -3,10 +3,10 @@
    :target: http://pythonhosted.org/gridtk/index.html
 .. image:: http://img.shields.io/badge/docs-latest-orange.png
    :target: https://www.idiap.ch/software/bob/docs/latest/bioidiap/gridtk/master/index.html
-.. image:: http://travis-ci.org/bioidiap/gridtk.svg?branch=master
-   :target: https://travis-ci.org/bioidiap/gridtk?branch=master
-.. image:: https://coveralls.io/repos/github/bioidiap/gridtk/badge.svg?branch=master
-   :target: https://coveralls.io/github/bioidiap/gridtk?branch=master 
+.. image:: http://travis-ci.org/bioidiap/gridtk.svg?branch=v1.3.0
+   :target: https://travis-ci.org/bioidiap/gridtk?branch=v1.3.0
+.. image:: https://coveralls.io/repos/github/bioidiap/gridtk/badge.svg?branch=v1.3.0
+   :target: https://coveralls.io/github/bioidiap/gridtk?branch=v1.3.0
 .. image:: https://img.shields.io/badge/github-master-0000c0.png
    :target: https://github.com/bioidiap/gridtk/tree/master
 .. image:: http://img.shields.io/pypi/v/gridtk.png
