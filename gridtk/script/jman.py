@@ -26,6 +26,8 @@ from ..tools import make_shell, logger
 from .. import local, sge
 from ..models import Status
 
+QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm','gpu']
+
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
 
@@ -281,7 +283,7 @@ def main(command_line_options = None):
 
   # subcommand 'submit'
   submit_parser = cmdparser.add_parser('submit', aliases=['sub'], formatter_class=formatter, help='Submits jobs to the SGE queue or to the local job scheduler and logs them in a database.')
-  submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', choices=('all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm'), help='the name of the SGE queue to submit the job to')
+  submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', choices=QUEUES, help='the name of the SGE queue to submit the job to')
   submit_parser.add_argument('-m', '--memory', help='Sets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
   submit_parser.add_argument('-p', '--parallel', '--pe_mth', type=int, help='Sets the number of slots per job (-pe pe_mth) and multiplies the mem_free parameter. E.g. to get 16 G of memory, use -m 8G -p 2.')
   submit_parser.add_argument('-n', '--name', dest='name', help='Gives the job a name')
@@ -300,7 +302,7 @@ def main(command_line_options = None):
   # subcommand 're-submit'
   resubmit_parser = cmdparser.add_parser('resubmit', aliases=['reset', 'requeue', 're'], formatter_class=formatter, help='Re-submits a list of jobs.')
   resubmit_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Re-submit only the jobs with the given ids (by default, all finished jobs are re-submitted).')
-  resubmit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', choices=('all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm'), help='Reset the SGE queue to submit the job to')
+  resubmit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', choices=QUEUES, help='Reset the SGE queue to submit the job to')
   resubmit_parser.add_argument('-m', '--memory', help='Resets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
   resubmit_parser.add_argument('-p', '--parallel', '--pe_mth', type=int, help='Resets the number of slots per job (-pe pe_mth) and multiplies the mem_free parameter. E.g. to get 16 G of memory, use -m 8G -p 2.')
   resubmit_parser.add_argument('-i', '--io-big', action='store_true', help='Resubmits the job to the "io_big" queue.')
