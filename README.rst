@@ -6,7 +6,7 @@
 .. image:: http://travis-ci.org/bioidiap/gridtk.svg?branch=master
    :target: https://travis-ci.org/bioidiap/gridtk?branch=master
 .. image:: https://coveralls.io/repos/github/bioidiap/gridtk/badge.svg?branch=master
-   :target: https://coveralls.io/github/bioidiap/gridtk?branch=master 
+   :target: https://coveralls.io/github/bioidiap/gridtk?branch=master
 .. image:: https://img.shields.io/badge/github-master-0000c0.png
    :target: https://github.com/bioidiap/gridtk/tree/master
 .. image:: http://img.shields.io/pypi/v/gridtk.png

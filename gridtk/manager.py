@@ -4,7 +4,7 @@ from __future__ import print_function
 import os, sys
 import subprocess
 import socket # to get the host name
-from .models import Base, Job, ArrayJob, Status
+from .models import Base, Job, ArrayJob, Status, times
 from .tools import logger
 
 
@@ -200,7 +200,7 @@ class JobManager:
         self.unlock()
 
 
-  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, status=Status, names=None, ids_only=False):
+  def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, print_times = False, status=Status, names=None, ids_only=False):
     """Lists the jobs currently added to the database."""
     # configuration for jobs
     if print_dependencies:
@@ -231,7 +231,6 @@ class JobManager:
       print('  '.join(header))
       print(delimiter)
 
-
     self.lock()
     for job in self.get_jobs(job_ids):
       job.refresh()
@@ -240,11 +239,16 @@ class JobManager:
           print(job.unique, end=" ")
         else:
           print(job.format(format, dependency_length, None if long else 43))
+        if print_times:
+          print(times(job))
+
         if (not ids_only) and print_array_jobs and job.array:
           print(array_delimiter)
           for array_job in job.array:
             if array_job.status in status:
               print(array_job.format(array_format))
+              if print_times:
+                print(times(array_job))
           print(array_delimiter)
 
     self.unlock()
