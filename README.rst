@@ -4,7 +4,7 @@
 .. image:: http://img.shields.io/badge/docs-stable-yellow.png
    :target: http://pythonhosted.org/gridtk/index.html
 .. image:: http://img.shields.io/badge/docs-latest-orange.png
-   :target: https://www.idiap.ch/software/bob/docs/latest/bioidiap/gridtk/master/index.html
+   :target: https://www.idiap.ch/software/bob/docs/latest/gridtk/master/index.html
 .. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/build.svg
    :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
 .. image:: https://img.shields.io/badge/gitlab-project-0000c0.svg
