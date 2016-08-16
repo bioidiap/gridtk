@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 import sys
 
 version = open("version.txt").read().rstrip()
-requirements = [k.strip() for k in open("requirements.txt".read().split()]
+requirements = [k.strip() for k in open("requirements.txt").read().split()]
 
 setup(
     name='gridtk',
