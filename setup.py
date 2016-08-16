@@ -2,26 +2,24 @@ from setuptools import setup, find_packages
 
 import sys
 
-# If Python < 2.7 or 3.0 <= Python < 3.2, require some more stuff
-DEPS = ['six']
-if sys.version_info[:2] < (2, 7) or ((3,0) <= sys.version_info[:2] < (3,2)):
-  DEPS.append('argparse')
-
 version = open("version.txt").read().rstrip()
+requirements = [k.strip() for k in open("requirements.txt".read().split()]
 
 setup(
     name='gridtk',
     version=version,
-    description='SGE Grid and Local Submission and Monitoring Tools for Idiap',
-
-    url='http://github.com/bioidiap/gridtk',
+    description='Parallel Job Manager',
+    long_description=open('README.rst').read(),
+    url='https://gitlab.idiap.ch/bob/gridtk',
     license='GPLv3',
 
-    author='Manuel Guenther',
-    author_email='manuel.guenther@idiap.ch',
+    author='Manuel Guenther,Andre Anjos',
+    author_email='manuel.guenther@idiap.ch,andre.anjos@idiap.ch',
 
     packages=find_packages(),
     include_package_data=True,
+
+    install_requires=requirements,
 
     entry_points={
       'console_scripts': [
@@ -36,10 +34,6 @@ setup(
       ],
 
     },
-
-    long_description=open('README.rst').read(),
-
-    install_requires=DEPS,
 
     classifiers = [
       'Development Status :: 4 - Beta',

@@ -4,22 +4,24 @@
 
 .. _developer:
 
-=====================
-The GridTk User Guide
-=====================
+=======================
+ The GridTk User Guide
+=======================
 
-The ``gridtk`` framework is a python library to help submitting, tracking and querying SGE.
-Here is quick example on how to use the ``gridtk`` framework to submit a python script:
+The ``gridtk`` framework is a python library to help submitting, tracking and
+querying SGE.  Here is quick example on how to use the ``gridtk`` framework to
+submit a python script:
 
 .. code-block:: python
 
-  import sys
-  from gridtk.sge import JobManager
-  from gridtk.tools import make_shell
+   import sys
+   from gridtk.sge import JobManager
+   from gridtk.tools import make_shell
 
-  manager = JobManager()
-  command = make_shell(sys.executable, ['myscript.py', '--help'])
-  job = manager.submit(command)
+   manager = JobManager()
+   command = make_shell(sys.executable, ['myscript.py', '--help'])
+   job = manager.submit(command)
+
 
 You can do, programatically, everything you can do with the job manager - just
 browse the help messages and the ``jman`` script for more information.

@@ -4,15 +4,18 @@
 
 .. _gridtk:
 
-Parallel Execution of Jobs in the SGE Grid or on a Local Machine
-================================================================
+======================
+ Parallel Job Manager
+======================
 
-The GridTK serves as a tool to submit jobs and keep track of their dependencies and their current statuses.
-These jobs can either be submitted to an SGE grid, or to be run in parallel on the local machine.
+The GridTK serves as a tool to submit jobs and keep track of their dependencies
+and their current statuses. These jobs can either be submitted to an SGE grid,
+or to be run in parallel on the local machine.
 
-There are two main ways to interact with the GridTK.
-The easiest way is surely to use the command line interface, for details please read the :ref:`command_line` section.
-It is also possible to use the GridTK in a program, the developer interface is described in the :ref:`developer` section.
+There are two main ways to interact with the GridTK. The easiest way is surely
+to use the command line interface, for details please read the
+:ref:`command_line` section.  It is also possible to use the GridTK in a
+program, the developer interface is described in the :ref:`developer` section.
 
 
 Contents:
@@ -29,4 +32,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
