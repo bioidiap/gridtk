@@ -28,7 +28,7 @@ To build the package documentation, do:
 
 .. code-block:: sh
 
-  $ ./bin/sphinx-build docs sphinx
+  $ ./bin/sphinx-build doc sphinx
 
 
 The Job Manager
