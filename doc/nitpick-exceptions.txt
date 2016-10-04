@@ -1,0 +1,2 @@
+# sqlalchemy
+py:class sqlalchemy.ext.declarative.api.Base
