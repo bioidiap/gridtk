@@ -15,10 +15,10 @@ submit a python script:
 .. code-block:: python
 
    import sys
-   from gridtk.sge import JobManager
+   from gridtk.sge import JobManagerSGE
    from gridtk.tools import make_shell
 
-   manager = JobManager()
+   manager = JobManagerSGE()
    command = make_shell(sys.executable, ['myscript.py', '--help'])
    job = manager.submit(command)
 
