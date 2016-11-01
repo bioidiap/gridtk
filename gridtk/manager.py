@@ -15,7 +15,7 @@ from distutils.version import LooseVersion
 class JobManager:
   """This job manager defines the basic interface for handling jobs in the SQL database."""
 
-  def __init__(self, database, wrapper_script = None, debug = False):
+  def __init__(self, database = 'submitted.sql3', wrapper_script = None, debug = False):
     self._database = os.path.realpath(database)
     self._engine = sqlalchemy.create_engine("sqlite:///"+self._database, connect_args={'timeout': 600}, echo=debug)
     self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
