@@ -26,7 +26,7 @@ from ..tools import make_shell, logger
 from .. import local, sge
 from ..models import Status
 
-QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm','gpu']
+QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm','gpu', 'lgpu']
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
