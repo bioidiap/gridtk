@@ -165,7 +165,7 @@ class GridTKTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(out_file))
       self.assertTrue(os.path.isfile(err_file))
       self.assertEqual(open(out_file).read().rstrip(), 'This is a text message to std-out')
-      self.assertEqual(open(err_file).read().split('\n')[0], 'This is a text message to std-err')
+      self.assertTrue('This is a text message to std-err' in open(err_file).read().split('\n'))
 
       # resubmit all jobs
       jman.main(['./bin/jman', '--local', '--database', self.database, 'resubmit', '--running-jobs'])
@@ -185,7 +185,7 @@ class GridTKTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(out_file))
       self.assertTrue(os.path.isfile(err_file))
       self.assertEqual(open(out_file).read().rstrip(), 'This is a text message to std-out')
-      self.assertEqual(open(err_file).read().split('\n')[1], 'This is a text message to std-err')
+      self.assertTrue('This is a text message to std-err' in open(err_file).read().split('\n'))
 
       # check that exactly four output and four error files have been created
       files = os.listdir(self.log_dir)
