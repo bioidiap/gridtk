@@ -8,14 +8,9 @@
  The Command Line Interface
 ============================
 
-The command line interface requires the package to be installed properly.
-Fortunately, this is easy to be done, using the Buildout tools in the main directory of GridTK:
+The command line interface requires the package to be installed properly (see the README file).
 
-.. code-block:: sh
-
-  $ buildout
-
-These two commands will download all required dependencies and add all the command line utilities that we will need to your environment.  To verify the installation, you can call out nose tests:
+When installation has finished, you should have all required dependencies and command line utilities in your environment.  To verify the installation, you can call out nose tests:
 
 .. code-block:: sh
 
