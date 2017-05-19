@@ -12,6 +12,24 @@ import sqlalchemy
 from distutils.version import LooseVersion
 
 
+# Defines an equivalent `which` function to dig-out the location of excutables
+import shutil
+if sys.version_info[:2] >= (3, 3):
+
+  which = shutil.which
+
+else: #define our own
+
+  def which(cmd, mode=os.F_OK|os.X_OK, path=None):
+
+    from distutils.spawn import find_executable
+    candidate = find_executable(cmd, path)
+    st = os.stat(candidate)
+    if bool(st.st_mode & mode):
+      return candidate
+    return None
+
+
 class JobManager:
   """This job manager defines the basic interface for handling jobs in the SQL database."""
 
@@ -21,10 +39,11 @@ class JobManager:
     self._session_maker = sqlalchemy.orm.sessionmaker(bind=self._engine)
 
     # store the command that this job manager was called with
-    if wrapper_script is None:
-      # try to find the executable, search in the bin path first
-      import distutils.spawn
-      wrapper_script = os.path.realpath(distutils.spawn.find_executable('jman', '.' + os.pathsep + 'bin' + os.pathsep + os.environ['PATH']))
+    if wrapper_script is None: wrapper_script = 'jman'
+    if not os.path.exists(wrapper_script):
+      bindir = os.path.join(os.path.realpath(os.curdir), 'bin')
+      wrapper_script = which(wrapper_script, path=os.pathsep.join((bindir,
+        os.environ['PATH'])))
 
     if wrapper_script is None:
       raise IOError("Could not find the installation path of gridtk. Please specify it in the wrapper_script parameter of the JobManager.")
