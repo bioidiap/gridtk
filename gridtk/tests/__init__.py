@@ -10,7 +10,8 @@ import gridtk
 import subprocess, signal
 import time
 
-from gridtk.models import Job
+from ..models import Job
+
 
 class GridTKTest(unittest.TestCase):
   # This class defines tests for the gridtk
@@ -22,6 +23,11 @@ class GridTKTest(unittest.TestCase):
     self.log_dir = os.path.join(self.temp_dir, 'logs')
     self.database = os.path.join(self.temp_dir, 'database.sql3')
     self.scheduler_job = None
+
+    from ..manager import which
+    bindir = os.path.join(os.path.realpath(os.curdir), 'bin')
+    self.jman = which('jman', path=os.pathsep.join((bindir,
+      os.environ['PATH'])))
 
 
   def tearDown(self):
@@ -45,22 +51,22 @@ class GridTKTest(unittest.TestCase):
       import nose
 
       # first, add some commands to the database
-      script_1 = pkg_resources.resource_filename('gridtk.tests', 'test_script.sh')
-      script_2 = pkg_resources.resource_filename('gridtk.tests', 'test_array.sh')
+      script_1 = pkg_resources.resource_filename(__name__, 'test_script.sh')
+      script_2 = pkg_resources.resource_filename(__name__, 'test_array.sh')
       rdir = pkg_resources.resource_filename('gridtk', 'tests')
       from gridtk.script import jman
       # add a simple script that will write some information to the
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', bash, script_1])
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', bash, script_2])
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_3',  '--dependencies', '1', '2', '--exec-dir', rdir, bash, "test_array.sh"])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', bash, script_1])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', bash, script_2])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_3',  '--dependencies', '1', '2', '--exec-dir', rdir, bash, "test_array.sh"])
 
       # check that the database was created successfully
       self.assertTrue(os.path.exists(self.database))
 
       print()
       # test that the list command works (should also work with the "default" grid manager
-      jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '1'])
-      jman.main(['./bin/jman', '--database', self.database, 'list', '--job-ids', '2', '--print-array-jobs', '--print-dependencies', '--print-times'])
+      jman.main([self.jman, '--database', self.database, 'list', '--job-ids', '1'])
+      jman.main([self.jman, '--database', self.database, 'list', '--job-ids', '2', '--print-array-jobs', '--print-dependencies', '--print-times'])
 
       # get insight into the database
       job_manager = gridtk.local.JobManagerLocal(database=self.database)
@@ -94,7 +100,7 @@ class GridTKTest(unittest.TestCase):
       job_manager.unlock()
 
       # now, start the local execution of the job in a parallel job
-      self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
+      self.scheduler_job = subprocess.Popen([self.jman, '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
 
       # sleep some time to assure that the scheduler was able to start the first job
       time.sleep(4)
@@ -127,10 +133,10 @@ class GridTKTest(unittest.TestCase):
 
 
       # reset the job 1
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'resubmit', '--job-id', '1', '--running-jobs', '--overwrite-command', script_1])
+      jman.main([self.jman, '--local', '--database', self.database, 'resubmit', '--job-id', '1', '--running-jobs', '--overwrite-command', script_1])
 
       # now, start the local execution of the job in a parallel job
-      self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
+      self.scheduler_job = subprocess.Popen([self.jman, '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
 
       # sleep some time to assure that the scheduler was able to finish the first and start the second job
       time.sleep(9)
@@ -168,7 +174,7 @@ class GridTKTest(unittest.TestCase):
       self.assertTrue('This is a text message to std-err' in open(err_file).read().split('\n'))
 
       # resubmit all jobs
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'resubmit', '--running-jobs'])
+      jman.main([self.jman, '--local', '--database', self.database, 'resubmit', '--running-jobs'])
       # check that the log files have been cleaned
       self.assertFalse(os.path.exists(out_file))
       self.assertFalse(os.path.exists(err_file))
@@ -176,7 +182,7 @@ class GridTKTest(unittest.TestCase):
       self.assertTrue(os.path.exists(self.log_dir))
 
       # now, let the scheduler run all jobs, but this time in verbose mode
-      self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '-vv', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
+      self.scheduler_job = subprocess.Popen([self.jman, '--local', '-vv', '--database', self.database, 'run-scheduler', '--sleep-time', '1', '--parallel', '2', '--die-when-finished'])
       # and wait for the job to finish (the timeout argument to Popen only exists from python 3.3 onwards)
       self.scheduler_job.wait()
       self.scheduler_job = None
@@ -218,25 +224,25 @@ class GridTKTest(unittest.TestCase):
 
       print()
       # test that the list command still works
-      jman.main(['./bin/jman', '--database', self.database, 'list', '--print-array-jobs'])
+      jman.main([self.jman, '--database', self.database, 'list', '--print-array-jobs'])
 
       print()
       # test that the report command works
-      jman.main(['./bin/jman', '--database', self.database, 'report'])
+      jman.main([self.jman, '--database', self.database, 'report'])
 
       # clean-up
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'delete', '--job-ids', '1-3'])
+      jman.main([self.jman, '--local', '--database', self.database, 'delete', '--job-ids', '1-3'])
 
       # check that the database and the log files are gone
       self.assertEqual(len(os.listdir(self.temp_dir)), 0)
 
       # add the scripts again, but this time with the --stop-on-failure option
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--stop-on-failure', bash, script_1])
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', '--stop-on-failure', bash, script_2])
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_3',  '--dependencies', '1', '2', '--exec-dir', rdir, '--stop-on-failure', bash, "test_array.sh"])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--stop-on-failure', bash, script_1])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', '--stop-on-failure', bash, script_2])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_3',  '--dependencies', '1', '2', '--exec-dir', rdir, '--stop-on-failure', bash, "test_array.sh"])
 
       # and execute them, but without writing the log files
-      self.scheduler_job = subprocess.Popen(['./bin/jman', '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished', '--no-log-files'])
+      self.scheduler_job = subprocess.Popen([self.jman, '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '0.1', '--parallel', '2', '--die-when-finished', '--no-log-files'])
       # and wait for the job to finish (the timeout argument to Popen only exists from python 3.3 onwards)
       self.scheduler_job.wait()
       self.scheduler_job = None
@@ -259,7 +265,7 @@ class GridTKTest(unittest.TestCase):
       job_manager.unlock()
 
       # and clean up again
-      jman.main(['./bin/jman', '--local', '--database', self.database, 'delete'])
+      jman.main([self.jman, '--local', '--database', self.database, 'delete'])
       self.assertEqual(len(os.listdir(self.temp_dir)), 0)
 
     except KeyboardInterrupt:

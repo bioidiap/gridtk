@@ -21,10 +21,10 @@
 
 This package is part of the signal-processing and machine learning toolbox
 Bob_. It provides a set of python wrappers around SGE utilities like ``qsub``,
-``qstat`` and ``qdel``. It interacts with these tools to submit and manage
-grid jobs making up a complete workflow ecosystem. Currently, it is set up to
-work with the SGE grid at Idiap, but it is also possible to modify it to be
-used in other SGE grids.
+``qstat`` and ``qdel``. It interacts with these tools to submit and manage grid
+jobs making up a complete workflow ecosystem. Currently, it is set up to work
+with the SGE grid at Idiap, but it is also possible to modify it to be used in
+other SGE grids.
 
 Since version 1.0.x there is also a local submission system introduced. Instead
 of sending jobs to the SGE grid, it executes them in parallel processes on the
@@ -34,11 +34,9 @@ local machine, using a simple scheduling system.
 Installation
 ------------
 
-Follow our `installation`_ instructions. Then, using the Python interpreter
-provided by the distribution, bootstrap and buildout this package::
+Follow our `installation`_ instructions. Then, to install this package, run::
 
-  $ python bootstrap-buildout.py
-  $ ./bin/buildout
+  $ conda install gridtk
 
 
 Contact

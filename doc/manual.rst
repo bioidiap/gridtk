@@ -8,20 +8,6 @@
  The Command Line Interface
 ============================
 
-The command line interface requires the package to be installed properly (see the README file).
-
-When installation has finished, you should have all required dependencies and command line utilities in your environment.  To verify the installation, you can call out nose tests:
-
-.. code-block:: sh
-
-  $ nosetests -sv
-
-To build the package documentation, do:
-
-.. code-block:: sh
-
-  $ sphinx-build doc sphinx
-
 
 The Job Manager
 ===============
