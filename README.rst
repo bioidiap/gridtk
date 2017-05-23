@@ -7,6 +7,8 @@
    :target: https://www.idiap.ch/software/bob/docs/latest/bob/gridtk/master/index.html
 .. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/build.svg
    :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/coverage.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
 .. image:: https://img.shields.io/badge/gitlab-project-0000c0.svg
    :target: https://gitlab.idiap.ch/bob/gridtk
 .. image:: http://img.shields.io/pypi/v/gridtk.svg
@@ -34,11 +36,10 @@ local machine, using a simple scheduling system.
 Installation
 ------------
 
-Follow our `installation`_ instructions. Then, using the Python interpreter
-provided by the distribution, bootstrap and buildout this package::
+Complete Bob's `installation`_ instructions. Then, to install this pacakge,
+run::
 
-  $ python bootstrap-buildout.py
-  $ ./bin/buildout
+  $ conda install gridtk
 
 
 Contact
