@@ -5,10 +5,10 @@
    :target: http://pythonhosted.org/gridtk/index.html
 .. image:: http://img.shields.io/badge/docs-latest-orange.svg
    :target: https://www.idiap.ch/software/bob/docs/latest/bob/gridtk/master/index.html
-.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.4.3/build.svg
-   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.4.3
-.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.4.3/coverage.svg
-   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.4.3
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/build.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/coverage.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
 .. image:: https://img.shields.io/badge/gitlab-project-0000c0.svg
    :target: https://gitlab.idiap.ch/bob/gridtk
 .. image:: http://img.shields.io/pypi/v/gridtk.svg
