@@ -13,8 +13,6 @@
    :target: https://gitlab.idiap.ch/bob/gridtk
 .. image:: http://img.shields.io/pypi/v/gridtk.svg
    :target: https://pypi.python.org/pypi/gridtk
-.. image:: http://img.shields.io/pypi/dm/gridtk.svg
-   :target: https://pypi.python.org/pypi/gridtk
 
 
 ======================
