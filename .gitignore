@@ -5,6 +5,7 @@
 build
 dist
 .installed.cfg
+.mr.developer.cfg
 develop-eggs
 eggs
 bin
@@ -14,4 +15,4 @@ sphinx
 .settings
 submitted.sql3
 logs
-
+src
