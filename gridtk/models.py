@@ -226,7 +226,7 @@ class Job(Base):
     """Returns the command line for the job."""
     # In python 2, the command line is unicode, which needs to be converted to string before pickling;
     # In python 3, the command line is bytes, which can be pickled directly
-    return loads(self.command_line) if isinstance(self.command_line, bytes) else loads(str(self.command_line))
+    return loads(self.command_line) if isinstance(self.command_line, bytes) else loads(self.command_line.encode())
 
   def set_command_line(self, command_line):
     """Sets / overwrites the command line for the job."""
@@ -244,14 +244,14 @@ class Job(Base):
     """Returns the array arguments for the job; usually a string."""
     # In python 2, the command line is unicode, which needs to be converted to string before pickling;
     # In python 3, the command line is bytes, which can be pickled directly
-    return loads(self.array_string) if isinstance(self.array_string, bytes) else loads(str(self.array_string))
+    return loads(self.array_string) if isinstance(self.array_string, bytes) else loads(self.array_string.encode())
 
 
   def get_arguments(self):
     """Returns the additional options for the grid (such as the queue, memory requirements, ...)."""
     # In python 2, the command line is unicode, which needs to be converted to string before pickling;
     # In python 3, the command line is bytes, which can be pickled directly
-    args = loads(self.grid_arguments)['kwargs'] if isinstance(self.grid_arguments, bytes) else loads(str(self.grid_arguments))['kwargs']
+    args = loads(self.grid_arguments)['kwargs'] if isinstance(self.grid_arguments, bytes) else loads(self.grid_arguments.encode())['kwargs']
     # in any case, the commands have to be converted to str
     retval = {}
     if 'pe_opt' in args:
