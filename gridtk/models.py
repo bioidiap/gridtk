@@ -323,7 +323,7 @@ class Job(Base):
       grid_opt = self.get_arguments()
       if grid_opt:
         # add additional information about the job at the end
-        command_line = "<" + ",".join(["%s=%s" % (key,value) for key,value in grid_opt.iteritems()]) + ">: " + command_line
+        command_line = "<" + ",".join(["%s=%s" % (key,value) for key,value in grid_opt.items()]) + ">: " + command_line
       if self.exec_dir is not None:
         command_line += "; [Executed in directory: '%s']" % self.exec_dir
 

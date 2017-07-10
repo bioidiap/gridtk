@@ -225,6 +225,7 @@ class GridTKTest(unittest.TestCase):
       print()
       # test that the list command still works
       jman.main([self.jman, '--database', self.database, 'list', '--print-array-jobs'])
+      jman.main([self.jman, '--database', self.database, 'list', '--long', '--print-array-jobs'])
 
       print()
       # test that the report command works
