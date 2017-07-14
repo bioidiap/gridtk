@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
-# Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 16:13:31 CEST
 
 from __future__ import print_function
 
