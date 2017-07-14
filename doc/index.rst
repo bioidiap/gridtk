@@ -1,6 +1,4 @@
 .. vim: set fileencoding=utf-8 :
-.. author: Manuel Günther <manuel.guenther@idiap.ch>
-.. date: Fri Aug 30 14:31:49 CEST 2013
 
 .. _gridtk:
 
@@ -25,6 +23,8 @@ Contents:
 
    manual
    program
+   generate
+
 
 Indices and tables
 ==================

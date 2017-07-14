@@ -24,6 +24,7 @@ setup(
     entry_points={
       'console_scripts': [
         'jman = gridtk.script.jman:main',
+        'jgen = gridtk.script.jgen:main',
         'grid = gridtk.script.grid:main',
 
         # program replacements
