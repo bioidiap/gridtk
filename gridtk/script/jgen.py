@@ -16,6 +16,8 @@ used to:
 """
 
 __epilog__ = """\
+
+examples:
   To generate a configuration for running experiments and an aggregation script,
   do the following:
 
@@ -74,7 +76,7 @@ def main(command_line_options = None):
   basename = os.path.basename(sys.argv[0])
   epilog = __epilog__ % dict(prog=basename)
 
-  formatter = argparse.ArgumentDefaultsHelpFormatter
+  formatter = argparse.RawTextHelpFormatter
   parser = argparse.ArgumentParser(description=__doc__, epilog=epilog,
       formatter_class=formatter)
 
