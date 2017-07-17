@@ -159,9 +159,14 @@ def generate(variables, template):
 
     str: A generated template you can save
 
+
+  Raises:
+
+    jinja2.UndefinedError: if a variable used in the template is undefined
+
   '''
 
-  env = jinja2.Environment()
+  env = jinja2.Environment(undefined=jinja2.StrictUndefined)
   for c in expand(variables):
     yield env.from_string(template).render(c)
 
@@ -185,8 +190,13 @@ def aggregate(variables, template):
 
     str: A generated template you can save
 
+
+  Raises:
+
+    jinja2.UndefinedError: if a variable used in the template is undefined
+
   '''
 
-  env = jinja2.Environment()
+  env = jinja2.Environment(undefined=jinja2.StrictUndefined)
   d = {'cfgset': list(expand(variables))}
-  return jinja2.Environment().from_string(template).render(d)
+  return env.from_string(template).render(d)

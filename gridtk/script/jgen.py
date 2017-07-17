@@ -120,6 +120,7 @@ def main(command_line_options = None):
     dirname = os.path.dirname(fname)
     if dirname: tools.makedirs_safe(dirname)
     with open(fname, 'wt') as f: f.write(data)
+    logger.info('Wrote `%s\'', fname)
 
   # if user passed aggregator, do it as well
   if args.aggtmpl and args.aggout:
@@ -129,5 +130,6 @@ def main(command_line_options = None):
     dirname = os.path.dirname(args.aggout)
     if dirname: tools.makedirs_safe(dirname)
     with open(args.aggout, 'wt') as f: f.write(data)
+    logger.info('Wrote `%s\'', args.aggout)
 
   return 0
