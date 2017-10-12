@@ -59,6 +59,7 @@ class GridTKTest(unittest.TestCase):
       jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', bash, script_1])
       jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_2',  '--dependencies', '1', '--parametric', '1-7:2', bash, script_2])
       jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_3',  '--dependencies', '1', '2', '--exec-dir', rdir, bash, "test_array.sh"])
+      jman.main([self.jman, '--local', '--database', self.database, 'submit', '--log-dir', self.log_dir, '--name', 'test_1', '--repeat', '2', bash, script_1])
 
       # check that the database was created successfully
       self.assertTrue(os.path.exists(self.database))
@@ -67,19 +68,24 @@ class GridTKTest(unittest.TestCase):
       # test that the list command works (should also work with the "default" grid manager
       jman.main([self.jman, '--database', self.database, 'list', '--job-ids', '1'])
       jman.main([self.jman, '--database', self.database, 'list', '--job-ids', '2', '--print-array-jobs', '--print-dependencies', '--print-times'])
+      jman.main([self.jman, '--database', self.database, 'list', '--job-ids', '4-5', '--print-array-jobs', '--print-dependencies', '--print-times'])
 
       # get insight into the database
       job_manager = gridtk.local.JobManagerLocal(database=self.database)
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      self.assertEqual(len(jobs), 3)
+      self.assertEqual(len(jobs), 5)
       self.assertEqual(jobs[0].id, 1)
       self.assertEqual(jobs[1].id, 2)
       self.assertEqual(jobs[2].id, 3)
+      self.assertEqual(jobs[3].id, 4)
+      self.assertEqual(jobs[4].id, 5)
       self.assertEqual(len(jobs[1].array), 4)
       self.assertEqual(jobs[0].status, 'submitted')
       self.assertEqual(jobs[1].status, 'submitted')
       self.assertEqual(jobs[2].status, 'submitted')
+      self.assertEqual(jobs[3].status, 'submitted')
+      self.assertEqual(jobs[4].status, 'submitted')
       self.assertTrue(all(j.submit_time is not None for j in jobs))
       self.assertTrue(all(j.start_time is None for j in jobs))
       self.assertTrue(all(j.finish_time is None for j in jobs))
@@ -97,6 +103,14 @@ class GridTKTest(unittest.TestCase):
       self.assertEqual(waited[0].id, 1)
       self.assertEqual(waited[1].id, 2)
 
+      # check dependencies for --repeat
+      waiting = jobs[3].get_jobs_waiting_for_us()
+      self.assertEqual(len(waiting), 1)
+      self.assertEqual(waiting[0].id, 5)
+      waited = jobs[4].get_jobs_we_wait_for()
+      self.assertEqual(len(waited), 1)
+      self.assertEqual(waited[0].id, 4)
+
       job_manager.unlock()
 
       # now, start the local execution of the job in a parallel job
@@ -111,7 +125,7 @@ class GridTKTest(unittest.TestCase):
       # now, the first job needs to have status failure, and the second needs to be queued
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      self.assertEqual(len(jobs), 3)
+      self.assertEqual(len(jobs), 5)
       if jobs[0].status in ('submitted', 'queued', 'executing'):
         # on slow machines, we don0t want the tests to fail, so we just skip
         job_manager.unlock()
@@ -147,7 +161,7 @@ class GridTKTest(unittest.TestCase):
       # Job 1 and two array jobs of job two should be finished now, the other two still need to be queued
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      self.assertEqual(len(jobs), 3)
+      self.assertEqual(len(jobs), 5)
       if jobs[0].status in ('queued', 'executing') or jobs[1].status == 'queued':
         # on slow machines, we don0t want the tests to fail, so we just skip
         job_manager.unlock()
@@ -195,7 +209,7 @@ class GridTKTest(unittest.TestCase):
 
       # check that exactly four output and four error files have been created
       files = os.listdir(self.log_dir)
-      self.assertEqual(len(files), 12)
+      self.assertEqual(len(files), 16)
       for i in range(1,8,2):
         self.assertTrue('test_2.o2.%d'%i in files)
         self.assertTrue('test_2.e2.%d'%i in files)
@@ -203,7 +217,7 @@ class GridTKTest(unittest.TestCase):
       # check that all array jobs are finished now
       session = job_manager.lock()
       jobs = list(session.query(Job))
-      self.assertEqual(len(jobs), 3)
+      self.assertEqual(len(jobs), 5)
       self.assertEqual(jobs[1].status, 'failure')
       self.assertEqual(jobs[1].array[0].status, 'failure')
       self.assertEqual(jobs[1].array[0].result, 1)
@@ -232,7 +246,7 @@ class GridTKTest(unittest.TestCase):
       jman.main([self.jman, '--database', self.database, 'report'])
 
       # clean-up
-      jman.main([self.jman, '--local', '--database', self.database, 'delete', '--job-ids', '1-3'])
+      jman.main([self.jman, '--local', '--database', self.database, 'delete', '--job-ids', '1-5'])
 
       # check that the database and the log files are gone
       self.assertEqual(len(os.listdir(self.temp_dir)), 0)

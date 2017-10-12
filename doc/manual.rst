@@ -99,6 +99,15 @@ being executed.  Just submit jobs with the ``--stop-on-failure`` option.
    The ``--stop-on-failure`` option is under development and might not work
    properly. Use this option with care.
 
+Also, you can submit the same job several times in a way that each one will
+depend on the last one. This is useful when for GPU training when your jobs
+gets killed because you run out of time but you want to submit the same job
+again.
+
+.. code-block:: sh
+
+  $ jman submit --repeat 5 -- myscript.py
+
 
 While the jobs run, the output and error stream are captured in log files, which are written into a ``logs`` directory.
 This directory can be changed by specifying:
