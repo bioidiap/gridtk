@@ -132,9 +132,12 @@ def submit(args):
   kwargs['dry_run'] = args.dry_run
   kwargs['stop_on_failure'] = args.stop_on_failure
 
-
-  # submit the job
-  job_id = jm.submit(args.job, **kwargs)
+  # submit the job(s)
+  for _ in range(args.repeat):
+    job_id = jm.submit(args.job, **kwargs)
+    dependencies = kwargs.get('dependencies', [])
+    dependencies.append(job_id)
+    kwargs['dependencies'] = dependencies
 
   if args.print_id:
     print (job_id, end='')
@@ -293,6 +296,7 @@ def main(command_line_options = None):
   submit_parser.add_argument('-t', '--array', '--parametric', metavar='(first-)last(:step)', help="Creates a parametric (array) job. You must specify the 'last' value, but 'first' (default=1) and 'step' (default=1) can be specified as well (when specifying 'step', 'first' has to be given, too).")
   submit_parser.add_argument('-z', '--dry-run', action='store_true', help='Do not really submit anything, just print out what would submit in this case')
   submit_parser.add_argument('-i', '--io-big', action='store_true', help='Sets "io_big" on the submitted jobs so it limits the machines in which the job is submitted to those that can do high-throughput.')
+  submit_parser.add_argument('-r', '--repeat', type=int, metavar='N', default=1, help='Submits the job N times. Each job will depend on the job before.')
   submit_parser.add_argument('-o', '--print-id', action='store_true', help='Prints the new job id (so that they can be parsed by automatic scripts).')
   submit_parser.add_argument('job', metavar='command', nargs=argparse.REMAINDER, help = "The job that should be executed. Sometimes a -- is required to separate the job from other command line options.")
   submit_parser.set_defaults(func=submit)
