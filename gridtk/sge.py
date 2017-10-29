@@ -189,7 +189,9 @@ class JobManagerSGE(JobManager):
       if job.status in ('executing', 'queued', 'waiting'):
         qdel(job.id, context=self.context)
         logger.info("Stopped job '%s' in the SGE grid." % job)
-        job.submit()
+        # Set the job status to killed with signal -9. A program killed with
+        # "kill -9 $PPID" should return the status of 128+9=137
+        job.finish(result=137)
 
       self.session.commit()
     self.unlock()
