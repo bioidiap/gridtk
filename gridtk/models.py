@@ -119,7 +119,6 @@ class Job(Base):
       array_job.status = 'submitted'
       array_job.result = None
       array_job.machine_name = None
-    self.id = self.unique
     self.submit_time = datetime.now()
     self.start_time = None
     self.finish_time = None
