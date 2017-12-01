@@ -28,6 +28,7 @@ The script ``jgen`` takes, in its simplistic form, 3 parameters that explain:
 
 Let's decrypt each of these inputs.
 
+.. _gridtk.expand:
 
 YAML Input
 ----------
@@ -49,7 +50,7 @@ For example:
    version: [v1, v2]
 
 
-This should yield to the following configuration sets:
+This should yield the following configuration sets:
 
 .. code-block:: python
 
@@ -75,7 +76,7 @@ Example
       hello,
       world!
 
-Should yield to the following configuration sets:
+Should yield the following configuration sets:
 
 .. code-block:: python
 
@@ -86,6 +87,10 @@ Should yield to the following configuration sets:
      {'name': 'lisa', 'version': 'v2', 'text': 'hello, world!'},
    ]
 
+
+Unique Keys
+^^^^^^^^^^^
+
 Keys starting with one `_` (underscore) are treated as "unique" objects as
 well. Example:
 
@@ -95,7 +100,7 @@ well. Example:
    version: [v1, v2]
    _unique: [i1, i2]
 
-Should yield to the following configuration sets:
+Should yield the following configuration sets:
 
 .. code-block:: python
 
@@ -104,6 +109,39 @@ Should yield to the following configuration sets:
      {'name': 'john', 'version': 'v2', '_unique': ['i1', 'i2']},
      {'name': 'lisa', 'version': 'v1', '_unique': ['i1', 'i2']},
      {'name': 'lisa', 'version': 'v2', '_unique': ['i1', 'i2']},
+   ]
+
+
+Coupling Keys
+^^^^^^^^^^^^^
+
+Sometimes particular keys should be tied to other keys. This is done using a
+special key called ``zip_keys``. Example:
+
+.. code-block:: yaml
+
+   make: [honda, toyota]
+   model: [jazz, yaris]
+   name: [john, lisa]
+   gender: [male, female]
+   version: [v1, v2]
+   zip_keys:
+     - [name, gender]
+     - [make, model]
+
+Should yield the following configuration sets:
+
+.. code-block:: python
+
+   [
+     {'make': 'honda', 'model': 'jazz', 'name': 'john', 'gender': 'male', 'version': 'v1'},
+     {'make': 'honda', 'model': 'jazz', 'name': 'john', 'gender': 'male', 'version': 'v2'},
+     {'make': 'honda', 'model': 'jazz', 'name': 'lisa', 'gender': 'female', 'version': 'v1'},
+     {'make': 'honda', 'model': 'jazz', 'name': 'lisa', 'gender': 'female', 'version': 'v2'},
+     {'make': 'toyota', 'model': 'yaris', 'name': 'john', 'gender': 'male', 'version': 'v1'},
+     {'make': 'toyota', 'model': 'yaris', 'name': 'john', 'gender': 'male', 'version': 'v2'},
+     {'make': 'toyota', 'model': 'yaris', 'name': 'lisa', 'gender': 'female', 'version': 'v1'},
+     {'make': 'toyota', 'model': 'yaris', 'name': 'lisa', 'gender': 'female', 'version': 'v2'},
    ]
 
 

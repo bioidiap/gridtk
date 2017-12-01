@@ -67,6 +67,31 @@ def test_ignore():
   nose.tools.eq_(result, expected)
 
 
+def test_zipping():
+  data = '''
+make: [honda, toyota]
+model: [jazz, yaris]
+name: [john, lisa]
+gender: [male, female]
+version: [v1, v2]
+zip_keys:
+ - [name, gender]
+ - [make, model]
+'''
+  expected = [
+    {'make': 'honda', 'model': 'jazz', 'name': 'john', 'gender': 'male', 'version': 'v1'},
+    {'make': 'honda', 'model': 'jazz', 'name': 'john', 'gender': 'male', 'version': 'v2'},
+    {'make': 'honda', 'model': 'jazz', 'name': 'lisa', 'gender': 'female', 'version': 'v1'},
+    {'make': 'honda', 'model': 'jazz', 'name': 'lisa', 'gender': 'female', 'version': 'v2'},
+    {'make': 'toyota', 'model': 'yaris', 'name': 'john', 'gender': 'male', 'version': 'v1'},
+    {'make': 'toyota', 'model': 'yaris', 'name': 'john', 'gender': 'male', 'version': 'v2'},
+    {'make': 'toyota', 'model': 'yaris', 'name': 'lisa', 'gender': 'female', 'version': 'v1'},
+    {'make': 'toyota', 'model': 'yaris', 'name': 'lisa', 'gender': 'female', 'version': 'v2'},
+  ]
+  result = list(expand(data))
+  nose.tools.eq_(result, expected)
+
+
 def test_generation():
 
   data = \
