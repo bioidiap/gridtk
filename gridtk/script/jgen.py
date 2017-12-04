@@ -135,7 +135,7 @@ def main(command_line_options = None):
         unique_lines = []
         for line in data.split('\n'):
           if not line.strip():
-            f.write('\n')
+            f.write(line + '\n')
           elif line.strip()[0] == '#':
             f.write(line + '\n')
           elif line not in unique_lines:
