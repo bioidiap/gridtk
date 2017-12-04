@@ -89,6 +89,7 @@ def main(command_line_options = None):
       help = "Increase the verbosity level from 0 (only error messages) to 1 (warnings), 2 (log messages), 3 (debug information) by adding the --verbose option as often as desired (e.g. '-vvv' for debug).")
   parser.add_argument('-V', '--version', action='version',
       version='GridTk version %s' % __version__)
+  parser.add_argument('-u', '--unique-aggregate', dest='unique', action="store_true", help="It will make sure the output lines in aggout are unique while ignoring the empty lines and comment lines.")
 
 
   # parse
@@ -129,7 +130,19 @@ def main(command_line_options = None):
     data = generator.aggregate(args.variables, args.aggtmpl)
     dirname = os.path.dirname(args.aggout)
     if dirname: tools.makedirs_safe(dirname)
-    with open(args.aggout, 'wt') as f: f.write(data)
+    with open(args.aggout, 'wt') as f:
+      if args.unique:
+        unique_lines = []
+        for line in data.split('\n'):
+          if not line.strip():
+            f.write('\n')
+          elif line.strip()[0] == '#':
+            f.write(line + '\n')
+          elif line not in unique_lines:
+            unique_lines.append(line)
+            f.write(line + '\n')
+      else:
+        f.write(data)
     logger.info('Wrote `%s\'', args.aggout)
 
   return 0
