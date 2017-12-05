@@ -60,7 +60,7 @@ class JobManagerSGE(JobManager):
 
     # make sure log directory is created and is a directory
     makedirs_safe(job.log_dir)
-    assert os.path.isdir(job.log_dir), 'Please make sure --log-dir either does not exist or is a directory.'
+    assert os.path.isdir(job.log_dir), "Please make sure --log-dir `{}' either does not exist or is a directory.".format(job.log_dir)
 
     # generate call to the wrapper script
     command = make_shell(python, [jman, '-d%s' % ('v'*verbosity), self._database, 'run-job'])
