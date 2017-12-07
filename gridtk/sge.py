@@ -11,7 +11,7 @@ from __future__ import print_function
 from .manager import JobManager
 from .setshell import environ
 from .models import add_job, Job
-from .tools import logger, qsub, qstat, qdel, make_shell
+from .tools import logger, qsub, qstat, qdel, make_shell, makedirs_safe
 
 import os, sys
 
@@ -57,6 +57,10 @@ class JobManagerSGE(JobManager):
     # get the grid id's for the dependencies and remove duplicates
     dependent_jobs = self.get_jobs(dependencies)
     deps = sorted(list(set([j.id for j in dependent_jobs])))
+
+    # make sure log directory is created and is a directory
+    makedirs_safe(job.log_dir)
+    assert os.path.isdir(job.log_dir), "Please make sure --log-dir `{}' either does not exist or is a directory.".format(job.log_dir)
 
     # generate call to the wrapper script
     command = make_shell(python, [jman, '-d%s' % ('v'*verbosity), self._database, 'run-job'])
