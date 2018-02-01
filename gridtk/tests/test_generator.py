@@ -275,3 +275,72 @@ def test_cmdline_unique_aggregation():
 
   finally:
     shutil.rmtree(tmpdir)
+
+
+def test_cmdline_aggregation_dict_groupby():
+
+  data = """
+model:
+  - {name: patch_1, patch_size: 28}
+
+train:
+  - {database: replaymobile, protocol: grandtest}
+  - {database: replay, protocol: grandtest}
+
+eval:
+  - {database: replaymobile, protocol: grandtest, groups: ['dev', 'eval']}
+  - {database: replay, protocol: grandtest, groups: ['dev', 'eval']}
+"""
+
+  template = '{{ model.name }}-{{ train.database }}-{{ eval.database }}'
+
+  aggtmpl = """
+{% set cfg2 = cfgset|groupby('train')|map(attribute='list') -%}
+{% for cfg3 in cfg2 %}
+{% set k = cfg3[0] -%}
+test-{{ k.model.name }}-{{ k.train.database }}-{{ k.eval.database }}
+{%- endfor %}
+"""
+
+  gen_expected = [
+      'patch_1-replay-replay',
+      'patch_1-replay-replaymobile',
+      'patch_1-replaymobile-replay',
+      'patch_1-replaymobile-replaymobile',
+  ]
+
+  agg_expected = '\n'.join([
+      '',
+      '',
+      'test-patch_1-replay-replaymobile',
+      'test-patch_1-replaymobile-replaymobile',
+  ])
+  tmpdir = tempfile.mkdtemp()
+
+  try:
+    variables = os.path.join(tmpdir, 'variables.yaml')
+    with open(variables, 'wt') as f: f.write(data)
+    gentmpl = os.path.join(tmpdir, 'gentmpl.txt')
+    with open(gentmpl, 'wt') as f: f.write(template)
+    genout = os.path.join(tmpdir, 'out', template + '.txt')
+
+    aggtmpl_file = os.path.join(tmpdir, 'agg.txt')
+    with open(aggtmpl_file, 'wt') as f: f.write(aggtmpl)
+    aggout = os.path.join(tmpdir, 'out', 'agg.txt')
+
+    nose.tools.eq_(jgen.main(['-vv', variables, gentmpl, genout, aggtmpl_file,
+      aggout]), 0)
+
+    # check all files are there and correspond to the expected output
+    outdir = os.path.dirname(genout)
+    for k in gen_expected:
+      ofile = os.path.join(outdir, k + '.txt')
+      assert os.path.exists(ofile)
+      with open(ofile, 'rt') as f: contents = f.read()
+      nose.tools.eq_(contents, k)
+    assert os.path.exists(aggout)
+    with open(aggout, 'rt') as f: contents = f.read()
+    nose.tools.eq_(contents, agg_expected)
+
+  finally:
+    shutil.rmtree(tmpdir)
