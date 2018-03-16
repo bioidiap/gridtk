@@ -309,12 +309,12 @@ test-{{ k.model.name }}-{{ k.train.database }}-{{ k.eval.database }}
       'patch_1-replaymobile-replaymobile',
   ]
 
-  agg_expected = '\n'.join([
+  agg_expected = [
       '',
       '',
-      'test-patch_1-replay-replaymobile',
       'test-patch_1-replaymobile-replaymobile',
-  ])
+      'test-patch_1-replay-replaymobile',
+  ]
   tmpdir = tempfile.mkdtemp()
 
   try:
@@ -340,7 +340,8 @@ test-{{ k.model.name }}-{{ k.train.database }}-{{ k.eval.database }}
       nose.tools.eq_(contents, k)
     assert os.path.exists(aggout)
     with open(aggout, 'rt') as f: contents = f.read()
-    nose.tools.eq_(contents, agg_expected)
+    for line in agg_expected:
+      assert line in contents, contents
 
   finally:
     shutil.rmtree(tmpdir)
