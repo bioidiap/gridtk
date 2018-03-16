@@ -11,9 +11,17 @@ import yaml
 import jinja2
 
 
+class _OrderedDict(collections.OrderedDict):
+  """An OrderedDict class that can be compared.
+  This is to avoid sort errors (in Python 3) that happen in jinja internally.
+  """
+  def __lt__(self, other):
+    return id(self) < id(other)
+
+
 def _ordered_load(stream, Loader=yaml.Loader,
-    object_pairs_hook=collections.OrderedDict):
-  '''Loads the contents of the YAML stream into :py:class:`collection.OrderedDict`'s
+    object_pairs_hook=_OrderedDict):
+  '''Loads the contents of the YAML stream into :py:class:`collections.OrderedDict`'s
 
   See: https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
 
@@ -123,8 +131,8 @@ def expand(data):
 
   # separates "unique" objects from the ones we have to iterate
   # pre-assemble return dictionary
-  iterables = collections.OrderedDict()
-  unique = collections.OrderedDict()
+  iterables = _OrderedDict()
+  unique = _OrderedDict()
   for key, value in data.items():
     if isinstance(value, list) and not key.startswith('_'):
       iterables[key] = value
@@ -133,7 +141,7 @@ def expand(data):
 
   # generates all possible combinations of iterables
   for values in itertools.product(*iterables.values()):
-    retval = collections.OrderedDict(unique)
+    retval = _OrderedDict(unique)
     keys = list(iterables.keys())
     retval.update(dict(zip(keys, values)))
     yield retval
