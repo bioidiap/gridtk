@@ -142,6 +142,10 @@ class JobManagerLocal(JobManager):
       command = ['nice', '-n%d'%nice] + command
 
     job, array_job = self._job_and_array(job_id, array_id)
+    if job is None:
+      # rare case: job was deleted before starting
+      return None
+
     logger.info("Starting execution of Job '%s' (%s)", job.name, self._format_log(job_id, array_id, len(job.array)))
     # create log files
     if no_log or job.log_dir is None:
@@ -187,12 +191,13 @@ class JobManagerLocal(JobManager):
             array_id = task[2] if len(task) > 2 else None
             self.lock()
             job, array_job = self._job_and_array(job_id, array_id)
-            jj = array_job if array_job is not None else job
-            result = "%s (%d)" % (jj.status, jj.result) if jj.result is not None else "%s (?)" % jj.status
-            if jj.status not in ('success', 'failure'):
-              logger.error("Job '%s' (%s) finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", job.name, self._format_log(job_id, array_id), jj.status)
-              raise StopIteration("Job did not finish correctly.")
-            logger.info("Job '%s' (%s) finished execution with result '%s'", job.name, self._format_log(job_id, array_id), result)
+            if job is not None:
+              jj = array_job if array_job is not None else job
+              result = "%s (%d)" % (jj.status, jj.result) if jj.result is not None else "%s (?)" % jj.status
+              if jj.status not in ('success', 'failure'):
+                logger.error("Job '%s' (%s) finished with status '%s' instead of 'success' or 'failure'. Usually this means an internal error. Check your wrapper_script parameter!", job.name, self._format_log(job_id, array_id), jj.status)
+                raise StopIteration("Job did not finish correctly.")
+              logger.info("Job '%s' (%s) finished execution with result '%s'", job.name, self._format_log(job_id, array_id), result)
             self.unlock()
             finished_tasks.add(job_id)
             # in any case, remove the job from the list

@@ -123,7 +123,7 @@ class JobManager:
     if len(job) > 1:
       logger.error("%d jobs with the same ID '%d' were detected in the database"%(len(job), job_id))
     elif not len(job):
-      logger.warn("Job with ID '%d' was not found in the database."%job_id)
+      logger.error("Job with ID '%d' was not found in the database."%job_id)
       return (None, None)
 
     job = job[0]
