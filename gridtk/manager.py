@@ -222,16 +222,21 @@ class JobManager:
   def list(self, job_ids, print_array_jobs = False, print_dependencies = False, long = False, print_times = False, status=Status, names=None, ids_only=False):
     """Lists the jobs currently added to the database."""
     # configuration for jobs
+    fields = ("job-id", "grid-id", "queue", "status", "job-name")
+    lengths = (6, 17, 11, 12, 16)
+    dependency_length = 0
+
     if print_dependencies:
-      fields = ("job-id", "grid-id", "queue", "status", "job-name", "dependencies", "submitted command line")
-      lengths = (8, 20, 14, 14, 20, 30, 43)
-      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:^%d}  {6:<%d}" % lengths
-      dependency_length = lengths[4]
-    else:
-      fields = ("job-id", "grid-id", "queue", "status", "job-name", "submitted command line")
-      lengths = (8, 20, 14, 14, 20, 43)
-      format = "{0:^%d}  {1:^%d}  {2:^%d}  {3:^%d}  {4:^%d}  {5:<%d}" % lengths
-      dependency_length = 0
+      fields += ("dependencies",)
+      lengths += (25,)
+      dependency_length = lengths[-1]
+
+    if long:
+      fields += ("submitted command",)
+      lengths += (43,)
+
+    format = "{:^%d}  " * len(lengths)
+    format = format % lengths
 
     # if ids_only:
     #   self.lock()
@@ -257,7 +262,7 @@ class JobManager:
         if ids_only:
           print(job.unique, end=" ")
         else:
-          print(job.format(format, dependency_length, None if long else 43))
+          print(job.format(format, dependency_length))
         if print_times:
           print(times(job))
 
