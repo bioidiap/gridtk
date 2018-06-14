@@ -125,9 +125,14 @@ def submit(args):
   if args.log_dir is not None:       kwargs['log_dir'] = args.log_dir
   if args.dependencies is not None:  kwargs['dependencies'] = args.dependencies
   if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
-  # if this is a GPU queue, we set gpumem flag
+  # if this is a GPU queue and args.memory is provided, we set gpumem flag
   # remove 'G' last character from the args.memory string
-  if args.qname in ('gpu', 'lgpu', 'sgpu'):  kwargs['gpumem'] = args.memory[:-1]
+  if args.qname in ('gpu', 'lgpu', 'sgpu') and args.memory is not None:
+    # allow args.memory to have either <num>G or <num> format
+    if args.memory.isdigit():
+      kwargs['gpumem'] = args.memory  # assign directly
+    elif args.memory.endswith('G'):
+      kwargs['gpumem'] = args.memory[:-1]  # remove G at the end
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     if args.memory is not None:
