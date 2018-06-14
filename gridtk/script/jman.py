@@ -24,7 +24,7 @@ from ..tools import make_shell, logger
 from .. import local, sge
 from ..models import Status
 
-QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm','gpu', 'lgpu', 'sgpu']
+QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm', 'gpu', 'lgpu', 'sgpu']
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -125,6 +125,9 @@ def submit(args):
   if args.log_dir is not None:       kwargs['log_dir'] = args.log_dir
   if args.dependencies is not None:  kwargs['dependencies'] = args.dependencies
   if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
+  # if this is a GPU queue, we set gpumem flag
+  # remove 'G' last character from the args.memory string
+  if args.qname in ('gpu', 'lgpu', 'sgpu'):  kwargs['gpumem'] = args.memory[:-1]
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     if args.memory is not None:
@@ -159,6 +162,8 @@ def resubmit(args):
     kwargs['memfree'] = args.memory
     if args.qname not in (None, 'all.q'):
       kwargs['hvmem'] = args.memory
+    if args.queue in ('gpu', 'lgpu', 'sgpu'):
+      kwargs['gpumem'] = args.memory
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     kwargs['memfree'] = get_memfree(args.memory, args.parallel)
@@ -285,7 +290,10 @@ def main(command_line_options = None):
   # subcommand 'submit'
   submit_parser = cmdparser.add_parser('submit', aliases=['sub'], formatter_class=formatter, help='Submits jobs to the SGE queue or to the local job scheduler and logs them in a database.')
   submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', choices=QUEUES, help='the name of the SGE queue to submit the job to')
-  submit_parser.add_argument('-m', '--memory', help='Sets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
+  submit_parser.add_argument('-m', '--memory', help='Sets both the h_vmem and the mem_free parameters when submitting '
+                                                    'the job to a non-GPU queue, e.g., 8G to set the memory '
+                                                    'requirements to 8 gigabytes. Sets gpumem parameter when '
+                                                    'submitting the job to a GPU-based queue.')
   submit_parser.add_argument('-p', '--parallel', '--pe_mth', type=int, help='Sets the number of slots per job (-pe pe_mth) and multiplies the mem_free parameter. E.g. to get 16 G of memory, use -m 8G -p 2.')
   submit_parser.add_argument('-n', '--name', dest='name', help='Gives the job a name')
   submit_parser.add_argument('-x', '--dependencies', type=int, default=[], metavar='ID', nargs='*', help='Set job dependencies to the list of job identifiers separated by spaces')
@@ -305,7 +313,10 @@ def main(command_line_options = None):
   resubmit_parser = cmdparser.add_parser('resubmit', aliases=['reset', 'requeue', 're'], formatter_class=formatter, help='Re-submits a list of jobs.')
   resubmit_parser.add_argument('-j', '--job-ids', metavar='ID', nargs='+', help='Re-submit only the jobs with the given ids (by default, all finished jobs are re-submitted).')
   resubmit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', choices=QUEUES, help='Reset the SGE queue to submit the job to')
-  resubmit_parser.add_argument('-m', '--memory', help='Resets both the h_vmem and the mem_free parameters when submitting the job to the specified value, e.g. 8G to set the memory requirements to 8 gigabytes')
+  resubmit_parser.add_argument('-m', '--memory', help='Resets both the h_vmem and the mem_free parameters when '
+                                                      'submitting the job to a non-GPU queue, e.g., 8G '
+                                                      'to set the memory requirements to 8 gigabytes. Resets gpumem '
+                                                      'parameter when submitting the job to a GPU-based queue.')
   resubmit_parser.add_argument('-p', '--parallel', '--pe_mth', type=int, help='Resets the number of slots per job (-pe pe_mth) and multiplies the mem_free parameter. E.g. to get 16 G of memory, use -m 8G -p 2.')
   resubmit_parser.add_argument('-i', '--io-big', action='store_true', help='Resubmits the job to the "io_big" queue.')
   resubmit_parser.add_argument('-I', '--no-io-big', action='store_true', help='Resubmits the job NOT to the "io_big" queue.')

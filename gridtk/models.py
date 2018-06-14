@@ -259,6 +259,8 @@ class Job(Base):
       retval['memfree'] = args['memfree']
     if 'hvmem' in args and args['hvmem'] is not None:
       retval['hvmem'] = args['hvmem']
+    if 'gpumem' in args and args['gpumem'] is not None:
+      retval['gpumem'] = args['gpumem']
     if 'env' in args and len(args['env']) > 0:
       retval['env'] = args['env']
     if 'io_big' in args and args['io_big']:
