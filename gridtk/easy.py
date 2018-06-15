@@ -28,6 +28,9 @@ def add_arguments(parser):
       'q_1month', 'q1m',
       'q_1day_mth', 'q1dm',
       'q_1week_mth', 'q1wm',
+      'q_gpu', 'gpu',
+      'q_long_gpu', 'lgpu',
+      'q_short_gpu', 'sgpu',
       )
 
   parser.add_argument('--queue-name', metavar='QUEUE', type=str,
@@ -75,7 +78,7 @@ class DryRunJob(object):
   # distributed as jobs are "submitted"
   current_id = 0
 
-  def __init__(self, cmd, cwd, queue, hostname, memfree, hvmem, pe_opt, stdout, stderr, name, array, deps):
+  def __init__(self, cmd, cwd, queue, hostname, memfree, hvmem, gpumem, pe_opt, stdout, stderr, name, array, deps):
     
     self.myid = DryRunJob.current_id
     DryRunJob.current_id += 1
@@ -86,6 +89,7 @@ class DryRunJob(object):
     self.hostname = hostname
     self.memfree = memfree
     self.hvmem = hvmem
+    self.gpumem = gpumem
     self.pe_opt = pe_opt
     self.stdout = stdout
     self.stderr = stderr
@@ -103,6 +107,7 @@ class DryRunJob(object):
   hostname : %s
   memfree  : %s
   hvmem    : %s
+  gpumem   : %s
   pe_opt   : %s
   stdout   : %s
   stderr   : %s
@@ -116,6 +121,7 @@ class DryRunJob(object):
     self.hostname,
     self.memfree,
     self.hvmem,
+    self.gpumem,
     self.pe_opt,
     self.stdout,
     self.stderr, 
@@ -140,13 +146,13 @@ def submit(jman, command, arguments, deps=[], array=None):
   if arguments.dryrun:
     return DryRunJob(cmd, cwd=arguments.cwd, queue=arguments.queue,
         hostname=arguments.hostname, memfree=arguments.memfree,
-        hvmem=arguments.hvmem, pe_opt=arguments.pe_opt,
+        hvmem=arguments.hvmem, gpumem=arguments.gpumem, pe_opt=arguments.pe_opt,
         stdout=logdir, stderr=logdir, name=jobname, deps=deps,
         array=array)
   
   # really submit
   return jman.submit(cmd, cwd=arguments.cwd, queue=arguments.queue,
       hostname=arguments.hostname, memfree=arguments.memfree,
-      hvmem=arguments.hvmem, pe_opt=arguments.pe_opt,
+      hvmem=arguments.hvmem, gpumem=arguments.gpumem, pe_opt=arguments.pe_opt,
       stdout=logdir, stderr=logdir, name=jobname, deps=deps,
       array=array)

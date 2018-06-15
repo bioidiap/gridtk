@@ -96,7 +96,7 @@ def str_(name):
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None,
-    memfree=None, hvmem=None, pe_opt=None, io_big=False):
+    memfree=None, hvmem=None, gpumem=None, pe_opt=None, io_big=False):
   """Submits a shell job to a given grid queue
 
   Keyword parameters:
@@ -164,6 +164,11 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     Used only if mem is not set
     (cf. qsub -l h_vmem=<...>)
 
+  gpumem
+    Applicable only for GPU-based queues. If set, it asks for the GPU queue
+    with a minimum amount of memory. The amount should not be more than 24.
+    (cf. qsub -l gpumem=<...>)
+
   hostname
     If set, it asks the queue to use only a subset of the available nodes
     Symbols: | for OR, & for AND, ! for NOT, etc.
@@ -187,6 +192,8 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
 
   if memfree: scmd += ['-l', 'mem_free=%s' % memfree]
   if hvmem: scmd += ['-l', 'h_vmem=%s' % hvmem]
+
+  if gpumem: scmd += ['-l', 'gpumem=%s' % gpumem]
 
   if io_big: scmd += ['-l', 'io_big']
 
