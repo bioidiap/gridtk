@@ -170,11 +170,13 @@ which will list only the jobs of the given job id(s):
 
    $ jman -vv list -a -j [job_id_1] [job_id_2]
 
-Note that the ``-j`` option is in general relatively smart.  You can use it to
-select a range of job ids, e.g., ``-j 1-4 6-8``.  In this case, please assert
-that there are no spaces between job ids and the ``-`` separator.  If any job
-id is specified, which is not available in the database, it will simply be
-ignored, including job ids that in the ranges.
+Note that the ``-j`` option is in general relatively smart. You can use it to
+select a range of job ids, e.g., ``-j 1-4 6-8 10+2`` is the same as
+``-j 1 2 3 4 6 7 8 10 11 12``.  In this case, please assert that there are no
+spaces between job ids and the ``-`` and ``+`` separators. You cannot use both
+``-`` and ``+`` in one part, i.e., something like ``-j 1-4+2`` will not work.
+If any job id is specified, which is not available in the database, it will
+simply be ignored, including job ids that are in the ranges.
 
 Since version 1.3.0, GridTK also saves timing information about jobs, i.e.,
 time stamps when jobs were submitted, started and finished.  You can use the

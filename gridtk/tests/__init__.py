@@ -117,7 +117,7 @@ class GridTKTest(unittest.TestCase):
       self.scheduler_job = subprocess.Popen([self.jman, '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
 
       # sleep some time to assure that the scheduler was able to start the first job
-      time.sleep(4)
+      time.sleep(5)
       # ... and kill the scheduler
       self.scheduler_job.kill()
       self.scheduler_job = None
@@ -153,7 +153,7 @@ class GridTKTest(unittest.TestCase):
       self.scheduler_job = subprocess.Popen([self.jman, '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
 
       # sleep some time to assure that the scheduler was able to finish the first and start the second job
-      time.sleep(9)
+      time.sleep(10)
       # ... and kill the scheduler
       self.scheduler_job.kill()
       self.scheduler_job = None
@@ -246,7 +246,7 @@ class GridTKTest(unittest.TestCase):
       jman.main([self.jman, '--database', self.database, 'report'])
 
       # clean-up
-      jman.main([self.jman, '--local', '--database', self.database, 'delete', '--job-ids', '1-5'])
+      jman.main([self.jman, '--local', '--database', self.database, 'delete', '--job-ids', '1+4'])
 
       # check that the database and the log files are gone
       self.assertEqual(len(os.listdir(self.temp_dir)), 0)
