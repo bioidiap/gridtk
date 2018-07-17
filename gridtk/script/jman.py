@@ -80,15 +80,18 @@ def get_ids(jobs):
     return None
   indexes = []
   for job in jobs:
-    # check if a range is specified
-    separator = job.find('-')
-    if separator == -1:
+    if '-' not in job and '+' not in job:
       index = int(job)
       indexes.append(index)
-    else:
-      first = int(job[0:separator])
-      last = int(job[separator+1:])
-      indexes.extend(range(first, last+1))
+    # check if a range is specified
+    elif '-' in job and '+' not in job:
+      first, last = job.split('-', 1)
+      indexes.extend(range(int(first), int(last) + 1))
+    # check if a plus sign is specified
+    elif '+' in job and '-' not in job:
+      first, add = job.split('+', 1)
+      first, add = int(first), int(add)
+      indexes.extend(range(first, first + add + 1))
   return indexes
 
 
