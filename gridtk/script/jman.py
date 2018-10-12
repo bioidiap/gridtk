@@ -136,6 +136,10 @@ def submit(args):
       kwargs['gpumem'] = args.memory  # assign directly
     elif args.memory.endswith('G'):
       kwargs['gpumem'] = args.memory[:-1]  # remove G at the end
+    # don't set these for GPU processing or the maximum virtual memroy will be
+    # set on ulimit
+    if 'memfree' in kwargs: del kwargs['memfree']
+    if 'hvmem' in kwargs: del kwargs['hvmem']
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     if args.memory is not None:
