@@ -62,7 +62,7 @@ class JobManagerLocal(JobManager):
     return job_id
 
 
-  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, **kwargs):
+  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, keep_logs=False, **kwargs):
     """Re-submit jobs automatically"""
     self.lock()
     # iterate over all jobs
@@ -81,6 +81,8 @@ class JobManagerLocal(JobManager):
         else:
           # re-submit job to the grid
           logger.info("Re-submitted job '%s' to the database", job)
+          if not keep_logs:
+            self.delete_logs(job)
           job.submit('local')
 
     self.session.commit()

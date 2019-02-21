@@ -132,7 +132,7 @@ class JobManagerSGE(JobManager):
     self.unlock()
 
 
-  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, verbosity=0, **kwargs):
+  def resubmit(self, job_ids = None, also_success = False, running_jobs = False, new_command=None, verbosity=0, keep_logs=False, **kwargs):
     """Re-submit jobs automatically"""
     self.lock()
     # iterate over all jobs
@@ -159,6 +159,8 @@ class JobManagerSGE(JobManager):
               del arguments[arg]
         job.set_arguments(kwargs=arguments)
         # delete old status and result of the job
+        if not keep_logs:
+          self.delete_logs(job)
         job.submit()
         if job.queue_name == 'local' and 'queue' not in arguments:
           logger.warn("Re-submitting job '%s' locally (since no queue name is specified)." % job)

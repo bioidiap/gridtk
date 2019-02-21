@@ -161,8 +161,6 @@ def submit(args):
 def resubmit(args):
   """Re-submits the jobs with the given ids."""
   jm = setup(args)
-  if not args.keep_logs:
-    jm.delete(job_ids=get_ids(args.job_ids), delete_jobs=False)
 
   kwargs = {
       'cwd': True,
@@ -184,8 +182,7 @@ def resubmit(args):
   if args.no_io_big:
     kwargs['io_big'] = False
 
-
-  jm.resubmit(get_ids(args.job_ids), args.also_success, args.running_jobs, args.overwrite_command, **kwargs)
+  jm.resubmit(get_ids(args.job_ids), args.also_success, args.running_jobs, args.overwrite_command, keep_logs=args.keep_logs, **kwargs)
 
 
 def run_scheduler(args):
