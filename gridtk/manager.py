@@ -325,6 +325,14 @@ class JobManager:
 
     self.unlock()
 
+  def delete_logs(self, job):
+    out_file, err_file = job.std_out_file(), job.std_err_file()
+    if out_file and os.path.exists(out_file):
+      os.remove(out_file)
+      logger.debug("Removed output log file '%s'" % out_file)
+    if err_file and os.path.exists(err_file):
+      os.remove(err_file)
+      logger.debug("Removed error log file '%s'" % err_file)
 
   def delete(self, job_ids, array_ids = None, delete_logs = True, delete_log_dir = False, status = Status, delete_jobs = True):
     """Deletes the jobs with the given ids from the database."""
@@ -336,13 +344,7 @@ class JobManager:
     def _delete(job, try_to_delete_dir=False):
       # delete the job from the database
       if delete_logs:
-        out_file, err_file = job.std_out_file(), job.std_err_file()
-        if out_file and os.path.exists(out_file):
-          os.remove(out_file)
-          logger.debug("Removed output log file '%s'" % out_file)
-        if err_file and os.path.exists(err_file):
-          os.remove(err_file)
-          logger.debug("Removed error log file '%s'" % err_file)
+        self.delete_logs(job)
         if try_to_delete_dir:
           _delete_dir_if_empty(job.log_dir)
       if delete_jobs:
