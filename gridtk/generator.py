@@ -3,24 +3,24 @@
 
 '''Utilities for generating configurations for running experiments in batch'''
 
-
+from bob.extension import rc
 import collections
 import itertools
-
 import yaml
 import jinja2
 
 
-class _OrderedDict(collections.OrderedDict):
+class dict(collections.OrderedDict):
   """An OrderedDict class that can be compared.
   This is to avoid sort errors (in Python 3) that happen in jinja internally.
   """
+
   def __lt__(self, other):
     return id(self) < id(other)
 
 
 def _ordered_load(stream, Loader=yaml.Loader,
-    object_pairs_hook=_OrderedDict):
+    object_pairs_hook=dict):
   '''Loads the contents of the YAML stream into :py:class:`collections.OrderedDict`'s
 
   See: https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
@@ -131,8 +131,8 @@ def expand(data):
 
   # separates "unique" objects from the ones we have to iterate
   # pre-assemble return dictionary
-  iterables = _OrderedDict()
-  unique = _OrderedDict()
+  iterables = dict()
+  unique = dict()
   for key, value in data.items():
     if isinstance(value, list) and not key.startswith('_'):
       iterables[key] = value
@@ -141,7 +141,7 @@ def expand(data):
 
   # generates all possible combinations of iterables
   for values in itertools.product(*iterables.values()):
-    retval = _OrderedDict(unique)
+    retval = dict(unique)
     keys = list(iterables.keys())
     retval.update(dict(zip(keys, values)))
     yield retval
@@ -176,6 +176,7 @@ def generate(variables, template):
 
   env = jinja2.Environment(undefined=jinja2.StrictUndefined)
   for c in expand(variables):
+    c['rc'] = rc
     yield env.from_string(template).render(c)
 
 
@@ -206,5 +207,5 @@ def aggregate(variables, template):
   '''
 
   env = jinja2.Environment(undefined=jinja2.StrictUndefined)
-  d = {'cfgset': list(expand(variables))}
+  d = {'cfgset': list(expand(variables)), 'rc': rc}
   return env.from_string(template).render(d)

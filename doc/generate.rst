@@ -189,6 +189,16 @@ configuration files and the aggregation would look like the following:
    $ jgen variables.yaml template.py 'output-dir/{{ name }}-{{ version }}.py' run.sh 'output-dir/run.sh'
 
 
+Automatic injection of variables
+--------------------------------
+
+Sometimes you want to use variables that are user specific in your jinja templates; For
+example, a temp directory that can be different for other users. To allow this, jgen
+automatically injects ``bob.extension.rc`` (see :ref:`bob.extension.rc`) into your
+variables. Then, you can access ``bob.extension.rc`` using something like:
+``rc.variable_name`` to access variables from it in your jinja templates.
+
+
 .. Place your references here:
 .. _yaml: https://en.wikipedia.org/wiki/YAML
 .. _jinja2: http://jinja.pocoo.org/docs/
