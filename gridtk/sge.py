@@ -13,7 +13,10 @@ from .setshell import environ
 from .models import add_job, Job
 from .tools import logger, qsub, qstat, qdel, make_shell, makedirs_safe
 
-import os, sys
+import os
+import sys
+import re
+
 
 class JobManagerSGE(JobManager):
   """The JobManager will submit and control the status of submitted jobs"""
@@ -79,7 +82,7 @@ class JobManagerSGE(JobManager):
       logger.warn("This job will never be executed since the 'io_big' flag is not available for the 'all.q'.")
     if 'pe_opt' in kwargs and ('queue' not in kwargs or kwargs['queue'] not in ('q1dm', 'q_1day_mth', 'q1wm', 'q_1week_mth')):
       logger.warn("This job will never be executed since the queue '%s' does not support multi-threading (pe_mth) -- use 'q1dm' or 'q1wm' instead." % kwargs['queue'] if 'queue' in kwargs else 'all.q')
-    if 'gpumem' in kwargs and 'queue' in kwargs and kwargs['queue'] in ('gpu', 'lgpu', 'sgpu') and int(kwargs['gpumem']) > 24:
+    if 'gpumem' in kwargs and 'queue' in kwargs and kwargs['queue'] in ('gpu', 'lgpu', 'sgpu') and int(re.sub("\D", "", kwargs['gpumem'])) > 24:
       logger.warn("This job will never be executed since the GPU queue '%s' cannot have more than 24GB of memory." % kwargs['queue'])
 
     assert job.id == grid_id

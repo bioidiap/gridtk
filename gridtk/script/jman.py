@@ -24,7 +24,7 @@ from ..tools import make_shell, logger
 from .. import local, sge
 from ..models import Status
 
-QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm', 'gpu', 'lgpu', 'sgpu']
+QUEUES = ['all.q', 'q1d', 'q1w', 'q1m', 'q1dm', 'q1wm', 'gpu', 'lgpu', 'sgpu', 'gpum']
 
 def setup(args):
   """Returns the JobManager and sets up the basic infrastructure"""
@@ -130,16 +130,12 @@ def submit(args):
   if args.qname != 'all.q':          kwargs['hvmem'] = args.memory
   # if this is a GPU queue and args.memory is provided, we set gpumem flag
   # remove 'G' last character from the args.memory string
-  if args.qname in ('gpu', 'lgpu', 'sgpu') and args.memory is not None:
-    # allow args.memory to have either <num>G or <num> format
-    if args.memory.isdigit():
-      kwargs['gpumem'] = args.memory  # assign directly
-    elif args.memory.endswith('G'):
-      kwargs['gpumem'] = args.memory[:-1]  # remove G at the end
+  if args.qname in ('gpu', 'lgpu', 'sgpu', 'gpum') and args.memory is not None:
+    kwargs['gpumem'] = args.memory
     # don't set these for GPU processing or the maximum virtual memroy will be
     # set on ulimit
-    if 'memfree' in kwargs: del kwargs['memfree']
-    if 'hvmem' in kwargs: del kwargs['hvmem']
+    kwargs.pop('memfree', None)
+    kwargs.pop('hvmem', None)
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     if args.memory is not None:
@@ -172,8 +168,14 @@ def resubmit(args):
     kwargs['memfree'] = args.memory
     if args.qname not in (None, 'all.q'):
       kwargs['hvmem'] = args.memory
-    if args.queue in ('gpu', 'lgpu', 'sgpu'):
+    # if this is a GPU queue and args.memory is provided, we set gpumem flag
+    # remove 'G' last character from the args.memory string
+    if args.qname in ('gpu', 'lgpu', 'sgpu', 'gpum') and args.memory is not None:
       kwargs['gpumem'] = args.memory
+      # don't set these for GPU processing or the maximum virtual memroy will be
+      # set on ulimit
+      kwargs.pop('memfree', None)
+      kwargs.pop('hvmem', None)
   if args.parallel is not None:
     kwargs['pe_opt'] = "pe_mth %d" % args.parallel
     kwargs['memfree'] = get_memfree(args.memory, args.parallel)
