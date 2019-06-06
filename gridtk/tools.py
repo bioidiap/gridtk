@@ -11,6 +11,7 @@ import os
 import re
 import hashlib
 import random
+import math
 
 
 # sqlalchemy migration; copied from Bob
@@ -334,3 +335,38 @@ def qdel(jobid, context='grid'):
 
   from .setshell import sexec
   sexec(context, scmd, error_on_nonzero=False)
+
+
+def get_array_job_slice(total_length):
+  """A helper function that let's you chunk a list in an SGE array job.
+  Use this function like ``a = a[get_array_job_slice(len(a))]`` to only process a chunk
+  of ``a``.
+
+  Parameters
+  ----------
+  total_length : int
+      The length of the list that you are trying to slice
+
+  Returns
+  -------
+  slice
+      A slice to be used.
+
+  Raises
+  ------
+  NotImplementedError
+      If "SGE_TASK_FIRST" and "SGE_TASK_STEPSIZE" are not 1.
+  """
+  sge_task_id = os.environ.get("SGE_TASK_ID")
+  try:
+    sge_task_id = int(sge_task_id)
+  except Exception:
+    return slice(None)
+  if os.environ["SGE_TASK_FIRST"] != '1' or os.environ["SGE_TASK_STEPSIZE"] != '1':
+    raise NotImplementedError("Values other than 1 for SGE_TASK_FIRST and SGE_TASK_STEPSIZE is not supported!")
+  job_id = sge_task_id - 1
+  number_of_parallel_jobs = int(os.environ["SGE_TASK_LAST"])
+  number_of_objects_per_job = int(math.ceil(total_length / number_of_parallel_jobs))
+  start = min(job_id * number_of_objects_per_job, total_length)
+  end = min((job_id + 1) * number_of_objects_per_job, total_length)
+  return slice(start, end)
