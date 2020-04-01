@@ -147,7 +147,7 @@ class GridTKTest(unittest.TestCase):
 
 
       # reset the job 1
-      jman.main([self.jman, '--local', '--database', self.database, 'resubmit', '--job-id', '1', '--running-jobs', '--overwrite-command', script_1])
+      jman.main([self.jman, '--local', '--database', self.database, 'resubmit', '--job-id', '1', '--running-jobs', '--overwrite-command', bash, script_1])
 
       # now, start the local execution of the job in a parallel job
       self.scheduler_job = subprocess.Popen([self.jman, '--local', '--database', self.database, 'run-scheduler', '--sleep-time', '5', '--parallel', '2'])
