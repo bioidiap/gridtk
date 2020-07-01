@@ -140,6 +140,7 @@ def submit(args):
       'env': args.env,
       'memfree': args.memory,
       'io_big': args.io_big,
+	  'sge_extra_flags': args.sge_extra_command
   }
 
   if args.array is not None:         kwargs['array'] = get_array(args.array)
@@ -311,6 +312,7 @@ def main(command_line_options = None):
   # subcommand 'submit'
   submit_parser = cmdparser.add_parser('submit', aliases=['sub'], formatter_class=formatter, help='Submits jobs to the SGE queue or to the local job scheduler and logs them in a database.')
   submit_parser.add_argument('-q', '--queue', metavar='QNAME', dest='qname', default='all.q', choices=QUEUES, help='the name of the SGE queue to submit the job to')
+  submit_parser.add_argument('-e', '--sge-extra-command', default=[], type=str, nargs="*", help='In case SGE backend is used, this option allows you to send commands to `qsub -l`, e.g., `jman submit -e pytorch=true` will be translated to `qsub -l pytorch=true`')
   submit_parser.add_argument('-m', '--memory', help='Sets both the h_vmem and the mem_free parameters when submitting '
                                                     'the job to a non-GPU queue, e.g., 8G to set the memory '
                                                     'requirements to 8 gigabytes. Sets gpumem parameter when '

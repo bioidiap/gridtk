@@ -125,6 +125,20 @@ This directory can be changed by specifying:
    has finished.
 
 
+In case, SGE backend is used, `--sge-extra-command` or shortly `-e` allows you to send commands to `qsub -l` command
+
+.. code-block:: sh
+
+  $ jman -vv submit -l [log_dir] -e [SGE_command]
+
+For example, `jman submit .. -e pytorch=true ...` will be translated to `qsub ... -l pytorch=true ...`.
+
+.. note::
+
+   Note that you can pass multiple SGE commands with `--sge-extra-command` or `e`, e.g., `jman submit ... -e <SGE_command_1> <SGE_command_2> <SGE_command_3> ...`
+
+
+
 Running Jobs Locally
 --------------------
 
