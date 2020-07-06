@@ -12,8 +12,7 @@ import re
 import hashlib
 import random
 import math
-import itertools
-
+import shlex
 
 # sqlalchemy migration; copied from Bob
 try:
@@ -98,7 +97,8 @@ def str_(name):
 
 def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     stderr='', env=[], array=None, context='grid', hostname=None,
-    memfree=None, hvmem=None, gpumem=None, pe_opt=None, io_big=False, sge_extra_flags=[]):
+    memfree=None, hvmem=None, gpumem=None, pe_opt=None, io_big=False,
+    sge_extra_flags=[]):
   """Submits a shell job to a given grid queue
 
   Keyword parameters:
@@ -184,15 +184,21 @@ def qsub(command, queue=None, cwd=True, name=None, deps=[], stdout='',
     Use this flag if your process will need a lot of Input/Output operations.
 
   sge_extra_flags
-	This is used to add new flags which are developed by SGE admin.
-	Note that you can pass multiple SGE commands with `--sge-extra-command` or `e`, e.g., `jman submit ... -e <SGE_command_1> <SGE_command_2> <SGE_command_3> ...` which will be translated to `qsub ... -l <SGE_command_1> -l <SGE_command_2> -l <SGE_command_3> ...`
+    This is used to send direct commands to SGE. Note that all its arguments are directly
+    used in `qsub` command. For example, `jman submit -e "-P project_name -l pytorch=true" -- ...` will
+    be translated to `qsub -P project_name -l pytorch=true -- ...`
 
 
   Returns the job id assigned to this job (integer)
   """
 
+
   scmd = ['qsub']
-  scmd += list(itertools.chain(*[['-l', f'{e}'] for e in sge_extra_flags]))
+
+  from bob.extension import rc
+  scmd += rc['gridtk.sge.extra.flags.prepend']
+  scmd += list(e for e in shlex.split(sge_extra_flags)]))
+
 
   import six
   if isinstance(queue, six.string_types) and queue not in ('all.q', 'default'):

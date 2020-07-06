@@ -125,19 +125,26 @@ This directory can be changed by specifying:
    has finished.
 
 
-In case, SGE backend is used, `--sge-extra-command` or shortly `-e` allows you to send commands to `qsub -l` command
+In case SGE backend is used, `--sge-extra-flags` or shortly `-e` allows you to send direct commands in `qsub -l`
 
 .. code-block:: sh
 
-  $ jman -vv submit -l [log_dir] -e [SGE_command]
+  $ jman -vv submit -l [log_dir] -e [sge_extra_flags]
 
-For example, `jman submit .. -e pytorch=true ...` will be translated to `qsub ... -l pytorch=true ...`.
+For example, `jman submit .. -e "-P project_name -l pytorch=true" -- ...` will be translated to `qsub ... -P project_name -l pytorch=true -- ...`.
+
+Please note that you can define `default` and `prepend` values for this command in [`bob.extension.rc`](https://www.idiap.ch/software/bob/docs/bob/docs/master/bob/bob.extension/doc/rc.html).
+.. code-block:: sh
+
+  $ bob config set gridtk.sge.extra.flags.default "the default expression"
+  $ bob config set gridtk.sge.extra.args.prepend "the prepend expression"
+
+For example, if you define `"-P biometrics"` as default value, a command like `jman submit -- python train.py` would translate `jman submit --sge-extra-args "-P project_name" -- python train.py`. 
+Similarly, if you define `"-P biometrics"` as prepend value it will be automatically added as a prepend to `--sge-extra-flags` argument.
 
 .. note::
 
-   Note that you can pass multiple SGE commands with `--sge-extra-command` or `e`, e.g., `jman submit ... -e <SGE_command_1> <SGE_command_2> <SGE_command_3> ...`
-
-
+   Note that you can pass multiple SGE commands with `--sge-extra-flags` or `-e`, e.g., `jman submit ... -e "<SGE_command_1> <SGE_command_2> <SGE_command_3> " ...`
 
 Running Jobs Locally
 --------------------
