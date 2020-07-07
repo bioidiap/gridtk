@@ -265,6 +265,8 @@ class Job(Base):
       retval['env'] = args['env']
     if 'io_big' in args and args['io_big']:
       retval['io_big'] = True
+    if 'sge_extra_args' in args:
+      retval['sge_extra_args'] = args['sge_extra_args']
 
     # also add the queue
     if self.queue_name is not None:
@@ -332,9 +334,9 @@ class Job(Base):
       deps = str(sorted(list(set([dep.unique for dep in self.get_jobs_we_wait_for()]))))
       if dependencies < len(deps):
         deps = deps[:dependencies-3] + '...'
-      return format.format(self.unique, job_id, queue[:12], status, self.name, deps, command_line)
+      return format.format(self.unique, job_id, queue[:12], status, str(self.name), deps, command_line)
     else:
-      return format.format(self.unique, job_id, queue[:12], status, self.name, command_line)
+      return format.format(self.unique, job_id, queue[:12], status, str(self.name), command_line)
 
 
 
