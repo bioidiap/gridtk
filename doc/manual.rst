@@ -125,26 +125,44 @@ This directory can be changed by specifying:
    has finished.
 
 
-In case SGE backend is used, `--sge-extra-flags` or shortly `-e` allows you to send direct commands in `qsub -l`
+If the SGE backend is used, ``--sge-extra-args`` or shortly ``-e`` allows you to send
+extra arguments to ``qsub``.
 
 .. code-block:: sh
 
-  $ jman -vv submit -l [log_dir] -e [sge_extra_flags]
+  $ jman -vv submit -e="<sge_extra_args>"
 
-For example, `jman submit .. -e "-P project_name -l pytorch=true" -- ...` will be translated to `qsub ... -P project_name -l pytorch=true -- ...`.
-
-Please note that you can define `default` and `prepend` values for this command in [`bob.extension.rc`](https://www.idiap.ch/software/bob/docs/bob/docs/master/bob/bob.extension/doc/rc.html).
-.. code-block:: sh
-
-  $ bob config set gridtk.sge.extra.flags.default "the default expression"
-  $ bob config set gridtk.sge.extra.args.prepend "the prepend expression"
-
-For example, if you define `"-P biometrics"` as default value, a command like `jman submit -- python train.py` would translate `jman submit --sge-extra-args "-P project_name" -- python train.py`. 
-Similarly, if you define `"-P biometrics"` as prepend value it will be automatically added as a prepend to `--sge-extra-flags` argument.
+For example, ``jman submit .. -e="-P project_name -l pytorch" -- ...`` will be
+translated to ``qsub ... -P project_name -l pytorch -- ...``.
 
 .. note::
 
-   Note that you can pass multiple SGE commands with `--sge-extra-flags` or `-e`, e.g., `jman submit ... -e "<SGE_command_1> <SGE_command_2> <SGE_command_3> " ...`
+   Note that extra options for qsub must be wrapped in single or double quotes **and**
+   should attach to the ``-e`` option with an ``=`` sign, e.g. ``jman submit -e='-P
+   project_name -l pytorch'``. Examples like ``jman submit -e '-P project_name -l
+   pytorch'`` and ``jman submit -e -P project_name -l pytorch`` will not work.
+
+To avoid adding the same ``-e`` option each time you run ``jman submit``, you may also
+change its default value using :ref:`bob.extension.rc`. For example, if you run:
+
+.. code-block:: sh
+
+  $ bob config set -- gridtk.sge.extra.args.default "-P myproject"
+
+Then, if you do ``jman submit ...``, this will translate to ``qsub -P myproject ...``.
+This configuration only changes the default value, you still can provide a new value by
+providing the ``-e`` option.
+
+Another (**recommended**) option is to always a prepend a string to this option. For
+example, if you run:
+
+.. code-block:: sh
+
+  $ bob config set -- gridtk.sge.extra.args.prepend "-P myproject"
+
+Then, if you do ``jman submit -e="-l pytorch"``, this will translate to
+``qsub -P myproject -l pytorch``.
+
 
 Running Jobs Locally
 --------------------
