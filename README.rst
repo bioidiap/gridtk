@@ -3,10 +3,10 @@
 
 .. image:: https://img.shields.io/badge/docs-available-orange.svg
    :target: https://www.idiap.ch/software/bob/docs/bob/gridtk/master/index.html
-.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.7.1/pipeline.svg
-   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.7.1
-.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.7.1/coverage.svg
-   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.7.1
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.8.0/pipeline.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.8.0
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.8.0/coverage.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.8.0
 .. image:: https://img.shields.io/badge/gitlab-project-0000c0.svg
    :target: https://gitlab.idiap.ch/bob/gridtk
 
