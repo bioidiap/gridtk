@@ -66,7 +66,7 @@ class JobManagerSGE(JobManager):
     assert os.path.isdir(job.log_dir), "Please make sure --log-dir `{}' either does not exist or is a directory.".format(job.log_dir)
 
     # generate call to the wrapper script
-    command = make_shell(python, [jman, '-d%s' % ('v'*verbosity), self._database, 'run-job'])
+    command = make_shell(python, [jman, '-%sd' % ('v'*verbosity), self._database, 'run-job'])
     q_array = "%d-%d:%d" % array if array else None
     grid_id = qsub(command, context=self.context, name=name, deps=deps, array=q_array, stdout=log_dir, stderr=log_dir, **kwargs)
 
