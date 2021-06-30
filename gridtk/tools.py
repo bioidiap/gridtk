@@ -29,7 +29,7 @@ except ImportError:
       A list of valid values for this column
       """
 
-      if values is None or len(values) is 0:
+      if values is None or len(values) == 0:
           raise AssertionError('Enum requires a list of values')
       self.values = values[:]
 
