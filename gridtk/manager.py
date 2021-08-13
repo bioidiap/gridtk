@@ -1,35 +1,16 @@
 from __future__ import print_function
 
 import os
-
-# Defines an equivalent `which` function to dig-out the location of excutables
-import shutil
 import socket  # to get the host name
 import subprocess
-import sys
 
 from distutils.version import LooseVersion
+from shutil import which
 
 import sqlalchemy
 
 from .models import ArrayJob, Base, Job, Status, times
 from .tools import logger
-
-if sys.version_info[:2] >= (3, 3):
-
-    which = shutil.which
-
-else:  # define our own
-
-    def which(cmd, mode=os.F_OK | os.X_OK, path=None):
-
-        from distutils.spawn import find_executable
-
-        candidate = find_executable(cmd, path)
-        st = os.stat(candidate)
-        if bool(st.st_mode & mode):
-            return candidate
-        return None
 
 
 class JobManager:

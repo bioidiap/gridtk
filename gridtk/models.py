@@ -3,10 +3,19 @@ import os
 from datetime import datetime
 from pickle import dumps, loads
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-from .tools import Enum, logger, relationship
+from .tools import logger
 
 Base = declarative_base()
 

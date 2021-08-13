@@ -7,70 +7,14 @@
 probing.
 """
 
+# initialize the logging system
+import logging
 import math
 import os
 import re
 import shlex
 
-# sqlalchemy migration; copied from Bob
-try:
-    from sqlalchemy import Enum
-except ImportError:
-    from sqlalchemy import types
-
-    class Enum(types.TypeDecorator):
-        impl = types.Unicode
-
-        def __init__(self, *values):
-            """Emulates an Enum type.
-            values:
-            A list of valid values for this column
-            """
-
-            if values is None or len(values) == 0:
-                raise AssertionError("Enum requires a list of values")
-            self.values = values[:]
-
-            # The length of the string/unicode column should be the longest string
-            # in values
-            size = max([len(v) for v in values if v is not None])
-            super(Enum, self).__init__(size)
-
-        def process_bind_param(self, value, dialect):
-            if value not in self.values:
-                raise AssertionError('"%s" not in Enum.values' % value)
-            return value
-
-        def process_result_value(self, value, dialect):
-            return value
-
-
-# initialize the logging system
-import logging
-
 logger = logging.getLogger("gridtk")
-# check if we need to define the NullHandler class ourselfes
-import sys
-
-if sys.version_info < (2, 7):
-    # define simple NullHandler class, (which should btw. also work with later python versions)
-    class NullHandler(logging.Handler):
-        def __init__(self, *args, **kwargs):
-            logging.Handler.__init__(self, **kwargs)
-
-        def emit(self, *args, **kwargs):
-            pass
-
-        def handle(self, *args, **kwargs):
-            pass
-
-        def createLock(self, *args, **kwargs):
-            pass
-
-        lock = None
-
-    # .. register null handler (has to be done in python 2.6 and before)
-    logger.addHandler(NullHandler())
 
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(":\\s+")
@@ -80,17 +24,7 @@ def makedirs_safe(fulldir):
     """Creates a directory if it does not exists. Takes into consideration
     concurrent access support. Works like the shell's 'mkdir -p'.
     """
-
-    try:
-        if not os.path.exists(fulldir):
-            os.makedirs(fulldir)
-    except OSError as exc:  # Python >2.5
-        import errno
-
-        if exc.errno == errno.EEXIST:
-            pass
-        else:
-            raise
+    os.makedirs(fulldir, exist_ok=True)
 
 
 def str_(name):
