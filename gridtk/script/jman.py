@@ -457,8 +457,9 @@ def main(command_line_options=None):
     submit_parser.add_argument(
         "-l",
         "--log-dir",
+        default="logs",
         metavar="DIR",
-        help='Sets the log directory. By default, "logs" is selected for the SGE. If the jobs are executed locally, by default the result is written to console.',
+        help="Sets the log directory.",
     )
     submit_parser.add_argument(
         "-s",
