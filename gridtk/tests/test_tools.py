@@ -1,5 +1,6 @@
-from ..tools import get_array_job_slice
 import os
+
+from ..tools import get_array_job_slice
 
 
 class SGE_EnvWrapper:
@@ -23,7 +24,9 @@ class SGE_EnvWrapper:
 
     def __enter__(self):
         # backup current variables
-        self.old_variables = {name: os.environ.get(name) for name in self.variables}
+        self.old_variables = {
+            name: os.environ.get(name) for name in self.variables
+        }
 
         # set the requested variables
         for name, value in self.variables.items():

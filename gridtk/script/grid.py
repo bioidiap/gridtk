@@ -9,25 +9,29 @@ from __future__ import print_function
 import os
 import sys
 
+
 def main():
 
-  from ..setshell import replace
+    from ..setshell import replace
 
-  # get the name of the script that we actually want to execute
-  # (as defined in the setup.py)
-  prog = os.path.basename(sys.argv[0])
-  # remove the .py extension, if available
-  if prog[-3:] == '.py': prog = prog[:-3]
+    # get the name of the script that we actually want to execute
+    # (as defined in the setup.py)
+    prog = os.path.basename(sys.argv[0])
+    # remove the .py extension, if available
+    if prog[-3:] == ".py":
+        prog = prog[:-3]
 
-  if prog == 'grid':
-    # act as before
-    if len(sys.argv) < 2:
-      print(__doc__)
-      print("usage: %s <command> [arg [arg ...]]" % \
-          os.path.basename(sys.argv[0]))
-      return 1
+    if prog == "grid":
+        # act as before
+        if len(sys.argv) < 2:
+            print(__doc__)
+            print(
+                "usage: %s <command> [arg [arg ...]]"
+                % os.path.basename(sys.argv[0])
+            )
+            return 1
 
-    replace('grid', sys.argv[1:])
-  else:
-    # call that specific command on the grid environment
-    replace('grid', [prog] + sys.argv[1:])
+        replace("grid", sys.argv[1:])
+    else:
+        # call that specific command on the grid environment
+        replace("grid", [prog] + sys.argv[1:])
