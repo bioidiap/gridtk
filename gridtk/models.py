@@ -1,30 +1,12 @@
 import os
-import sys
 
 from datetime import datetime
+from pickle import dumps, loads
 
-import sqlalchemy
-
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Table,
-)
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref
 
-from .tools import Enum, relationship
-
-if sys.version_info[0] >= 3:
-    from pickle import dumps, loads
-else:
-    from cPickle import dumps, loads
-
-from .tools import logger
+from .tools import Enum, logger, relationship
 
 Base = declarative_base()
 

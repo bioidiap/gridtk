@@ -43,7 +43,7 @@ class JobManagerSGE(JobManager):
         """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To
         process it we have to split it twice (',' and then on '='), create a
         dictionary and extract just the qname"""
-        if not "hard resource_list" in kwargs:
+        if "hard resource_list" not in kwargs:
             return "all.q"
         d = dict(
             [k.split("=") for k in kwargs["hard resource_list"].split(",")]
@@ -128,7 +128,7 @@ class JobManagerSGE(JobManager):
             "gpumem" in kwargs
             and "queue" in kwargs
             and kwargs["queue"] in ("gpu", "lgpu", "sgpu")
-            and int(re.sub("\D", "", kwargs["gpumem"])) > 24
+            and int(re.sub("\\D", "", kwargs["gpumem"])) > 24
         ):
             logger.warn(
                 "This job will never be executed since the GPU queue '%s' cannot have more than 24GB of memory."

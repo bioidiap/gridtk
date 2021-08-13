@@ -1,4 +1,4 @@
-from . import easy, local, manager, setshell, sge, tests, tools
+from . import easy, local, manager, setshell, sge, tests, tools  # noqa: F401
 
 
 def get_config():

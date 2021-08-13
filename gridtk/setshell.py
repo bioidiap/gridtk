@@ -30,7 +30,7 @@ def environ(context):
                     line = str_(line)
                     (key, _, value) = line.partition("=")
                     os.environ[key.strip()] = value.strip()
-            except OSError as e:
+            except OSError:
                 # occurs when the file is not executable or not found
                 pass
 

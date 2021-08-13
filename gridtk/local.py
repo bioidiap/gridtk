@@ -14,14 +14,9 @@ import subprocess
 import sys
 import time
 
-if sys.version_info[0] >= 3:
-    from pickle import dumps, loads
-else:
-    from cPickle import dumps, loads
-
 from .manager import JobManager
-from .models import Job, add_job
-from .tools import logger, makedirs_safe, str_
+from .models import add_job
+from .tools import logger, makedirs_safe
 
 
 class JobManagerLocal(JobManager):
@@ -186,8 +181,9 @@ class JobManagerLocal(JobManager):
         self.session.commit()
         self.unlock()
 
-    #####################################################################
-    ###### Methods to run the jobs in parallel on the local machine #####
+    ############################################################
+    # Methods to run the jobs in parallel on the local machine #
+    ############################################################
 
     def _run_parallel_job(
         self, job_id, array_id=None, no_log=False, nice=None, verbosity=0

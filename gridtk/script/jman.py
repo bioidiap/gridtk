@@ -21,7 +21,7 @@ import sys
 
 from .. import local, sge
 from ..models import Status
-from ..tools import logger, make_shell
+from ..tools import logger
 
 GPU_QUEUES = ["gpu", "lgpu", "sgpu", "gpum"]
 QUEUES = ["all.q", "q1d", "q1w", "q1m", "q1dm", "q1wm"] + GPU_QUEUES
@@ -61,7 +61,7 @@ def setup(args):
     if args.verbose not in range(0, 4):
         raise ValueError(
             "The verbosity level %d does not exist. Please reduce the number of '--verbose' parameters in your call to maximum 3"
-            % level
+            % args.verbose
         )
 
     # set up the verbosity level of the logging system

@@ -7,10 +7,8 @@
 probing.
 """
 
-import hashlib
 import math
 import os
-import random
 import re
 import shlex
 
@@ -47,12 +45,6 @@ except ImportError:
             return value
 
 
-try:
-    from sqlalchemy.orm import relationship
-except ImportError:
-    from sqlalchemy.orm import relation as relationship
-
-
 # initialize the logging system
 import logging
 
@@ -81,7 +73,7 @@ if sys.version_info < (2, 7):
     logger.addHandler(NullHandler())
 
 # Constant regular expressions
-QSTAT_FIELD_SEPARATOR = re.compile(":\s+")
+QSTAT_FIELD_SEPARATOR = re.compile(":\\s+")
 
 
 def makedirs_safe(fulldir):

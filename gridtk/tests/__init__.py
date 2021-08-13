@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import os
-import signal
 import subprocess
 import time
 import unittest
@@ -47,7 +46,7 @@ class GridTKTest(unittest.TestCase):
         # first test, if the '/bin/bash' exists
         bash = "/bin/bash"
         if not os.path.exists(bash):
-            raise SkipException(
+            raise unittest.SkipTest(
                 "Could not find '%s' which is required to run the test scripts"
                 % bash
             )

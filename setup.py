@@ -1,5 +1,3 @@
-import sys
-
 from setuptools import find_packages, setup
 
 version = open("version.txt").read().rstrip()
