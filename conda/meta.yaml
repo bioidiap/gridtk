@@ -28,16 +28,16 @@ requirements:
   host:
     - python {{ python }}
     - setuptools {{ setuptools }}
+    - bob.extension
     - jinja2 {{ jinja2 }}
     - pyyaml {{ pyyaml }}
     - sqlalchemy {{ sqlalchemy }}
-    - bob.extension
   run:
     - python
     - setuptools
-    - jinja2
-    - pyyaml
-    - sqlalchemy
+    - jinja2 {{ pin_compatible('jinja2') }}
+    - pyyaml {{ pin_compatible('pyyaml') }}
+    - sqlalchemy {{ pin_compatible('sqlalchemy') }}
 
 test:
   imports:
@@ -51,11 +51,10 @@ test:
     - conda inspect linkages -p $PREFIX {{ name }}  # [not win]
     - conda inspect objects -p $PREFIX {{ name }}  # [osx]
   requires:
-    - bob-devel {{ bob_devel }}.*
-    - nose
-    - coverage
-    - sphinx
-    - sphinx_rtd_theme
+    - nose {{ nose }}
+    - coverage {{ coverage }}
+    - sphinx {{ sphinx }}
+    - sphinx_rtd_theme {{ sphinx_rtd_theme }}
 
 about:
   home: https://www.idiap.ch/software/bob/
