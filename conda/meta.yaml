@@ -35,9 +35,9 @@ requirements:
   run:
     - python
     - setuptools
-    - jinja2 {{ pin_compatible('jinja2') }}
-    - pyyaml {{ pin_compatible('pyyaml') }}
-    - sqlalchemy {{ pin_compatible('sqlalchemy') }}
+    - {{ pin_compatible('jinja2') }}
+    - {{ pin_compatible('pyyaml') }}
+    - {{ pin_compatible('sqlalchemy') }}
 
 test:
   imports:
