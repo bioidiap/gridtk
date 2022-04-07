@@ -2,20 +2,25 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/timothycrosley/isort
-    rev: 5.9.3
+    rev: 5.10.1
     hooks:
       - id: isort
         args: [--settings-path, "pyproject.toml"]
   - repo: https://github.com/psf/black
-    rev: 21.7b0
+    rev: 22.3.0
     hooks:
       - id: black
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.9.2
     hooks:
       - id: flake8
+        exclude: |
+              (?x)^(
+                  bob/devtools/templates/setup.py|
+                  deps/bob-devel/run_test.py
+              )$
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.1.0
     hooks:
       - id: check-ast
       - id: check-case-conflict
