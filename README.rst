@@ -1,12 +1,12 @@
 .. vim: set fileencoding=utf-8 :
 .. Tue 16 Aug 16:07:37 CEST 2016
 
-.. image:: https://img.shields.io/badge/docs-latest-orange.svg
-   :target: https://www.idiap.ch/software/bob/docs/bob/gridtk/master/index.html
-.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/pipeline.svg
-   :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
-.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/master/coverage.svg
-   :target: https://gitlab.idiap.ch/bob/gridtk/commits/master
+.. image:: https://img.shields.io/badge/docs-v1.8.4-orange.svg
+   :target: https://www.idiap.ch/software/bob/docs/bob/gridtk/v1.8.4/index.html
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.8.4/pipeline.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.8.4
+.. image:: https://gitlab.idiap.ch/bob/gridtk/badges/v1.8.4/coverage.svg
+   :target: https://gitlab.idiap.ch/bob/gridtk/commits/v1.8.4
 .. image:: https://img.shields.io/badge/gitlab-project-0000c0.svg
    :target: https://gitlab.idiap.ch/bob/gridtk
 
