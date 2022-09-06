@@ -46,6 +46,7 @@ def add_arguments(parser):
         "lgpu",
         "q_short_gpu",
         "sgpu",
+        "vsgpu",
     )
 
     parser.add_argument(
