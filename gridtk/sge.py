@@ -127,7 +127,7 @@ class JobManagerSGE(JobManager):
         if (
             "gpumem" in kwargs
             and "queue" in kwargs
-            and kwargs["queue"] in ("gpu", "lgpu", "sgpu")
+            and kwargs["queue"] in ("gpu", "lgpu", "sgpu", "vsgpu")
             and int(re.sub("\\D", "", kwargs["gpumem"])) > 24
         ):
             logger.warn(

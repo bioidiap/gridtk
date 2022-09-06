@@ -23,7 +23,7 @@ from .. import local, sge
 from ..models import Status
 from ..tools import logger
 
-GPU_QUEUES = ["gpu", "lgpu", "sgpu", "gpum"]
+GPU_QUEUES = ["gpu", "lgpu", "sgpu", "gpum", "vsgpu"]
 QUEUES = ["all.q", "q1d", "q1w", "q1m", "q1dm", "q1wm"] + GPU_QUEUES
 
 
