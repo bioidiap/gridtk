@@ -1,6 +1,4 @@
 # SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
-# SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
-# SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -24,6 +22,10 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "auto_intersphinx",
+    "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
+    "sphinx_inline_tabs",
 ]
 
 # Be picky about warnings
@@ -111,6 +113,5 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-}
+auto_intersphinx_packages = [("python", "3"), ("exposed", "latest")]
+auto_intersphinx_catalog = "catalog.json"

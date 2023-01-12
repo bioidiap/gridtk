@@ -1,6 +1,4 @@
 .. SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
-.. SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
-.. SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -13,33 +11,31 @@
 We support two installation modes, through pip_, or mamba_ (conda).
 
 
-With pip
---------
+.. tab:: pip
 
-.. code-block:: sh
+   .. code-block:: sh
 
-   # stable, from PyPI:
-   $ pip install gridtk
+      # stable, from PyPI:
+      $ pip install gridtk
 
-   # latest beta, from GitLab package registry:
-   $ pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/bob/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
+      # latest beta, from GitLab package registry:
+      $ pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/bob/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
 
-.. tip::
+   .. tip::
 
-   To avoid long command-lines you may configure pip to define the indexes and
-   package search priorities as you like.
+      To avoid long command-lines you may configure pip to define the indexes and
+      package search priorities as you like.
 
 
-With conda
-----------
+.. tab:: mamba/conda
 
-.. code-block:: sh
+   .. code-block:: sh
 
-   # stable:
-   $ mamba install -c https://www.idiap.ch/software/bob/conda -c conda-forge gridtk
+      # stable:
+      $ mamba install -c https://www.idiap.ch/software/bob/conda -c conda-forge gridtk
 
-   # latest beta:
-   $ mamba install -c https://www.idiap.ch/software/bob/conda/label/beta -c conda-forge gridtk
+      # latest beta:
+      $ mamba install -c https://www.idiap.ch/software/bob/conda/label/beta -c conda-forge gridtk
 
 
 Setup

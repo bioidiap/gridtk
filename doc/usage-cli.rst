@@ -1,6 +1,4 @@
 .. SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
-.. SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
-.. SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -40,7 +38,7 @@ machine.  By default, the SGE manager is engaged.  If you don't have access to
 the SGE grid, or you want to submit locally, issue the ``jman --local`` (or
 shortly ``jman -l``) command instead.
 
-To keep track of the submitted jobs, an SQLite_ database is written.  This
+To keep track of the submitted jobs, a SQLite_ database is written.  This
 database is by default called ``submitted.sql3``, and put in the current
 directory. This can be changed using the ``jman --database`` (``jman -d``)
 flag.
@@ -61,7 +59,7 @@ submit a job to be run in the SGE grid is:
 
    jman -vv submit myscript.py
 
-This command will create an SQLite database, submit the job to the grid and
+This command will create a SQLite database, submit the job to the grid and
 register it in the database. To be more easily separable from other jobs in the
 database, you can give your job a name:
 
@@ -341,7 +339,7 @@ only those jobs (and array jobs) with a certain status. E.g. use:
 
 .. code:: sh
 
-  jman -vv delete -s success -j 10-20
+   jman -vv delete -s success -j 10-20
 
 to delete all jobs and the logs of all successfully finished jobs with job ids
 from 10 to 20 from the database.
@@ -350,17 +348,17 @@ from 10 to 20 from the database.
 Other command line tools
 ========================
 
-For convenience, we also provide additional command line tools, which are
-mainly useful at Idiap. These tools are:
+For convenience, we also provide additional command line tools, which
+*transparently* wrap the equivalent SGE tools, and make the process of using
+SGE at Idiap a bit easier (no need to execute ``SETSHELL grid``, if this
+package is installed):
 
-- ``qstat.py``: writes the statuses of the jobs that are currently running
-  in the SGE grid
-- ``qsub.py``: submit job to the SGE grid without logging them into the
-  database
-- ``qdel.py``: delete job from the SGE grid without logging them into the
-  database
-- ``grid``: executes the command in an grid environment (i.e., as if a
-  ``SETSHELL grid`` command would have been issued before)
+- qsub
+- qdel
+- qrst
+- qstat
+- qhost
 
+Please refer to the relevant manual pages for operational details.
 
 .. include:: links.rst

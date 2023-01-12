@@ -1,6 +1,4 @@
 .. SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
-.. SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
-.. SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 

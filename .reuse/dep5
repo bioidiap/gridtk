@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: auto-intersphinx
+Upstream-Contact: André Anjos <andre.anjos@idiap.ch>
+Source: https://gitlab.idiap.ch/bob/gridtk/
+
+Files: doc/catalog.json
+Copyright: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+License: GPL-3.0-or-later

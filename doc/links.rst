@@ -1,12 +1,11 @@
 .. SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
-.. SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
-.. SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 .. place re-used URLs here, then include this file
 .. on your other RST sources.
 
+.. _sqlite: https://www.sqlite.org/
 .. _conda: https://conda.io
 .. _idiap: http://www.idiap.ch
 .. _python: http://www.python.org
