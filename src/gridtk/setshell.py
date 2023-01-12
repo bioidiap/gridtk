@@ -1,21 +1,25 @@
-#!/usr/bin/env python
-# vim: set fileencoding=utf-8 :
-# Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 09:20:40 CEST
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Wrappers for Idiap's SETSHELL functionality
-"""
+"""Wrappers for Idiap's SETSHELL functionality."""
 
+from __future__ import annotations
+
+import logging
 import os
 import signal
 import subprocess
 import sys
 
-from .tools import logger, str_
+from .tools import str_
+
+logger = logging.getLogger(__name__)
 
 
-def environ(context):
-    """Retrieves the environment for a particular SETSHELL context"""
+def environ(context: str) -> dict[str, str]:
+    """Retrieves the environment for a particular SETSHELL context."""
+
     if "BASEDIRSETSHELL" not in os.environ:
         # It seems that we are in a hostile environment
         # try to source the Idiap-wide shell
@@ -27,16 +31,15 @@ def environ(context):
                 pi = subprocess.Popen(command, stdout=subprocess.PIPE)
                 # overwrite the default environment
                 for line in pi.stdout:
-                    line = str_(line)
-                    (key, _, value) = line.partition("=")
+                    sline = str_(line)
+                    (key, _, value) = sline.partition("=")
                     os.environ[key.strip()] = value.strip()
             except OSError:
                 # occurs when the file is not executable or not found
                 pass
 
-    # in case the BASEDIRSETSHELL environment variable is not set,
-    # we are not at Idiap,
-    # and so we don't have to set any additional variables.
+    # in case the BASEDIRSETSHELL environment variable is not set, we are not
+    # at Idiap, and so we don't have to set any additional variables.
     if "BASEDIRSETSHELL" not in os.environ:
         return dict(os.environ)
 
@@ -77,8 +80,8 @@ def environ(context):
 
     new_environ = dict(os.environ)
     for line in p2.stdout:
-        line = str_(line)
-        (key, _, value) = line.partition("=")
+        sline = str_(line)
+        (key, _, value) = sline.partition("=")
         new_environ[key.strip()] = value.strip()
 
     try:
@@ -97,12 +100,12 @@ def environ(context):
     return new_environ
 
 
-def sexec(context, command, error_on_nonzero=True):
-    """Executes a command within a particular Idiap SETSHELL context"""
+def sexec(
+    context: str, command: list[str], error_on_nonzero: bool = True
+) -> bytes:
+    """Executes a command within a particular Idiap SETSHELL context."""
 
-    import six
-
-    if isinstance(context, six.string_types):
+    if isinstance(context, (str, bytes)):
         E = environ(context)
     else:
         E = context
@@ -112,7 +115,7 @@ def sexec(context, command, error_on_nonzero=True):
         p = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=E
         )
-        (stdout, stderr) = p.communicate()  # note: stderr will be 'None'
+        (stdout, _) = p.communicate()  # note: stderr will be 'None'
         if p.returncode != 0:
             if error_on_nonzero:
                 raise RuntimeError(

@@ -1,40 +1,59 @@
-#!/usr/bin/env python
-# vim: set fileencoding=utf-8 :
-# Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 09:26:46 CEST
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Functions that replace the shell based utilities for the grid submission and
-probing.
-"""
+"""Functions that replace shell-based utilities for grid submission and
+probing."""
 
-# initialize the logging system
 import logging
 import math
 import os
+import pathlib
 import re
 import shlex
 
-logger = logging.getLogger("gridtk")
+import exposed.rc
+
+logger = logging.getLogger(__name__)
 
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(":\\s+")
 
 
-def makedirs_safe(fulldir):
-    """Creates a directory if it does not exists. Takes into consideration
-    concurrent access support. Works like the shell's 'mkdir -p'.
-    """
-    os.makedirs(fulldir, exist_ok=True)
+def load_defaults() -> exposed.rc.UserDefaults:
+    """Loads user defaults from the stock location."""
 
+    from exposed import rc
 
-def str_(name):
-    """Return the string representation of the given 'name'.
-    If it is a bytes object, it will be converted into str.
-    If it is a str object, it will simply be resurned."""
-    if isinstance(name, bytes) and not isinstance(name, str):
-        return name.decode("utf8")
+    config_dir = os.environ.get("XDG_CONFIG_HOME")
+
+    if config_dir is None:
+        config_path = pathlib.Path.home() / ".config"
     else:
-        return name
+        config_path = pathlib.Path(config_dir)
+
+    return rc.UserDefaults(config_path / "gridtk.toml")
+
+
+def str_(v: str | bytes) -> str:
+    """Always returns the string representation of the given ``name``.
+
+    If it is a bytes object, it will be converted into str.
+
+    If it is a str object, it will simply be resurned.
+
+
+    Parameters:
+
+        v: a bytes or str object
+
+
+    Returns:
+
+        A str object
+    """
+
+    return v if not isinstance(v, bytes) else v.decode()
 
 
 def qsub(
@@ -56,7 +75,7 @@ def qsub(
     io_big=False,
     sge_extra_args="",
 ):
-    """Submits a shell job to a given grid queue
+    """Submits a shell job to a given grid queue.
 
     Keyword parameters:
 
@@ -148,17 +167,16 @@ def qsub(
 
     Returns the job id assigned to this job (integer)
     """
-    import six
-
-    from bob.extension import rc
 
     scmd = ["qsub"]
 
-    prepend = rc.get("gridtk.sge.extra.args.prepend") or ""
+    defaults = load_defaults()
+
+    prepend = defaults.get("sge-extra-args-prepend", "")
     sge_extra_args = f"{prepend} {sge_extra_args or ''}"
     scmd += shlex.split(sge_extra_args)
 
-    if isinstance(queue, six.string_types) and queue not in (
+    if isinstance(queue, (str, bytes)) and queue not in (
         "all.q",
         "default",
     ):
@@ -198,7 +216,7 @@ def qsub(
             os.chdir(os.environ["HOME"])
 
         if not os.path.exists(stdout):
-            makedirs_safe(stdout)
+            os.makedirs(stdout, exist_ok=True)
 
         if not cwd:
             # go back
@@ -207,8 +225,7 @@ def qsub(
         scmd += ["-o", stdout]
 
     if stderr:
-        if not os.path.exists(stderr):
-            makedirs_safe(stderr)
+        os.makedirs(stderr, exist_ok=True)
         scmd += ["-e", stderr]
     elif stdout:  # just re-use the stdout settings
         scmd += ["-e", stdout]
@@ -222,14 +239,14 @@ def qsub(
 
     if array is not None:
         scmd.append("-t")
-        if isinstance(array, six.string_types):
+        if isinstance(array, (str, bytes)):
             try:
                 i = int(array)
                 scmd.append("1-%d:1" % i)
             except ValueError:
                 # must be complete...
                 scmd.append("%s" % array)
-        if isinstance(array, six.integer_types):
+        if isinstance(array, (str, bytes)):
             scmd.append("1-%d:1" % array)
         if isinstance(array, (tuple, list)):
             if len(array) < 1 or len(array) > 3:
@@ -239,9 +256,9 @@ def qsub(
             elif len(array) == 1:
                 scmd.append("%s" % array[0])
             elif len(array) == 2:
-                scmd.append("%s-%s" % (array[0], array[1]))
+                scmd.append(f"{array[0]}-{array[1]}")
             elif len(array) == 3:
-                scmd.append("%s-%s:%s" % (array[0], array[1], array[2]))
+                scmd.append(f"{array[0]}-{array[1]}:{array[2]}")
 
     if not isinstance(command, (list, tuple)):
         command = [command]
@@ -256,7 +273,7 @@ def qsub(
 
 
 def make_shell(shell, command):
-    """Returns a single command given a shell and a command to be qsub'ed
+    """Returns a single command given a shell and a command to be qsub'ed.
 
     Keyword parameters:
 
@@ -312,55 +329,61 @@ def qstat(jobid, context="grid"):
     return retval
 
 
-def qdel(jobid, context="grid"):
+def qdel(jobid: int, context: str = "grid") -> None:
     """Halts a given job.
 
-    Keyword parameters:
+    Parameters:
 
-    jobid
-      The job identifier as returned by qsub()
+        jobid: The job identifier as returned by :py:func:`qsub`
 
-    context
-      The setshell context in which we should try a 'qsub'. Normally you don't
-      need to change the default. This variable can also be set to a context
-      dictionary in which case we just setup using that context instead of
-      probing for a new one, what can be fast.
+        context: The setshell context in which we should try a 'qsub'. Normally
+            you do not need to change the default. This variable can also be
+            set to a context dictionary in which case we just setup using that
+            context instead of probing for a new one, what can be fast.
     """
 
-    scmd = ["qdel", "%d" % jobid]
+    scmd = ["qdel", f"{jobid}"]
 
-    logger.debug("Qdel command '%s'", " ".join(scmd))
+    logger.debug(f"qdel command '{' '.join(scmd)}'")
 
     from .setshell import sexec
 
     sexec(context, scmd, error_on_nonzero=False)
 
 
-def get_array_job_slice(total_length):
+def get_array_job_slice(total_length: int) -> slice:
     """A helper function that let's you chunk a list in an SGE array job.
-    Use this function like ``a = a[get_array_job_slice(len(a))]`` to only process a chunk
-    of ``a``.
 
-    Parameters
-    ----------
-    total_length : int
-        The length of the list that you are trying to slice
+    Use this function like ``a = a[get_array_job_slice(len(a))]`` to only
+    process a chunk of ``a``.
 
-    Returns
-    -------
-    slice
+
+    Parameters:
+
+        total_length: The length of the list that you are trying to slice
+
+
+    Returns:
+
         A slice to be used.
 
-    Raises
-    ------
-    NotImplementedError
-        If "SGE_TASK_FIRST" and "SGE_TASK_STEPSIZE" are not 1.
+
+    Raises:
+
+        NotImplementedError: If "SGE_TASK_FIRST" and "SGE_TASK_STEPSIZE" are
+            not 1.
     """
+
     sge_task_id = os.environ.get("SGE_TASK_ID")
+
+    if sge_task_id is None:
+        return slice(None)
+
     try:
-        sge_task_id = int(sge_task_id)
+        sge_task_int = int(sge_task_id)
     except Exception:
         return slice(None)
+
     if (
         os.environ["SGE_TASK_FIRST"] != "1"
         or os.environ["SGE_TASK_STEPSIZE"] != "1"
@@ -368,11 +391,15 @@ def get_array_job_slice(total_length):
         raise NotImplementedError(
             "Values other than 1 for SGE_TASK_FIRST and SGE_TASK_STEPSIZE is not supported!"
         )
-    job_id = sge_task_id - 1
+
+    job_id = sge_task_int - 1
+
     number_of_parallel_jobs = int(os.environ["SGE_TASK_LAST"])
     number_of_objects_per_job = int(
         math.ceil(total_length / number_of_parallel_jobs)
     )
+
     start = min(job_id * number_of_objects_per_job, total_length)
     end = min((job_id + 1) * number_of_objects_per_job, total_length)
+
     return slice(start, end)

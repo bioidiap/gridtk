@@ -1,4 +1,10 @@
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import logging
 import os
+import typing
 
 from datetime import datetime
 from pickle import dumps, loads
@@ -15,9 +21,9 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from .tools import logger
+logger = logging.getLogger(__name__)
 
-Base = declarative_base()
+Base = declarative_base()  # type: typing.Any
 
 Status = ("submitted", "queued", "waiting", "executing", "success", "failure")
 
@@ -71,7 +77,7 @@ class ArrayJob(Base):
             r = "%s (%d)" % (self.status, self.result)
         else:
             r = "%s" % self.status
-        return "%s : %s" % (n, r)
+        return f"{n} : {r}"
 
     def format(self, format):
         """Formats the current job into a nicer string to fit into a table."""
@@ -136,10 +142,10 @@ class Job(Base):
         exec_dir=None,
         log_dir=None,
         array_string=None,
-        queue_name="local",
+        queue_name="default",
         machine_name=None,
         stop_on_failure=False,
-        **kwargs
+        **kwargs,
     ):
         """Constructs a Job object without an ID (needs to be set later)."""
         self.command_line = dumps(command_line)
@@ -300,7 +306,8 @@ class Job(Base):
         )
 
     def get_arguments(self):
-        """Returns the additional options for the grid (such as the queue, memory requirements, ...)."""
+        """Returns the additional options for the grid (such as the queue,
+        memory requirements, ...)."""
         # In python 2, the command line is unicode, which needs to be converted to string before pickling;
         # In python 3, the command line is bytes, which can be pickled directly
         args = (
@@ -381,7 +388,7 @@ class Job(Base):
     def __str__(self):
         id = "%d (%d)" % (self.unique, self.id)
         if self.machine_name:
-            m = "%s - %s" % (self.queue_name, self.machine_name)
+            m = f"{self.queue_name} - {self.machine_name}"
         else:
             m = self.queue_name
         if self.array:
@@ -389,14 +396,14 @@ class Job(Base):
         else:
             a = ""
         if self.name is not None:
-            n = "<Job: %s %s - '%s'>" % (id, a, self.name)
+            n = f"<Job: {id} {a} - '{self.name}'>"
         else:
             n = "<Job: %s>" % id
         if self.result is not None:
             r = "%s (%d)" % (self.status, self.result)
         else:
             r = "%s" % self.status
-        return "%s | %s : %s -- %s" % (n, m, r, self._cmdline())
+        return f"{n} | {m} : {r} -- {self._cmdline()}"
 
     def format(self, format, dependencies=0, limit_command_line=None):
         """Formats the current job into a nicer string to fit into a table."""
@@ -423,10 +430,7 @@ class Job(Base):
                 command_line = (
                     "<"
                     + ",".join(
-                        [
-                            "%s=%s" % (key, value)
-                            for key, value in grid_opt.items()
-                        ]
+                        [f"{key}={value}" for key, value in grid_opt.items()]
                     )
                     + ">: "
                     + command_line
@@ -439,9 +443,7 @@ class Job(Base):
         if dependencies:
             deps = str(
                 sorted(
-                    list(
-                        set([dep.unique for dep in self.get_jobs_we_wait_for()])
-                    )
+                    list({dep.unique for dep in self.get_jobs_we_wait_for()})
                 )
             )
             if dependencies < len(deps):
@@ -507,9 +509,10 @@ def add_job(
     exec_dir=None,
     log_dir=None,
     stop_on_failure=False,
-    **kwargs
+    **kwargs,
 ):
-    """Helper function to create a job, add the dependencies and the array jobs."""
+    """Helper function to create a job, add the dependencies and the array
+    jobs."""
     job = Job(
         command_line=command_line,
         name=name,
@@ -551,15 +554,16 @@ def add_job(
 
 
 def times(job):
-    """Returns a string containing timing information for teh given job, which might be a :py:class:`Job` or an :py:class:`ArrayJob`."""
+    """Returns a string containing timing information for teh given job, which
+    might be a :py:class:`Job` or an :py:class:`ArrayJob`."""
     timing = "Submitted: %s" % job.submit_time.ctime()
     if job.start_time is not None:
-        timing += "\nStarted  : %s \t Job waited  : %s" % (
+        timing += "\nStarted  : {} \t Job waited  : {}".format(
             job.start_time.ctime(),
             job.start_time - job.submit_time,
         )
     if job.finish_time is not None:
-        timing += "\nFinished : %s \t Job executed: %s" % (
+        timing += "\nFinished : {} \t Job executed: {}".format(
             job.finish_time.ctime(),
             job.finish_time - job.start_time,
         )

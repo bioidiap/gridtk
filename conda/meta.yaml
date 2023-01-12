@@ -1,65 +1,48 @@
-{% set name = 'gridtk' %}
-{% set project_dir = environ.get('RECIPE_DIR') + '/..' %}
+# SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
+# SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+{% set data = load_file_data(RECIPE_DIR + '/../pyproject.toml') %}
 
 package:
-  name: {{ name }}
-  version: {{ environ.get('BOB_PACKAGE_VERSION', '0.0.1') }}
+  name: {{ data['project']['name'] }}
+  version: {{ data['project']['version'] }}
+
+source:
+  path: ..
 
 build:
-  entry_points:
-    - jman = gridtk.script.jman:main
-    - jgen = gridtk.script.jgen:main
-    - grid = gridtk.script.grid:main
-    - qstat.py = gridtk.script.grid:main
-    - qdel.py = gridtk.script.grid:main
-    - qsub.py = gridtk.script.grid:main
-    - man.py = gridtk.script.grid:main
+  noarch: python
   number: {{ environ.get('BOB_BUILD_NUMBER', 0) }}
   run_exports:
-    - {{ pin_subpackage(name) }}
+    - {{ pin_subpackage(data['project']['name']) }}
   script:
-    - cd {{ project_dir }}
-    {% if environ.get('BUILD_EGG') %}
-    - "{{ PYTHON }} setup.py sdist --formats=zip"
-    {% endif %}
-    - "{{ PYTHON }} -m pip install . -vv"
+    - "{{ PYTHON }} -m pip install {{ SRC_DIR }} -vv"
 
 requirements:
   host:
-    - python {{ python }}
-    - setuptools {{ setuptools }}
+    - python >=3.9
     - pip {{ pip }}
-    - bob.extension
-    - jinja2 {{ jinja2 }}
-    - pyyaml {{ pyyaml }}
     - sqlalchemy {{ sqlalchemy }}
+    - exposed
   run:
-    - python
-    - setuptools
-    - {{ pin_compatible('jinja2') }}
-    - {{ pin_compatible('pyyaml') }}
+    - python >=3.9
     - {{ pin_compatible('sqlalchemy') }}
 
 test:
+  source_files:
+    - tests
   imports:
-    - {{ name }}
+    - {{ data['project']['name'].replace('-','_') }}
   commands:
-    - jman --help
-    - jgen --help
-
-    - nosetests --with-coverage --cover-package={{ name }} -sv {{ name }}
-    - sphinx-build -aEW {{ project_dir }}/doc {{ project_dir }}/sphinx
-    - sphinx-build -aEb doctest {{ project_dir }}/doc sphinx
-    - conda inspect linkages -p $PREFIX {{ name }}  # [not win]
-    - conda inspect objects -p $PREFIX {{ name }}  # [osx]
+    - pytest -sv tests
   requires:
-    - nose {{ nose }}
-    - coverage {{ coverage }}
-    - sphinx {{ sphinx }}
-    - sphinx_rtd_theme {{ sphinx_rtd_theme }}
+    - pytest {{ pytest }}
 
 about:
-  home: https://www.idiap.ch/software/bob/
-  license: GNU General Public License v3 (GPLv3)
-  summary: Parallel Job Manager
+  home: {{ data['project']['urls']['homepage'] }}
+  summary: {{ data['project']['description'] }}
+  license: {{ data['project']['license']['text'] }}
   license_family: GPL

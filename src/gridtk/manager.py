@@ -1,5 +1,8 @@
-from __future__ import print_function
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
 import os
 import socket  # to get the host name
 import subprocess
@@ -10,11 +13,13 @@ from shutil import which
 import sqlalchemy
 
 from .models import ArrayJob, Base, Job, Status, times
-from .tools import logger
+
+logger = logging.getLogger(__name__)
 
 
 class JobManager:
-    """This job manager defines the basic interface for handling jobs in the SQL database."""
+    """This job manager defines the basic interface for handling jobs in the
+    SQL database."""
 
     def __init__(
         self, database="submitted.sql3", wrapper_script=None, debug=False
@@ -38,11 +43,11 @@ class JobManager:
             )
 
         if wrapper_script is None:
-            raise IOError(
+            raise OSError(
                 "Could not find the installation path of gridtk. Please specify it in the wrapper_script parameter of the JobManager."
             )
         if not os.path.exists(wrapper_script):
-            raise IOError(
+            raise OSError(
                 "Your wrapper_script cannot be found. Jobs will not be executable."
             )
         self.wrapper_script = wrapper_script
@@ -63,7 +68,8 @@ class JobManager:
                 os.remove(self._database)
 
     def lock(self):
-        """Generates (and returns) a blocking session object to the database."""
+        """Generates (and returns) a blocking session object to the
+        database."""
         if hasattr(self, "session"):
             raise RuntimeError(
                 "Dead lock detected. Please do not try to lock the session when it is already locked!"
@@ -97,10 +103,9 @@ class JobManager:
 
     def _create(self):
         """Creates a new and empty database."""
-        from .tools import makedirs_safe
 
         # create directory for sql database
-        makedirs_safe(os.path.dirname(self._database))
+        os.makedirs(os.path.dirname(self._database), exist_ok=True)
 
         # create all the tables
         Base.metadata.create_all(self._engine)
@@ -144,7 +149,8 @@ class JobManager:
             return (job, None)
 
     def run_job(self, job_id, array_id=None):
-        """This function is called to run a job (e.g. in the grid) with the given id and the given array index if applicable."""
+        """This function is called to run a job (e.g. in the grid) with the
+        given id and the given array index if applicable."""
         # set the job's status in the database
         try:
             # get the job from the database
@@ -311,7 +317,8 @@ class JobManager:
         status=Status,
         name=None,
     ):
-        """Iterates through the output and error files and write the results to command line."""
+        """Iterates through the output and error files and write the results to
+        command line."""
 
         def _write_contents(job):
             # Writes the contents of the output and error files to command line

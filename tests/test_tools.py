@@ -1,6 +1,10 @@
+# SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
 
-from ..tools import get_array_job_slice
+from gridtk.tools import get_array_job_slice
 
 
 class SGE_EnvWrapper:

@@ -1,13 +1,10 @@
-#!/usr/bin/env python
-# vim: set fileencoding=utf-8 :
-# Andre Anjos <andre.anjos@idiap.ch>
-# Wed 24 Aug 2011 13:06:25 CEST
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Defines the job manager which can help you managing submitted grid jobs.
-"""
+"""Defines the job manager which can help you managing submitted grid jobs."""
 
-from __future__ import print_function
-
+import logging
 import os
 import re
 import sys
@@ -15,14 +12,17 @@ import sys
 from .manager import JobManager
 from .models import Job, add_job
 from .setshell import environ
-from .tools import logger, make_shell, makedirs_safe, qdel, qstat, qsub
+from .tools import make_shell, qdel, qstat, qsub
+
+logger = logging.getLogger(__name__)
 
 
 class JobManagerSGE(JobManager):
-    """The JobManager will submit and control the status of submitted jobs"""
+    """The JobManager will submit and control the status of submitted jobs."""
 
     def __init__(self, context="grid", **kwargs):
-        """Initializes this object with a state file and a method for qsub'bing.
+        """Initializes this object with a state file and a method for
+        qsub'bing.
 
         Keyword parameters:
 
@@ -40,9 +40,11 @@ class JobManagerSGE(JobManager):
         JobManager.__init__(self, **kwargs)
 
     def _queue(self, kwargs):
-        """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'. To
-        process it we have to split it twice (',' and then on '='), create a
-        dictionary and extract just the qname"""
+        """The hard resource_list comes like this: '<qname>=TRUE,mem=128M'.
+
+        To process it we have to split it twice (',' and then on '='),
+        create a dictionary and extract just the qname
+        """
         if "hard resource_list" not in kwargs:
             return "all.q"
         d = dict(
@@ -63,10 +65,10 @@ class JobManagerSGE(JobManager):
 
         # get the grid id's for the dependencies and remove duplicates
         dependent_jobs = self.get_jobs(dependencies)
-        deps = sorted(list(set([j.id for j in dependent_jobs])))
+        deps = sorted(list({j.id for j in dependent_jobs}))
 
         # make sure log directory is created and is a directory
-        makedirs_safe(job.log_dir)
+        os.makedirs(job.log_dir, exist_ok=True)
         assert os.path.isdir(
             job.log_dir
         ), "Please make sure --log-dir `{}' either does not exist or is a directory.".format(
@@ -191,7 +193,8 @@ class JobManagerSGE(JobManager):
         return job_id
 
     def communicate(self, job_ids=None):
-        """Communicates with the SGE grid (using qstat) to see if jobs are still running."""
+        """Communicates with the SGE grid (using qstat) to see if jobs are
+        still running."""
         self.lock()
         # iterate over all jobs
         jobs = self.get_jobs(job_ids)
@@ -227,7 +230,7 @@ class JobManagerSGE(JobManager):
         keep_logs=False,
         **kwargs
     ):
-        """Re-submit jobs automatically"""
+        """Re-submit jobs automatically."""
         self.lock()
         # iterate over all jobs
         jobs = self.get_jobs(job_ids)
@@ -294,7 +297,8 @@ class JobManagerSGE(JobManager):
         self.unlock()
 
     def run_job(self, job_id, array_id=None):
-        """Overwrites the run-job command from the manager to extract the correct job id before calling base class implementation."""
+        """Overwrites the run-job command from the manager to extract the
+        correct job id before calling base class implementation."""
         # get the unique job id from the given grid id
         self.lock()
         jobs = list(self.session.query(Job).filter(Job.id == job_id))

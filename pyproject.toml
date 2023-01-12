@@ -1,12 +1,90 @@
+# SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+# SPDX-FileContributor: Andre Anjos <andre.anjos@idiap.ch>
+# SPDX-FileContributor: Manuel Guenther <manuel.guenther@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 [build-system]
-    requires = ["setuptools", "wheel", "bob.extension"]
+    requires = ["setuptools>=61.0.0", "wheel"]
     build-backend = "setuptools.build_meta"
 
+[project]
+name = "gridtk"
+version = "1.8.6b0"
+requires-python = ">=3.9"
+description = "Grid-enabled job submitter and execution monitor for Idiap"
+dynamic = ["readme"]
+license = {text = "GNU General Public License v3 (GPLv3)"}
+authors = [
+  {name = "Andre Anjos", email = "andre.anjos@idiap.ch"},
+  {name = "Manuel Guenther", email = "manuel.guenther@idiap.ch"},
+]
+classifiers = [
+    "Development Status :: 5 - Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "exposed",
+    "sqlalchemy",
+]
+
+[project.urls]
+documentation = "https://www.idiap.ch/software/bob/docs/bob/gridtk/main/sphinx"
+homepage = "https://pypi.org/project/gridtk"
+repository = "https://gitlab.idiap.ch/bob/gridtk"
+changelog = "https://gitlab.idiap.ch/bob/gridtk/-/releases"
+
+[project.optional-dependencies]
+qa = ["pre-commit"]
+doc = [
+    "sphinx",
+    "furo",
+    ]
+test = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+    ]
+
+[project.scripts]
+jman = "gridtk.script.jman:main"
+
+# access to SGE utilities from package installation
+qconf = "gridtk.script.grid:main"
+qsub = "gridtk.script.grid:main"
+qdel = "gridtk.script.grid:main"
+qstat = "gridtk.script.grid:main"
+qrsh = "gridtk.script.grid:main"
+qhost = "gridtk.script.grid:main"
+
+[tool.setuptools]
+zip-safe = true
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+readme = {file = "README.md"}
+
+[tool.distutils.bdist_wheel]
+universal = true
+
 [tool.isort]
-    profile = "black"
-    line_length = 80
-    order_by_type = true
-    lines_between_types = 1
+profile = "black"
+line_length = 80
+order_by_type = true
+lines_between_types = 1
 
 [tool.black]
-    line-length = 80
+line-length = 80
+
+[tool.pytest.ini_options]
+addopts = [
+    "--cov=gridtk",
+    "--cov-report=term-missing",
+    "--import-mode=append",
+]
+junit_logging = "all"
+junit_log_passing_tests = false

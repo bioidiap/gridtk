@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# vim: set fileencoding=utf-8 :
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-from __future__ import print_function
 
-"""A logging Idiap/SGE job manager
-"""
+"""A logging Idiap/SGE job manager."""
 
 __epilog__ = """ For a list of available commands:
   >>> %(prog)s --help
@@ -19,9 +18,10 @@ import os
 import string
 import sys
 
-from .. import local, sge
+from .. import sge
 from ..models import Status
-from ..tools import logger
+
+logger = logging.getLogger("gridtk")
 
 GPU_QUEUES = ["gpu", "lgpu", "sgpu", "gpum", "vsgpu"]
 QUEUES = ["all.q", "q1d", "q1w", "q1m", "q1dm", "q1wm"] + GPU_QUEUES
@@ -45,17 +45,14 @@ def appropriate_for_gpu(args, kwargs):
 
 
 def setup(args):
-    """Returns the JobManager and sets up the basic infrastructure"""
+    """Returns the JobManager and sets up the basic infrastructure."""
 
     kwargs = {
         "wrapper_script": args.wrapper_script,
         "debug": args.verbose == 3,
         "database": args.database,
     }
-    if args.local:
-        jm = local.JobManagerLocal(**kwargs)
-    else:
-        jm = sge.JobManagerSGE(**kwargs)
+    jm = sge.JobManagerSGE(**kwargs)
 
     # set-up logging
     if args.verbose not in range(0, 4):
@@ -133,7 +130,7 @@ def get_memfree(memory, parallel):
 
 
 def submit(args):
-    """Submission command"""
+    """Submission command."""
 
     # set full path to command
     if args.job[0] == "--":
@@ -214,30 +211,11 @@ def resubmit(args):
     )
 
 
-def run_scheduler(args):
-    """Runs the scheduler on the local machine. To stop it, please use Ctrl-C."""
-    if not args.local:
-        raise ValueError(
-            "The execute command can only be used with the '--local' command line option"
-        )
-    jm = setup(args)
-    jm.run_scheduler(
-        parallel_jobs=args.parallel,
-        job_ids=get_ids(args.job_ids),
-        sleep_time=args.sleep_time,
-        die_when_finished=args.die_when_finished,
-        no_log=args.no_log_files,
-        nice=args.nice,
-        verbosity=args.verbose,
-    )
-
-
 def list(args):
     """Lists the jobs in the given database."""
+
     jm = setup(args)
-    if not args.local:
-        # update the status of jobs from SGE before listing them.
-        jm.communicate(job_ids=get_ids(args.job_ids))
+    jm.communicate(job_ids=get_ids(args.job_ids))
     jm.list(
         job_ids=get_ids(args.job_ids),
         print_array_jobs=args.print_array_jobs,
@@ -252,16 +230,14 @@ def list(args):
 
 def communicate(args):
     """Uses qstat to get the status of the requested jobs."""
-    if args.local:
-        raise ValueError(
-            "The communicate command can only be used without the '--local' command line option"
-        )
+
     jm = setup(args)
     jm.communicate(job_ids=get_ids(args.job_ids))
 
 
 def report(args):
     """Reports the results of the finished (and unfinished) jobs."""
+
     jm = setup(args)
     jm.report(
         job_ids=get_ids(args.job_ids),
@@ -275,19 +251,20 @@ def report(args):
 
 def stop(args):
     """Stops (qdel's) the jobs with the given ids."""
-    if args.local:
-        raise ValueError(
-            "Stopping commands locally is not supported (please kill them yourself)"
-        )
+
     jm = setup(args)
     jm.stop_jobs(get_ids(args.job_ids))
 
 
 def delete(args):
-    """Deletes the jobs from the job manager. If the jobs are still running in the grid, they are stopped."""
+    """Deletes the jobs from the job manager.
+
+    If the jobs are still running in the grid, they are stopped.
+    """
+
     jm = setup(args)
     # first, stop the jobs if they are running in the grid
-    if not args.local and "executing" in args.status:
+    if "executing" in args.status:
         stop(args)
     # then, delete them from the database
     jm.delete(
@@ -300,7 +277,8 @@ def delete(args):
 
 
 def run_job(args):
-    """Starts the wrapper script to execute a job, interpreting the JOB_ID and SGE_TASK_ID keywords that are set by the grid or by us."""
+    """Starts the wrapper script to execute a job, interpreting the JOB_ID and
+    SGE_TASK_ID keywords that are set by the grid or by us."""
     jm = setup(args)
     job_id = int(os.environ["JOB_ID"])
     array_id = (
@@ -313,15 +291,14 @@ def run_job(args):
 
 class AliasedSubParsersAction(argparse._SubParsersAction):
     """Hack taken from https://gist.github.com/471779 to allow aliases in
-    argparse for python 2.x (this has been implemented on python 3.2)
-    """
+    argparse for python 2.x (this has been implemented on python 3.2)"""
 
     class _AliasedPseudoAction(argparse.Action):
         def __init__(self, name, aliases, help):
             dest = name
             if aliases:
                 dest += " (%s)" % ",".join(aliases)
-            sup = super(AliasedSubParsersAction._AliasedPseudoAction, self)
+            sup = super()
             sup.__init__(option_strings=[], dest=dest, help=help)
 
     def add_parser(self, name, **kwargs):
@@ -331,7 +308,7 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
         else:
             aliases = []
 
-        parser = super(AliasedSubParsersAction, self).add_parser(name, **kwargs)
+        parser = super().add_parser(name, **kwargs)
 
         # Make the aliases work.
         for alias in aliases:
@@ -347,10 +324,11 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
 
 
 def main(command_line_options=None):
+    from importlib.metadata import version
 
-    from bob.extension import rc
+    from ..tools import load_defaults
 
-    from ..config import __version__
+    defaults = load_defaults()
 
     formatter = argparse.ArgumentDefaultsHelpFormatter
     parser = argparse.ArgumentParser(
@@ -371,7 +349,7 @@ def main(command_line_options=None):
         "-V",
         "--version",
         action="version",
-        version="GridTk version %s" % __version__,
+        version="gridtk version %s" % version(__name__.split(".", 1)[0]),
     )
     parser.add_argument(
         "-d",
@@ -382,12 +360,6 @@ def main(command_line_options=None):
         help='replace the default database "submitted.sql3" by one provided by you.',
     )
 
-    parser.add_argument(
-        "-l",
-        "--local",
-        action="store_true",
-        help="Uses the local job manager instead of the SGE one.",
-    )
     cmdparser = parser.add_subparsers(
         title="commands", help="commands accepted by %(prog)s"
     )
@@ -397,7 +369,7 @@ def main(command_line_options=None):
         "submit",
         aliases=["sub"],
         formatter_class=formatter,
-        help="Submits jobs to the SGE queue or to the local job scheduler and logs them in a database.",
+        help="Submits jobs to the SGE job scheduler and logs them in a database.",
     )
     submit_parser.add_argument(
         "-q",
@@ -411,7 +383,7 @@ def main(command_line_options=None):
     submit_parser.add_argument(
         "-e",
         "--sge-extra-args",
-        default=rc.get("gridtk.sge.extra.args.default", ""),
+        default=defaults.get("sge-extra-args-default", ""),
         type=str,
         help="Passes extra arguments to qsub. See the documentation of the package for usage and ways of overriding default behavior.",
     )
@@ -768,54 +740,6 @@ def main(command_line_options=None):
         help="Delete only jobs that have the given statuses; by default all jobs are deleted.",
     )
     delete_parser.set_defaults(func=delete)
-
-    # subcommand 'run_scheduler'
-    scheduler_parser = cmdparser.add_parser(
-        "run-scheduler",
-        aliases=["sched", "x"],
-        formatter_class=formatter,
-        help="Runs the scheduler on the local machine. To stop the scheduler safely, please use Ctrl-C; only valid in combination with the '--local' option.",
-    )
-    scheduler_parser.add_argument(
-        "-p",
-        "--parallel",
-        type=int,
-        default=1,
-        help="Select the number of parallel jobs that you want to execute locally",
-    )
-    scheduler_parser.add_argument(
-        "-j",
-        "--job-ids",
-        metavar="ID",
-        nargs="+",
-        help="Select the job ids that should be run (be default, all submitted and queued jobs are run).",
-    )
-    scheduler_parser.add_argument(
-        "-s",
-        "--sleep-time",
-        type=float,
-        default=0.1,
-        help="Set the sleep time between for the scheduler in seconds.",
-    )
-    scheduler_parser.add_argument(
-        "-x",
-        "--die-when-finished",
-        action="store_true",
-        help="Let the job manager die when it has finished all jobs of the database.",
-    )
-    scheduler_parser.add_argument(
-        "-l",
-        "--no-log-files",
-        action="store_true",
-        help="Overwrites the log file setup to print the results to the console.",
-    )
-    scheduler_parser.add_argument(
-        "-n",
-        "--nice",
-        type=int,
-        help="Jobs will be run with the given priority (can only be positive, i.e., to have lower priority",
-    )
-    scheduler_parser.set_defaults(func=run_scheduler)
 
     # subcommand 'run-job'; this should not be seen on the command line since it is actually a wrapper script
     run_parser = cmdparser.add_parser("run-job", help=argparse.SUPPRESS)

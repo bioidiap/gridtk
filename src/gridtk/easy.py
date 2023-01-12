@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-# vim: set fileencoding=utf-8 :
-# Andre Anjos <andre.anjos@idiap.ch>
-# Fri 24 Feb 2012 12:46:51 CET
+# Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Common arguments to grid jobs
-"""
+"""Common arguments to grid jobs."""
 
 import os
 import sys
@@ -121,7 +119,8 @@ def add_arguments(parser):
 
 
 def create_manager(arguments):
-    """A simple wrapper to JobManager() that places the statefile on the correct path by default"""
+    """A simple wrapper to JobManager() that places the statefile on the
+    correct path by default."""
 
     if arguments.statefile is None:
         arguments.statefile = os.path.join(
@@ -133,8 +132,8 @@ def create_manager(arguments):
     return manager.JobManager(statefile=arguments.statefile)
 
 
-class DryRunJob(object):
-    """A simple wrapper for dry-run jobs that behaves like a normal job"""
+class DryRunJob:
+    """A simple wrapper for dry-run jobs that behaves like a normal job."""
 
     # distributed as jobs are "submitted"
     current_id = 0
@@ -211,9 +210,11 @@ class DryRunJob(object):
 
 
 def submit(jman, command, arguments, deps=[], array=None):
-    """An easy submission option for grid-enabled scripts. Create the log
-    directories using random hash codes. Use the arguments as parsed by the main
-    script."""
+    """An easy submission option for grid-enabled scripts.
+
+    Create the log directories using random hash codes. Use the
+    arguments as parsed by the main script.
+    """
 
     logdir = os.path.join(
         os.path.realpath(arguments.logdir), tools.random_logdir()

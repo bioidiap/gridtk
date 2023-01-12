@@ -1,4 +1,6 @@
-from __future__ import print_function
+# SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
 import subprocess
