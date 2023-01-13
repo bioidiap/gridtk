@@ -94,7 +94,7 @@ one can be started):
 
 .. code:: sh
 
-  $ jman -vv submit -x [job_id_1] [job_id_2] -- myscript.py
+   jman -vv submit -x [job_id_1] [job_id_2] -- myscript.py
 
 In case the first job fails, it can automatically stop the depending jobs from
 being executed.  Just submit jobs with the ``--stop-on-failure`` option.
