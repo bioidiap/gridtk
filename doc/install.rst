@@ -13,13 +13,17 @@ We support two installation modes, through pip_, or mamba_ (conda).
 
 .. tab:: pip
 
-   .. code-block:: sh
+   Stable, from PyPI:
 
-      # stable, from PyPI:
-      $ pip install gridtk
+   .. code:: sh
 
-      # latest beta, from GitLab package registry:
-      $ pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/bob/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
+      pip install gridtk
+
+   Latest beta, from GitLab package registry:
+
+   .. code:: sh
+
+      pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/bob/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
 
    .. tip::
 
