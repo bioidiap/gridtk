@@ -1,4 +1,0 @@
-jinja2
-pyyaml
-sqlalchemy
-bob.extension
