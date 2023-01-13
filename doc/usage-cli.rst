@@ -297,7 +297,7 @@ can use the command:
 
 .. code:: sh
 
-   $ jman stop
+   jman stop
 
 The job is removed from the grid, but all log files are still available.  A
 common use case is to stop the grid job, fix the bugs, and re-submit it.
