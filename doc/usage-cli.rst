@@ -136,7 +136,7 @@ to send extra arguments to ``qsub``.
 
 .. code:: sh
 
-  $ jman -vv submit -e="<sge_extra_args>"
+   jman -vv submit -e="<sge_extra_args>"
 
 For example, ``jman submit .. -e="-P project_name -l pytorch" -- ...`` will be
 translated to ``qsub ... -P project_name -l pytorch -- ...``.
