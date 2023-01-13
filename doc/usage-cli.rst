@@ -166,7 +166,7 @@ option. For example, if you run:
 
 .. code:: sh
 
-   $ bob config set -- gridtk.sge.extra.args.prepend "-P myproject"
+   bob config set -- gridtk.sge.extra.args.prepend "-P myproject"
 
 Then, if you do ``jman submit -e="-l pytorch"``, this will translate to
 ``qsub -P myproject -l pytorch`` and will work as expected.
