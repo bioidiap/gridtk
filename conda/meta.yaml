@@ -24,10 +24,10 @@ requirements:
     - python >=3.9
     - pip {{ pip }}
     - sqlalchemy {{ sqlalchemy }}
-    - exposed
   run:
     - python >=3.9
     - {{ pin_compatible('sqlalchemy') }}
+    - exposed
 
 test:
   source_files:
