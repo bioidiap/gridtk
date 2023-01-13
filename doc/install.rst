@@ -33,13 +33,17 @@ We support two installation modes, through pip_, or mamba_ (conda).
 
 .. tab:: mamba/conda
 
-   .. code-block:: sh
+   Stable:
 
-      # stable:
-      $ mamba install -c https://www.idiap.ch/software/bob/conda -c conda-forge gridtk
+   .. code:: sh
 
-      # latest beta:
-      $ mamba install -c https://www.idiap.ch/software/bob/conda/label/beta -c conda-forge gridtk
+      mamba install -c https://www.idiap.ch/software/bob/conda -c conda-forge gridtk
+
+   Latest beta:
+
+   .. code:: sh
+
+      mamba install -c https://www.idiap.ch/software/bob/conda/label/beta -c conda-forge gridtk
 
 
 Setup
