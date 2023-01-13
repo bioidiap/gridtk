@@ -155,7 +155,7 @@ example, if you run:
 
 .. code:: sh
 
-  $ bob config set -- gridtk.sge.extra.args.default "-P myproject"
+   bob config set -- gridtk.sge.extra.args.default "-P myproject"
 
 Then, if you do ``jman submit ...``, this will translate to ``qsub -P myproject
 ...``. This configuration only changes the default value, you still can provide
