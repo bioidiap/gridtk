@@ -1,0 +1,9 @@
+{
+  "exposed": {
+    "versions": {
+      "stable": "https://www.idiap.ch/software/bob/docs/bob/exposed/stable/sphinx/",
+      "latest": "https://www.idiap.ch/software/bob/docs/bob/exposed/main/sphinx/"
+    },
+    "sources": {}
+  }
+}

@@ -1,34 +1,36 @@
-.. vim: set fileencoding=utf-8 :
+.. SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+..
+.. SPDX-License-Identifier: GPL-3.0-or-later
 
 .. _gridtk:
 
-======================
- Parallel Job Manager
-======================
+============================================================
+ Grid-enabled job submitter and execution monitor for Idiap
+============================================================
 
-The GridTK serves as a tool to submit jobs and keep track of their dependencies
-and their current statuses. These jobs can either be submitted to an SGE grid,
-or to be run in parallel on the local machine.
-
-There are two main ways to interact with the GridTK. The easiest way is surely
-to use the command line interface, for details please read the
-:ref:`command_line` section.  It is also possible to use the GridTK in a
-program, the developer interface is described in the :ref:`developer` section.
+``gridtk`` is a tool to submit jobs to SGE, keep track of their dependencies,
+and current statuses. There are two main ways to interact with this package:
+via a command-line interface or the Python API.
 
 
-Contents:
+Documentation
+-------------
 
 .. toctree::
    :maxdepth: 2
 
-   manual
-   program
-   generate
+   install
+   usage-cli
+   usage-api
+   api
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. include:: links.rst
