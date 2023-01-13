@@ -4,7 +4,6 @@
 
 import logging
 import os
-import typing
 
 from datetime import datetime
 from pickle import dumps, loads
@@ -18,12 +17,16 @@ from sqlalchemy import (
     Integer,
     String,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 logger = logging.getLogger(__name__)
 
-Base = declarative_base()  # type: typing.Any
+
+class Base:
+    __allow_unmapped__ = True
+
+
+Base = declarative_base(cls=Base)  # type: ignore
 
 Status = ("submitted", "queued", "waiting", "executing", "success", "failure")
 
@@ -142,7 +145,7 @@ class Job(Base):
         exec_dir=None,
         log_dir=None,
         array_string=None,
-        queue_name="default",
+        queue_name="local",
         machine_name=None,
         stop_on_failure=False,
         **kwargs,

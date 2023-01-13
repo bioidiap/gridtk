@@ -18,7 +18,7 @@ import os
 import string
 import sys
 
-from .. import sge
+from .. import local, sge
 from ..models import Status
 
 logger = logging.getLogger("gridtk")
@@ -52,7 +52,11 @@ def setup(args):
         "debug": args.verbose == 3,
         "database": args.database,
     }
-    jm = sge.JobManagerSGE(**kwargs)
+
+    if args.local:
+        jm = local.JobManagerLocal(**kwargs)
+    else:
+        jm = sge.JobManagerSGE(**kwargs)
 
     # set-up logging
     if args.verbose not in range(0, 4):
@@ -211,11 +215,37 @@ def resubmit(args):
     )
 
 
+def run_scheduler(args):
+    """Runs the scheduler on the local machine.
+
+    To stop it, please use Ctrl-C.
+    """
+
+    if not args.local:
+        raise ValueError(
+            "The execute command can only be used with the '--local' command line option"
+        )
+    jm = setup(args)
+    jm.run_scheduler(
+        parallel_jobs=args.parallel,
+        job_ids=get_ids(args.job_ids),
+        sleep_time=args.sleep_time,
+        die_when_finished=args.die_when_finished,
+        no_log=args.no_log_files,
+        nice=args.nice,
+        verbosity=args.verbose,
+    )
+
+
 def list(args):
     """Lists the jobs in the given database."""
 
     jm = setup(args)
-    jm.communicate(job_ids=get_ids(args.job_ids))
+
+    if not args.local:
+        # update the status of jobs from SGE before listing them.
+        jm.communicate(job_ids=get_ids(args.job_ids))
+
     jm.list(
         job_ids=get_ids(args.job_ids),
         print_array_jobs=args.print_array_jobs,
@@ -231,6 +261,10 @@ def list(args):
 def communicate(args):
     """Uses qstat to get the status of the requested jobs."""
 
+    if args.local:
+        raise ValueError(
+            "The communicate command can only be used without the '--local' command line option"
+        )
     jm = setup(args)
     jm.communicate(job_ids=get_ids(args.job_ids))
 
@@ -252,6 +286,10 @@ def report(args):
 def stop(args):
     """Stops (qdel's) the jobs with the given ids."""
 
+    if args.local:
+        raise ValueError(
+            "Stopping commands locally is not supported (please kill them yourself)"
+        )
     jm = setup(args)
     jm.stop_jobs(get_ids(args.job_ids))
 
@@ -263,9 +301,11 @@ def delete(args):
     """
 
     jm = setup(args)
+
     # first, stop the jobs if they are running in the grid
-    if "executing" in args.status:
+    if not args.local and "executing" in args.status:
         stop(args)
+
     # then, delete them from the database
     jm.delete(
         job_ids=get_ids(args.job_ids),
@@ -360,6 +400,12 @@ def main(command_line_options=None):
         help='replace the default database "submitted.sql3" by one provided by you.',
     )
 
+    parser.add_argument(
+        "-l",
+        "--local",
+        action="store_true",
+        help="Uses the local job manager instead of the SGE one.",
+    )
     cmdparser = parser.add_subparsers(
         title="commands", help="commands accepted by %(prog)s"
     )
@@ -369,7 +415,7 @@ def main(command_line_options=None):
         "submit",
         aliases=["sub"],
         formatter_class=formatter,
-        help="Submits jobs to the SGE job scheduler and logs them in a database.",
+        help="Submits jobs to the SGE/Local job scheduler and logs them in a database.",
     )
     submit_parser.add_argument(
         "-q",
@@ -740,6 +786,54 @@ def main(command_line_options=None):
         help="Delete only jobs that have the given statuses; by default all jobs are deleted.",
     )
     delete_parser.set_defaults(func=delete)
+
+    # subcommand 'run_scheduler'
+    scheduler_parser = cmdparser.add_parser(
+        "run-scheduler",
+        aliases=["sched", "x"],
+        formatter_class=formatter,
+        help="Runs the scheduler on the local machine. To stop the scheduler safely, please use Ctrl-C; only valid in combination with the '--local' option.",
+    )
+    scheduler_parser.add_argument(
+        "-p",
+        "--parallel",
+        type=int,
+        default=1,
+        help="Select the number of parallel jobs that you want to execute locally",
+    )
+    scheduler_parser.add_argument(
+        "-j",
+        "--job-ids",
+        metavar="ID",
+        nargs="+",
+        help="Select the job ids that should be run (be default, all submitted and queued jobs are run).",
+    )
+    scheduler_parser.add_argument(
+        "-s",
+        "--sleep-time",
+        type=float,
+        default=0.1,
+        help="Set the sleep time between for the scheduler in seconds.",
+    )
+    scheduler_parser.add_argument(
+        "-x",
+        "--die-when-finished",
+        action="store_true",
+        help="Let the job manager die when it has finished all jobs of the database.",
+    )
+    scheduler_parser.add_argument(
+        "-l",
+        "--no-log-files",
+        action="store_true",
+        help="Overwrites the log file setup to print the results to the console.",
+    )
+    scheduler_parser.add_argument(
+        "-n",
+        "--nice",
+        type=int,
+        help="Jobs will be run with the given priority (can only be positive, i.e., to have lower priority",
+    )
+    scheduler_parser.set_defaults(func=run_scheduler)
 
     # subcommand 'run-job'; this should not be seen on the command line since it is actually a wrapper script
     run_parser = cmdparser.add_parser("run-job", help=argparse.SUPPRESS)
