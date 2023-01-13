@@ -5,6 +5,8 @@
 """Executes a given command within the context of a shell script that has its
 enviroment set like Idiap's 'SETSHELL grid' does."""
 
+from __future__ import annotations
+
 import os
 import shutil
 import sys

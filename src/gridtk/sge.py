@@ -4,6 +4,8 @@
 
 """Defines the job manager which can help you managing submitted grid jobs."""
 
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -89,7 +91,7 @@ class JobManagerSGE(JobManager):
             array=q_array,
             stdout=log_dir,
             stderr=log_dir,
-            **kwargs
+            **kwargs,
         )
 
         # get the result of qstat
@@ -151,7 +153,7 @@ class JobManagerSGE(JobManager):
         dry_run=False,
         verbosity=0,
         stop_on_failure=False,
-        **kwargs
+        **kwargs,
     ):
         """Submits a job that will be executed in the grid."""
         # add job to database
@@ -166,7 +168,7 @@ class JobManagerSGE(JobManager):
             log_dir=log_dir,
             stop_on_failure=stop_on_failure,
             context=self.context,
-            **kwargs
+            **kwargs,
         )
         logger.info("Added job '%s' to the database." % job)
         if dry_run:
@@ -228,7 +230,7 @@ class JobManagerSGE(JobManager):
         new_command=None,
         verbosity=0,
         keep_logs=False,
-        **kwargs
+        **kwargs,
     ):
         """Re-submit jobs automatically."""
         self.lock()
@@ -289,7 +291,7 @@ class JobManagerSGE(JobManager):
                         deps,
                         job.log_dir,
                         verbosity,
-                        **arguments
+                        **arguments,
                     )
 
                 # commit after each job to avoid failures of not finding the job during execution in the grid

@@ -5,6 +5,8 @@
 
 """A logging Idiap/SGE job manager."""
 
+from __future__ import annotations
+
 __epilog__ = """ For a list of available commands:
   >>> %(prog)s --help
 
