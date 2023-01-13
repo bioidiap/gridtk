@@ -1,6 +1,7 @@
 <!--
- SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
- SPDX-License-Identifier: GPL-3.0-or-later
+SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idiap.ch>
+
+SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 [![stable-docs](https://img.shields.io/badge/docs-stable-yellow.svg)](https://www.idiap.ch/software/bob/docs/bob/gridtk/stable/sphinx/index.html)
@@ -12,8 +13,8 @@
 # Grid-enabled job submitter and execution monitor for Idiap
 
 This package provides a set of python wrappers around SGE utilities like
-``qsub``, ``qstat`` and ``qdel``, and simplify job submission and management.
-It interacts with these tools to submit and manage grid jobs.  It is hardcoded
-to work with the SGE grid at Idiap.
+`qsub`, `qstat` and `qdel`, and simplify job submission and management. It
+interacts with these tools to submit and manage grid jobs.  It is hardcoded to
+work with the SGE grid at Idiap.
 
 For installation and usage instructions, check-out our documentation.
