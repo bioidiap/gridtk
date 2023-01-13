@@ -150,23 +150,24 @@ translated to ``qsub ... -P project_name -l pytorch -- ...``.
    will not work.
 
 To avoid adding the same ``-e`` option each time you run ``jman submit``, you
-may also change its default value via the gridtk configuration file. For
-example, if you run:
+may also change its default value via the :ref:`gridtk configuration file
+<gridtk.config>`, by setting the variable ``sge-extra-args-default``:
 
-.. code:: sh
+.. code:: toml
 
-   bob config set -- gridtk.sge.extra.args.default "-P myproject"
+   sge-extra-args-default = "-P myproject"
 
 Then, if you do ``jman submit ...``, this will translate to ``qsub -P myproject
 ...``. This configuration only changes the default value, you still can provide
 a new value by providing the ``-e`` option on the command-line.
 
 Another (**recommended**) option is to always a prepend a string to this
-option. For example, if you run:
+option, via the :ref:`gridtk configuration file <gridtk.config>`, by setting
+the variable ``sge-extra-args-prepend``:
 
-.. code:: sh
+.. code:: toml
 
-   bob config set -- gridtk.sge.extra.args.prepend "-P myproject"
+   sge-extra-args-prepend = "-P myproject"
 
 Then, if you do ``jman submit -e="-l pytorch"``, this will translate to
 ``qsub -P myproject -l pytorch`` and will work as expected.

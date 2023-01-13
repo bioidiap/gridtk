@@ -46,6 +46,8 @@ We support two installation modes, through pip_, or mamba_ (conda).
       mamba install -c https://www.idiap.ch/software/bob/conda/label/beta -c conda-forge gridtk
 
 
+.. _gridtk.config:
+
 Setup
 -----
 
