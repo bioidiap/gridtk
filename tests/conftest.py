@@ -11,4 +11,4 @@ import pytest
 def datadir(request) -> pathlib.Path:
     """Returns the directory in which the test is sitting."""
 
-    return pathlib.Path(request.module.__file__).parents[0] / "data"
+    return pathlib.Path(request.fspath).parent / "data"
