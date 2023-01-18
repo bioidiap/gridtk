@@ -370,7 +370,9 @@ def main(command_line_options=None):
 
     from exposed.rc import UserDefaults
 
-    defaults = UserDefaults("gridtk.toml")
+    from ..tools import USER_CONFIGURATION
+
+    defaults = UserDefaults(USER_CONFIGURATION)
 
     formatter = argparse.ArgumentDefaultsHelpFormatter
     parser = argparse.ArgumentParser(

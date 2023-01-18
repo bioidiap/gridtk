@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(":\\s+")
 
+# Name of the user configuration file at $XDG_CONFIG_HOME
+USER_CONFIGURATION = "gridtk.toml"
+
 
 def str_(v: str | bytes) -> str:
     """Always returns the string representation of the given ``name``.
@@ -155,7 +158,7 @@ def qsub(
 
     scmd = ["qsub"]
 
-    defaults = UserDefaults("gridtk.toml")
+    defaults = UserDefaults(USER_CONFIGURATION)
 
     prepend = defaults.get("sge-extra-args-prepend", "")
     sge_extra_args = f"{prepend} {sge_extra_args or ''}"
