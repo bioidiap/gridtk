@@ -10,31 +10,16 @@ from __future__ import annotations
 import logging
 import math
 import os
-import pathlib
 import re
 import shlex
-
-import exposed.rc
 
 logger = logging.getLogger(__name__)
 
 # Constant regular expressions
 QSTAT_FIELD_SEPARATOR = re.compile(":\\s+")
 
-
-def load_defaults() -> exposed.rc.UserDefaults:
-    """Loads user defaults from the stock location."""
-
-    from exposed import rc
-
-    config_dir = os.environ.get("XDG_CONFIG_HOME")
-
-    if config_dir is None:
-        config_path = pathlib.Path.home() / ".config"
-    else:
-        config_path = pathlib.Path(config_dir)
-
-    return rc.UserDefaults(config_path / "gridtk.toml")
+# Name of the user configuration file at $XDG_CONFIG_HOME
+USER_CONFIGURATION = "gridtk.toml"
 
 
 def str_(v: str | bytes) -> str:
@@ -169,10 +154,11 @@ def qsub(
 
     Returns the job id assigned to this job (integer)
     """
+    from exposed.rc import UserDefaults
 
     scmd = ["qsub"]
 
-    defaults = load_defaults()
+    defaults = UserDefaults(USER_CONFIGURATION)
 
     prepend = defaults.get("sge-extra-args-prepend", "")
     sge_extra_args = f"{prepend} {sge_extra_args or ''}"

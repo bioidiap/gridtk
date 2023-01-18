@@ -368,9 +368,11 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
 def main(command_line_options=None):
     from importlib.metadata import version
 
-    from ..tools import load_defaults
+    from exposed.rc import UserDefaults
 
-    defaults = load_defaults()
+    from ..tools import USER_CONFIGURATION
+
+    defaults = UserDefaults(USER_CONFIGURATION)
 
     formatter = argparse.ArgumentDefaultsHelpFormatter
     parser = argparse.ArgumentParser(
