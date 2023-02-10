@@ -95,7 +95,6 @@ class JobManager:
 
     def _create(self):
         """Creates a new and empty database."""
-
         # create directory for sql database
         os.makedirs(os.path.dirname(self._database), exist_ok=True)
 

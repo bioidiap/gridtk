@@ -48,7 +48,6 @@ def appropriate_for_gpu(args, kwargs):
 
 def setup(args):
     """Returns the JobManager and sets up the basic infrastructure."""
-
     kwargs = {
         "wrapper_script": args.wrapper_script,
         "debug": args.verbose == 3,
@@ -137,7 +136,6 @@ def get_memfree(memory, parallel):
 
 def submit(args):
     """Submission command."""
-
     # set full path to command
     if args.job[0] == "--":
         del args.job[0]
@@ -222,7 +220,6 @@ def run_scheduler(args):
 
     To stop it, please use Ctrl-C.
     """
-
     if not args.local:
         raise ValueError(
             "The execute command can only be used with the '--local' command line option"
@@ -241,7 +238,6 @@ def run_scheduler(args):
 
 def list(args):
     """Lists the jobs in the given database."""
-
     jm = setup(args)
 
     if not args.local:
@@ -262,7 +258,6 @@ def list(args):
 
 def communicate(args):
     """Uses qstat to get the status of the requested jobs."""
-
     if args.local:
         raise ValueError(
             "The communicate command can only be used without the '--local' command line option"
@@ -273,7 +268,6 @@ def communicate(args):
 
 def report(args):
     """Reports the results of the finished (and unfinished) jobs."""
-
     jm = setup(args)
     jm.report(
         job_ids=get_ids(args.job_ids),
@@ -287,7 +281,6 @@ def report(args):
 
 def stop(args):
     """Stops (qdel's) the jobs with the given ids."""
-
     if args.local:
         raise ValueError(
             "Stopping commands locally is not supported (please kill them yourself)"
@@ -301,7 +294,6 @@ def delete(args):
 
     If the jobs are still running in the grid, they are stopped.
     """
-
     jm = setup(args)
 
     # first, stop the jobs if they are running in the grid
