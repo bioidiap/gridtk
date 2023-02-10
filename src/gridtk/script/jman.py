@@ -368,7 +368,7 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
 def main(command_line_options=None):
     from importlib.metadata import version
 
-    from exposed.rc import UserDefaults
+    from clapp.rc import UserDefaults
 
     from ..tools import USER_CONFIGURATION
 

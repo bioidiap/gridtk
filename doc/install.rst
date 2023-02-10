@@ -23,7 +23,7 @@ We support two installation modes, through pip_, or mamba_ (conda).
 
    .. code:: sh
 
-      pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/bob/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
+      pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/software/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
 
    .. tip::
 
@@ -37,13 +37,13 @@ We support two installation modes, through pip_, or mamba_ (conda).
 
    .. code:: sh
 
-      mamba install -c https://www.idiap.ch/software/bob/conda -c conda-forge gridtk
+      mamba install -c https://www.idiap.ch/software/biosignal/conda -c conda-forge gridtk
 
    Latest beta:
 
    .. code:: sh
 
-      mamba install -c https://www.idiap.ch/software/bob/conda/label/beta -c conda-forge gridtk
+      mamba install -c https://www.idiap.ch/software/biosignal/conda/label/beta -c conda-forge gridtk
 
 
 .. _gridtk.config:

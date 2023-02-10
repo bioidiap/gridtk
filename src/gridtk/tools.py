@@ -154,7 +154,7 @@ def qsub(
 
     Returns the job id assigned to this job (integer)
     """
-    from exposed.rc import UserDefaults
+    from clapp.rc import UserDefaults
 
     scmd = ["qsub"]
 
