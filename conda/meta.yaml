@@ -13,7 +13,7 @@ source:
 
 build:
   noarch: python
-  number: {{ environ.get('BOB_BUILD_NUMBER', 0) }}
+  number: {{ environ.get('NEXT_BUILD_NUMBER', 0) }}
   run_exports:
     - {{ pin_subpackage(data['project']['name']) }}
   script:
