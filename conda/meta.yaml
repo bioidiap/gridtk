@@ -22,7 +22,7 @@ build:
 requirements:
   host:
     - python >=3.9
-    - pip {{ pip }}
+    - pip
     - sqlalchemy {{ sqlalchemy }}
   run:
     - python >=3.9
