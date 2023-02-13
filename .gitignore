@@ -13,7 +13,7 @@
 coverage.xml
 test_results.xml
 junit-coverage.xml
-.tox/
+environment.yaml
 html/
 build/
 doc/api/
@@ -22,3 +22,4 @@ dist/
 .pytest_cache/
 cache/
 venv/
+_work/
