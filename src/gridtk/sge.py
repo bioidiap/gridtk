@@ -29,15 +29,17 @@ class JobManagerSGE(JobManager):
         Keyword parameters:
 
         statefile
-          The file containing a valid status database for the manager. If the file
-          does not exist it is initialized. If it exists, it is loaded.
+        The file containing a valid status database for the manager. If
+        the file
+        does not exist it is initialized. If it exists, it is loaded.
 
         context
-          The context to provide when setting up the environment to call the SGE
-          utilities such as qsub, qstat and qdel (normally 'grid', which also
-          happens to be default)
+        The context to provide when setting up the environment to call
+        the SGE
+        utilities such as qsub, qstat and qdel (normally 'grid', which
+        also
+        happens to be default)
         """
-
         self.context = environ(context)
         JobManager.__init__(self, **kwargs)
 

@@ -27,7 +27,6 @@ def test_local(tmp_path: pathlib.Path, datadir: pathlib.Path):
     scheduler_job = None
 
     try:
-
         # first, add some commands to the database
         script_1 = str(datadir / "test_script.sh")
         script_2 = str(datadir / "test_array.sh")
@@ -554,6 +553,5 @@ def test_local(tmp_path: pathlib.Path, datadir: pathlib.Path):
         pass
 
     finally:
-
         if scheduler_job is not None:
             scheduler_job.kill()

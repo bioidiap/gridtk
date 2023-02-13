@@ -154,7 +154,6 @@ class DryRunJob:
         array,
         deps,
     ):
-
         self.myid = DryRunJob.current_id
         DryRunJob.current_id += 1
 
@@ -173,7 +172,6 @@ class DryRunJob:
         self.deps = deps
 
     def __str__(self):
-
         return """
   id       : %d
   command  : %s
@@ -215,7 +213,6 @@ def submit(jman, command, arguments, deps=[], array=None):
     Create the log directories using random hash codes. Use the
     arguments as parsed by the main script.
     """
-
     logdir = os.path.join(
         os.path.realpath(arguments.logdir), tools.random_logdir()
     )

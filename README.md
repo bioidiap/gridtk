@@ -4,11 +4,11 @@ SPDX-FileCopyrightText: Copyright © 2022 Idiap Research Institute <contact@idia
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-[![stable-docs](https://img.shields.io/badge/docs-stable-yellow.svg)](https://www.idiap.ch/software/bob/docs/bob/gridtk/stable/sphinx/index.html)
-[![latest-docs](https://img.shields.io/badge/docs-latest-orange.svg)](https://www.idiap.ch/software/bob/docs/bob/gridtk/main/sphinx/index.html)
-[![build](https://gitlab.idiap.ch/bob/gridtk/badges/main/pipeline.svg)](https://gitlab.idiap.ch/bob/gridtk/commits/main)
-[![coverage](https://gitlab.idiap.ch/bob/gridtk/badges/main/coverage.svg)](https://www.idiap.ch/software/bob/docs/bob/gridtk/main/coverage/index.html)
-[![repository](https://img.shields.io/badge/gitlab-project-0000c0.svg)](https://gitlab.idiap.ch/bob/gridtk)
+[![stable-docs](https://img.shields.io/badge/docs-stable-yellow.svg)](https://www.idiap.ch/software/biosignal/docs/software/gridtk/stable/sphinx/index.html)
+[![latest-docs](https://img.shields.io/badge/docs-latest-orange.svg)](https://www.idiap.ch/software/biosignal/docs/software/gridtk/main/sphinx/index.html)
+[![build](https://gitlab.idiap.ch/software/gridtk/badges/main/pipeline.svg)](https://gitlab.idiap.ch/software/gridtk/commits/main)
+[![coverage](https://gitlab.idiap.ch/software/gridtk/badges/main/coverage.svg)](https://www.idiap.ch/software/biosignal/docs/software/gridtk/main/coverage/index.html)
+[![repository](https://img.shields.io/badge/gitlab-project-0000c0.svg)](https://gitlab.idiap.ch/software/gridtk)
 
 # Grid-enabled job submitter and execution monitor for Idiap
 

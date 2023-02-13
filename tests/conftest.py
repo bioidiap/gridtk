@@ -10,5 +10,4 @@ import pytest
 @pytest.fixture
 def datadir(request) -> pathlib.Path:
     """Returns the directory in which the test is sitting."""
-
     return pathlib.Path(request.fspath).parent / "data"

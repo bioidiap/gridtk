@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 def environ(context: str) -> dict[str, str]:
     """Retrieves the environment for a particular SETSHELL context."""
-
     if "BASEDIRSETSHELL" not in os.environ:
         # It seems that we are in a hostile environment
         # try to source the Idiap-wide shell
