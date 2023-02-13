@@ -14,7 +14,7 @@ class SGE_EnvWrapper:
         SGE_TASK_LAST=1,
         SGE_TASK_FIRST=1,
         SGE_TASK_STEPSIZE=1,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -53,7 +53,6 @@ class SGE_EnvWrapper:
 
 def test_get_array_job_slice():
     with SGE_EnvWrapper() as wrapper:
-
         s = get_array_job_slice(10)
         assert s == slice(0, 10)
 

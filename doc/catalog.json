@@ -1,8 +1,8 @@
 {
-  "exposed": {
+  "clapp": {
     "versions": {
-      "stable": "https://www.idiap.ch/software/bob/docs/bob/exposed/stable/sphinx/",
-      "latest": "https://www.idiap.ch/software/bob/docs/bob/exposed/main/sphinx/"
+      "stable": "https://www.idiap.ch/software/biosignal/docs/software/clapp/stable/sphinx/",
+      "latest": "https://www.idiap.ch/software/biosignal/docs/software/clapp/main/sphinx/"
     },
     "sources": {}
   }

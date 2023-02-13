@@ -39,7 +39,6 @@ def str_(v: str | bytes) -> str:
 
         A str object
     """
-
     return v if not isinstance(v, bytes) else v.decode()
 
 
@@ -154,7 +153,7 @@ def qsub(
 
     Returns the job id assigned to this job (integer)
     """
-    from exposed.rc import UserDefaults
+    from clapp.rc import UserDefaults
 
     scmd = ["qsub"]
 
@@ -197,7 +196,6 @@ def qsub(
         scmd += ["-hold_jid", ",".join(["%d" % k for k in deps])]
 
     if stdout:
-
         if not cwd:
             # pivot, temporarily, to home directory
             curdir = os.path.realpath(os.curdir)
@@ -266,14 +264,13 @@ def make_shell(shell, command):
     Keyword parameters:
 
     shell
-      The path to the shell to use when submitting the job.
+    The path to the shell to use when submitting the job.
 
     command
-      The script path to be submitted
+    The script path to be submitted
 
     Returns the command parameters to be supplied to qsub()
     """
-
     return ("-S", shell) + tuple(command)
 
 
@@ -283,17 +280,18 @@ def qstat(jobid, context="grid"):
     Keyword parameters:
 
     jobid
-      The job identifier as returned by qsub()
+    The job identifier as returned by qsub()
 
     context
-      The setshell context in which we should try a 'qsub'. Normally you don't
-      need to change the default. This variable can also be set to a context
-      dictionary in which case we just setup using that context instead of
-      probing for a new one, what can be fast.
+    The setshell context in which we should try a 'qsub'. Normally you
+    don't
+    need to change the default. This variable can also be set to a
+    context
+    dictionary in which case we just setup using that context instead of
+    probing for a new one, what can be fast.
 
     Returns a dictionary with the specific job properties
     """
-
     scmd = ["qstat", "-j", "%d" % jobid, "-f"]
 
     logger.debug("Qstat command '%s'", " ".join(scmd))
@@ -329,7 +327,6 @@ def qdel(jobid: int, context: str = "grid") -> None:
             set to a context dictionary in which case we just setup using that
             context instead of probing for a new one, what can be fast.
     """
-
     scmd = ["qdel", f"{jobid}"]
 
     logger.debug(f"qdel command '{' '.join(scmd)}'")
@@ -361,7 +358,6 @@ def get_array_job_slice(total_length: int) -> slice:
         NotImplementedError: If "SGE_TASK_FIRST" and "SGE_TASK_STEPSIZE" are
             not 1.
     """
-
     sge_task_id = os.environ.get("SGE_TASK_ID")
 
     if sge_task_id is None:

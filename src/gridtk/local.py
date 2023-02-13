@@ -28,8 +28,9 @@ class JobManagerLocal(JobManager):
         Keyword parameters:
 
         statefile
-          The file containing a valid status database for the manager. If the file
-          does not exist it is initialized. If it exists, it is loaded.
+        The file containing a valid status database for the manager. If
+        the file
+        does not exist it is initialized. If it exists, it is loaded.
         """
         JobManager.__init__(self, **kwargs)
 
@@ -43,7 +44,7 @@ class JobManagerLocal(JobManager):
         log_dir=None,
         dry_run=False,
         stop_on_failure=False,
-        **kwargs
+        **kwargs,
     ):
         """Submits a job that will be executed on the local machine during a
         call to "run".
@@ -92,7 +93,7 @@ class JobManagerLocal(JobManager):
         running_jobs=False,
         new_command=None,
         keep_logs=False,
-        **kwargs
+        **kwargs,
     ):
         """Re-submit jobs automatically."""
         self.lock()
@@ -278,7 +279,6 @@ class JobManagerLocal(JobManager):
         running_tasks = []
         finished_tasks = set()
         try:
-
             # keep the scheduler alive until every job is finished or the KeyboardInterrupt is caught
             while True:
                 # Flag that might be set in some rare cases, and that prevents the scheduler to die

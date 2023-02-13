@@ -33,7 +33,6 @@ def main() -> None:
     app = shutil.which(prog, path=env["PATH"])
 
     if app is None:
-
         raise RuntimeError(
             f"The CLI {prog} is not available when SETSHELL "
             f"grid is executed.  Are you at an Idiap computer?"

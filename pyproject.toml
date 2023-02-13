@@ -26,15 +26,15 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "exposed",
-    "sqlalchemy",
+    "clapp",
+    "sqlalchemy<2",
 ]
 
 [project.urls]
-documentation = "https://www.idiap.ch/software/bob/docs/bob/gridtk/main/sphinx"
+documentation = "https://www.idiap.ch/software/biosignal/docs/software/gridtk/main/sphinx"
 homepage = "https://pypi.org/project/gridtk"
-repository = "https://gitlab.idiap.ch/bob/gridtk"
-changelog = "https://gitlab.idiap.ch/bob/gridtk/-/releases"
+repository = "https://gitlab.idiap.ch/software/gridtk"
+changelog = "https://gitlab.idiap.ch/software/gridtk/-/releases"
 
 [project.optional-dependencies]
 qa = ["pre-commit"]

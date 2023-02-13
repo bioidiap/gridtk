@@ -4,5 +4,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 include:
-  - project: bob/dev-profile
+  - project: software/dev-profile
     file: /gitlab/python.yml

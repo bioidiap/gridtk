@@ -84,7 +84,6 @@ class ArrayJob(Base):
 
     def format(self, format):
         """Formats the current job into a nicer string to fit into a table."""
-
         job_id = "%d - %d" % (self.job.id, self.id)
         queue = (
             self.job.queue_name

@@ -98,7 +98,7 @@ owner = ["Idiap Research Institute"]
 html_theme = "furo"
 
 html_theme_options = {
-    "source_edit_link": f"https://gitlab.idiap.ch/bob/{project}/-/edit/main/doc/{{filename}}",
+    "source_edit_link": f"https://gitlab.idiap.ch/software/{project}/-/edit/main/doc/{{filename}}",
 }
 
 html_title = f"{project} {release}"
@@ -113,5 +113,5 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
-auto_intersphinx_packages = [("python", "3"), ("exposed", "latest")]
+auto_intersphinx_packages = [("python", "3"), ("clapp", "latest")]
 auto_intersphinx_catalog = "catalog.json"
