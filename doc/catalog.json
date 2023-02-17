@@ -1,9 +1,12 @@
 {
   "clapp": {
     "versions": {
-      "stable": "https://www.idiap.ch/software/biosignal/docs/software/clapp/stable/sphinx/",
-      "latest": "https://www.idiap.ch/software/biosignal/docs/software/clapp/main/sphinx/"
+      "latest": "https://clapp.readthedocs.io/en/latest/",
+      "stable": "https://clapp.readthedocs.io/en/stable/",
+      "v1.0.0": "https://clapp.readthedocs.io/en/v1.0.0/"
     },
-    "sources": {}
+    "sources": {
+      "readthedocs": "clapp"
+    }
   }
 }
