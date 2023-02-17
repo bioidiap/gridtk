@@ -11,7 +11,7 @@ name = "gridtk"
 version = "1.8.6b0"
 requires-python = ">=3.9"
 description = "Grid-enabled job submitter and execution monitor for Idiap"
-dynamic = ["readme"]
+readme = "README.md"
 license = {text = "GNU General Public License v3 (GPLv3)"}
 authors = [
   {name = "Andre Anjos", email = "andre.anjos@idiap.ch"},
@@ -66,9 +66,6 @@ qhost = "gridtk.script.grid:main"
 [tool.setuptools]
 zip-safe = true
 package-dir = {"" = "src"}
-
-[tool.setuptools.dynamic]
-readme = {file = "README.md"}
 
 [tool.distutils.bdist_wheel]
 universal = true
