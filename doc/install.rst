@@ -11,35 +11,28 @@
 We support two installation modes, through pip_, or mamba_ (conda).
 
 
-.. tab:: pip
-
-   Stable, from PyPI:
+.. tab:: pip/stable
 
    .. code:: sh
 
       pip install gridtk
 
-   Latest beta, from GitLab package registry:
+
+.. tab:: pip/beta
 
    .. code:: sh
 
-      pip install --pre --index-url https://gitlab.idiap.ch/api/v4/groups/software/-/packages/pypi/simple --extra-index-url https://pypi.org/simple gridtk
-
-   .. tip::
-
-      To avoid long command-lines you may configure pip to define the indexes and
-      package search priorities as you like.
+      pip install git+https://gitlab.idiap.ch/software/gridtk
 
 
-.. tab:: mamba/conda
-
-   Stable:
+.. tab:: conda/stable
 
    .. code:: sh
 
-      mamba install -c https://www.idiap.ch/software/biosignal/conda -c conda-forge gridtk
+      mamba install -c conda-forge gridtk
 
-   Latest beta:
+
+.. tab:: conda/beta
 
    .. code:: sh
 
