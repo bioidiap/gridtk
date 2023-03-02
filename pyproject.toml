@@ -31,7 +31,7 @@ dependencies = [
 ]
 
 [project.urls]
-documentation = "https://www.idiap.ch/software/biosignal/docs/software/gridtk/main/sphinx"
+documentation = "https://gridtk.readthedocs.io/en/latest/"
 homepage = "https://pypi.org/project/gridtk"
 repository = "https://gitlab.idiap.ch/software/gridtk"
 changelog = "https://gitlab.idiap.ch/software/gridtk/-/releases"
