@@ -28,7 +28,7 @@ requirements:
   run:
     - python >=3.9
     - {{ pin_compatible('sqlalchemy') }}
-    - clapp
+    - clapper
 
 test:
   source_files:

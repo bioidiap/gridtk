@@ -153,7 +153,7 @@ def qsub(
 
     Returns the job id assigned to this job (integer)
     """
-    from clapp.rc import UserDefaults
+    from clapper.rc import UserDefaults
 
     scmd = ["qsub"]
 

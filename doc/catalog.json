@@ -1,12 +1,13 @@
 {
-  "clapp": {
+  "clapper": {
     "versions": {
-      "latest": "https://clapp.readthedocs.io/en/latest/",
-      "stable": "https://clapp.readthedocs.io/en/stable/",
-      "v1.0.0": "https://clapp.readthedocs.io/en/v1.0.0/"
+      "latest": "https://clapper.readthedocs.io/en/latest/",
+      "stable": "https://clapper.readthedocs.io/en/stable/",
+      "v1.0.1": "https://clapper.readthedocs.io/en/v1.0.1/",
+      "v1.0.0": "https://clapper.readthedocs.io/en/v1.0.0/"
     },
     "sources": {
-      "readthedocs": "clapp"
+      "readthedocs": "clapper"
     }
   }
 }

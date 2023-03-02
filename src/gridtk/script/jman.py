@@ -360,7 +360,7 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
 def main(command_line_options=None):
     from importlib.metadata import version
 
-    from clapp.rc import UserDefaults
+    from clapper.rc import UserDefaults
 
     from ..tools import USER_CONFIGURATION
 

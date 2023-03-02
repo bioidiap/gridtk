@@ -113,5 +113,5 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
-auto_intersphinx_packages = [("python", "3"), ("clapp", "latest")]
+auto_intersphinx_packages = [("python", "3"), ("clapper", "latest")]
 auto_intersphinx_catalog = "catalog.json"
