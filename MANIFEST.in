@@ -2,5 +2,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+include LICENSES/*.txt
 recursive-include doc *.rst *.json *.txt *.py
 recursive-include tests *.py *.sh
