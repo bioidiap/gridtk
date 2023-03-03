@@ -8,7 +8,7 @@
 
 [project]
 name = "gridtk"
-version = "2.0.1"
+version = "2.0.2b0"
 requires-python = ">=3.9"
 description = "Grid-enabled job submitter and execution monitor for Idiap"
 readme = "README.md"
@@ -31,7 +31,7 @@ dependencies = [
 ]
 
 [project.urls]
-documentation = "https://gridtk.readthedocs.io/en/v2.0.1/"
+documentation = "https://gridtk.readthedocs.io/en/latest/"
 homepage = "https://pypi.org/project/gridtk"
 repository = "https://gitlab.idiap.ch/software/gridtk"
 changelog = "https://gitlab.idiap.ch/software/gridtk/-/releases"
