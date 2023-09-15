@@ -232,7 +232,7 @@ def qsub(
             except ValueError:
                 # must be complete...
                 scmd.append("%s" % array)
-        if isinstance(array, (str, bytes)):
+        if isinstance(array, int):
             scmd.append("1-%d:1" % array)
         if isinstance(array, (tuple, list)):
             if len(array) < 1 or len(array) > 3:
